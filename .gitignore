@@ -1,0 +1,20 @@
+# Abhängigkeiten
+node_modules/
+**/node_modules/
+
+# MagicMirror-Laufzeit / lokale Daten
+config/config.js
+config/config.js.backup.*
+*.log
+npm-debug.log*
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Eigene lokale Töne (nicht mitliefern)
+modules/MMM-aPagerAlarm/sounds/*.mp3

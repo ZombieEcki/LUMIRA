@@ -1,0 +1,107 @@
+/* MagicMirror² Konfiguration – statische Vorlage
+ *
+ * Wird nur bei "./install.sh --no-wizard" verwendet.
+ * Normalerweise erzeugt der Assistent die config.js automatisch.
+ * Passe die mit <-- ANPASSEN markierten Stellen an.
+ */
+let config = {
+	address: "0.0.0.0",
+	port: 8080,
+	basePath: "/",
+	ipWhitelist: [],
+
+	language: "de",
+	locale: "de-DE",
+	timeFormat: 24,
+	units: "metric",
+
+	modules: [
+		{ module: "alert" },
+		{ module: "updatenotification", position: "top_bar" },
+		{ module: "clock", position: "top_left" },
+
+		{
+			module: "calendar",
+			header: "Familienkalender",
+			position: "top_left",
+			config: {
+				calendars: [
+					// <-- ANPASSEN: iCloud-/ICS-Link (webcal:// wird zu https://)
+					{ symbol: "calendar-check", url: "https://example.com/dein-kalender.ics" }
+				]
+			}
+		},
+
+		{
+			module: "weather",
+			position: "top_right",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "current",
+				lat: 48.137,   // <-- ANPASSEN
+				lon: 11.575    // <-- ANPASSEN
+			}
+		},
+		{
+			module: "weather",
+			position: "top_right",
+			header: "Wettervorhersage",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "forecast",
+				lat: 48.137,   // <-- ANPASSEN
+				lon: 11.575    // <-- ANPASSEN
+			}
+		},
+
+		// Optional – erst nach Installation des Moduls aktivieren:
+		// { module: "MMM-RainRadarDWD", position: "bottom_left" },
+
+		{
+			module: "newsfeed",
+			position: "bottom_bar",
+			config: {
+				feeds: [
+					{ title: "Tagesschau", url: "https://www.tagesschau.de/xml/rss2/" }
+				],
+				showSourceTitle: true,
+				showPublishDate: true,
+				broadcastNewsFeeds: true,
+				broadcastNewsUpdates: true
+			}
+		},
+
+		{
+			module: "MMM-aPagerAlarm",
+			position: "fullscreen_above",
+			config: {
+				webhookPort: 8090,
+				personName: "Papa",   // <-- ANPASSEN
+				playSound: true,
+				soundFile: "alarm.mp3",
+				forwardTargets: [
+					// "http://192.168.178.156:8123/api/webhook/feuerwehr_alarm"
+				]
+			}
+		},
+		{
+			module: "MMM-SmartCompliments",
+			position: "top_center",
+			config: {
+				updateInterval: 30000,
+				fadeSpeed: 4000,
+				firefighterIntegration: true,
+				hideOnAlarmPhases: [1],
+				afterDutyEnabled: true,
+				manualControlEnabled: true,
+				manualControlPort: 8091,
+				birthdays: [
+					// { name: "Marie", date: "04-06" }
+				],
+				weddingDate: ""
+			}
+		}
+	]
+};
+
+if (typeof module !== "undefined") { module.exports = config; }

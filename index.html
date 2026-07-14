@@ -1,0 +1,550 @@
+<title>Feuerwehr &amp; Familie – MagicMirror System</title>
+<style>
+  :root {
+    --bg: #0E1013;
+    --surface: #16191E;
+    --surface-2: #1D2129;
+    --border: #2A2F38;
+    --ink: #F3F1EC;
+    --muted: #9AA0AB;
+    --faint: #6C7280;
+    --accent: #E5322C;
+    --accent-ink: #ff6a5f;
+    --amber: #F5B301;
+    --green: #46B676;
+    --blue: #4E86E4;
+    --hazard-dark: #14161A;
+
+    --maxw: 940px;
+    --radius: 16px;
+    --gap: clamp(1rem, 3vw, 1.6rem);
+
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #EEECEA;
+      --surface: #FFFFFF;
+      --surface-2: #F5F3F0;
+      --border: #DED9D2;
+      --ink: #17191D;
+      --muted: #5C626C;
+      --faint: #8A8F98;
+      --accent: #D21E24;
+      --accent-ink: #C31B21;
+      --green: #1F945A;
+      --blue: #2E63C8;
+      --hazard-dark: #1A1C20;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1013; --surface: #16191E; --surface-2: #1D2129; --border: #2A2F38;
+    --ink: #F3F1EC; --muted: #9AA0AB; --faint: #6C7280; --accent: #E5322C;
+    --accent-ink: #ff6a5f; --green: #46B676; --blue: #4E86E4; --hazard-dark: #14161A;
+  }
+  :root[data-theme="light"] {
+    --bg: #EEECEA; --surface: #FFFFFF; --surface-2: #F5F3F0; --border: #DED9D2;
+    --ink: #17191D; --muted: #5C626C; --faint: #8A8F98; --accent: #D21E24;
+    --accent-ink: #C31B21; --green: #1F945A; --blue: #2E63C8; --hazard-dark: #1A1C20;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2rem); }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  h2 {
+    font-size: clamp(1.5rem, 4vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+  }
+  h3 { font-size: 1.06rem; font-weight: 700; letter-spacing: -0.01em; }
+
+  p { margin: 0; }
+  a { color: var(--accent-ink); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+  code, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Hazard rule ---------- */
+  .hazard {
+    height: 12px;
+    border-radius: 3px;
+    background-image: repeating-linear-gradient(
+      -45deg, var(--amber) 0 15px, var(--hazard-dark) 15px 30px);
+    opacity: 0.92;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    position: relative;
+    padding: clamp(3rem, 9vw, 6rem) 0 clamp(2rem, 5vw, 3rem);
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 80% at 88% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: clamp(1.5rem, 5vw, 3.5rem);
+    align-items: center;
+  }
+  .hero h1 {
+    font-size: clamp(2.3rem, 6.4vw, 4rem);
+    font-weight: 850;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    margin: 1.1rem 0 0;
+  }
+  .hero h1 .flip { color: var(--accent); }
+  .hero .lede {
+    margin-top: 1.4rem;
+    font-size: clamp(1.02rem, 2.3vw, 1.2rem);
+    color: var(--muted);
+    max-width: 46ch;
+  }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.8rem; }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    padding: 0.34rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  /* mock stack in hero */
+  .mock-stack { display: grid; gap: 1rem; }
+  .mock {
+    border-radius: 14px;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--border);
+  }
+  .mock-alarm {
+    background: linear-gradient(160deg, #d81010, #a10707);
+    border-color: #ff5a52;
+    color: #fff;
+    box-shadow: 0 12px 40px -12px rgba(226,58,46,0.6);
+    text-align: center;
+  }
+  .mock-alarm .lights { display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 800; letter-spacing: 0.12em; font-size: 0.92rem; }
+  .mock-alarm .dot { width: 9px; height: 9px; border-radius: 50%; background: #ffd23f; box-shadow: 0 0 10px #ffd23f; animation: blink 0.9s steps(1) infinite; }
+  .mock-alarm .dot.b { animation-delay: 0.45s; }
+  .mock-alarm .kw { font-size: 1.5rem; font-weight: 850; margin: 0.5rem 0 0.15rem; }
+  .mock-alarm .meta { font-size: 0.76rem; opacity: 0.85; font-family: var(--font-mono); }
+  .mock-alarm .stripes { height: 7px; margin: 0.8rem -1.2rem -1.1rem; border-radius: 0 0 14px 14px;
+    background-image: repeating-linear-gradient(-45deg, #ffd23f 0 12px, #1a1a1a 12px 24px); }
+
+  .mock-calm {
+    background: var(--surface);
+    color: var(--ink);
+    text-align: center;
+    border-top: 3px solid var(--green);
+  }
+  .mock-calm .badge { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  .mock-calm .msg { font-size: 1.05rem; margin-top: 0.5rem; }
+
+  @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0.25; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none !important; } }
+
+  /* ---------- Sections ---------- */
+  section { padding: clamp(2.6rem, 7vw, 4.6rem) 0; }
+  .sec-head { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 2rem; }
+  .sec-head p { color: var(--muted); max-width: 60ch; }
+
+  /* ---------- Flow diagram ---------- */
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.6rem; }
+  .flow .node {
+    flex: 1 1 130px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    display: flex; flex-direction: column; gap: 0.25rem;
+    min-width: 0;
+  }
+  .flow .node .n-label { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+  .flow .node .n-name { font-weight: 700; font-size: 0.98rem; }
+  .flow .node .n-sub { font-size: 0.8rem; color: var(--muted); }
+  .flow .arrow { align-self: center; color: var(--accent); font-weight: 800; padding: 0 0.1rem; }
+  .flow .node.accent { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent); }
+
+  /* ---------- Module cards ---------- */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem 1.5rem 1.6rem;
+    display: flex; flex-direction: column; gap: 0.85rem;
+  }
+  .card .k { font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-ink); letter-spacing: 0.02em; }
+  .card ul { margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.94rem; display: grid; gap: 0.35rem; }
+  .card li::marker { color: var(--accent); }
+
+  /* ---------- Phase timeline ---------- */
+  .phases { display: grid; gap: 0; position: relative; }
+  .phase {
+    display: grid;
+    grid-template-columns: 68px 1fr;
+    gap: 1.1rem;
+    padding: 1.3rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .phase:first-child { border-top: none; }
+  .phase .state {
+    font-family: var(--font-mono);
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1;
+    width: 56px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+  }
+  .phase.s-alarm .state { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .phase.s-info .state { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, var(--border)); }
+  .phase.s-return .state { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, var(--border)); }
+  .phase .body { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+  .phase .row1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem 0.9rem; }
+  .phase .row1 h3 { font-size: 1.12rem; }
+  .phase .dur { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); padding: 0.15rem 0.55rem; border-radius: 6px; }
+  .phase .desc { color: var(--muted); font-size: 0.95rem; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-family: var(--font-mono); font-size: 0.73rem; letter-spacing: 0.02em;
+    padding: 0.24rem 0.6rem; border-radius: 999px; width: fit-content;
+    border: 1px solid var(--border);
+  }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.off { color: var(--accent-ink); }
+  .pill.on { color: var(--green); }
+  .pill.thanks { color: var(--blue); }
+
+  /* ---------- Tables ---------- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border); }
+  thead th { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); background: var(--surface-2); }
+  tbody tr:last-child td { border-bottom: none; }
+  td .mono { color: var(--ink); }
+  .method { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-ink); }
+  .port { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Code ---------- */
+  pre {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  pre .c { color: var(--faint); }
+  pre .s { color: var(--green); }
+  pre .k { color: var(--accent-ink); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); align-items: start; }
+
+  /* ---------- Steps ---------- */
+  .steps { display: grid; gap: 0.7rem; counter-reset: step; }
+  .step {
+    display: grid; grid-template-columns: 34px 1fr; gap: 0.9rem; align-items: start;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.95rem 1.1rem;
+  }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    font-family: var(--font-mono); font-weight: 700; font-size: 0.9rem;
+    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+    border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent-ink);
+  }
+  .step .st-body { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+  .step h3 { font-size: 0.98rem; }
+  .step p { color: var(--muted); font-size: 0.9rem; }
+  .step code { background: var(--surface-2); border: 1px solid var(--border); padding: 0.05rem 0.35rem; border-radius: 5px; font-size: 0.82rem; }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--border); padding: 2.4rem 0 3rem; color: var(--faint); font-size: 0.86rem; }
+  footer .frow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; align-items: center; }
+
+  .note {
+    border-left: 3px solid var(--amber);
+    background: color-mix(in srgb, var(--amber) 8%, var(--surface));
+    padding: 0.85rem 1.1rem; border-radius: 0 10px 10px 0; font-size: 0.9rem; color: var(--muted);
+  }
+  .note b { color: var(--ink); }
+
+  @media (max-width: 760px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .cards, .two-col { grid-template-columns: 1fr; }
+    .phase { grid-template-columns: 52px 1fr; gap: 0.9rem; }
+    .phase .state { width: 46px; height: 46px; font-size: 1.4rem; }
+    .flow .arrow { transform: rotate(90deg); }
+  }
+</style>
+
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">MagicMirror² · Feuerwehr &amp; Familie</span>
+      <h1>Der Spiegel gehört der Familie.<br><span class="flip">Bis der Melder geht.</span></h1>
+      <p class="lede">Ein Familien-Informationssystem für den MagicMirror: im Alltag warme Botschaften, bei einer Alarmierung über aPager PRO ein klares Einsatzfenster — und nach dem Einsatz automatisch wieder Familie.</p>
+      <div class="hero-tags">
+        <span class="tag">2 Module</span>
+        <span class="tag">Webhook-gesteuert</span>
+        <span class="tag">aPager PRO</span>
+        <span class="tag">Home Assistant</span>
+        <span class="tag">Raspberry Pi</span>
+      </div>
+    </div>
+    <div class="mock-stack" aria-hidden="true">
+      <div class="mock mock-alarm">
+        <div class="lights"><span class="dot"></span> EINSATZ <span class="dot b"></span></div>
+        <div class="kw">B2 – Zimmerbrand</div>
+        <div class="meta">Florian Musterstadt · 21:19 Uhr</div>
+        <div class="stripes"></div>
+      </div>
+      <div class="mock mock-calm">
+        <div class="badge">Familienmodus</div>
+        <div class="msg">❤️ Schön, dass wir zusammen sind.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap"><div class="hazard"></div></div>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Die Idee</span>
+      <h2>Ein Spiegel, der weiß, wann er still sein muss</h2>
+      <p>Herkömmliche Alarm-Anzeigen kennen nur an oder aus. Dieses System denkt in Situationen: Es zeigt immer nur <em>die eine</em> gerade wichtigste Information — und ordnet sich dem Einsatz unter, ohne die Familie mit Technik zu überladen.</p>
+    </div>
+    <div class="flow">
+      <div class="node"><span class="n-label">Auslöser</span><span class="n-name">aPager PRO</span><span class="n-sub">Alarmierung</span></div>
+      <span class="arrow">→</span>
+      <div class="node accent"><span class="n-label">Empfang</span><span class="n-name">Raspberry Pi</span><span class="n-sub">Webhook · Node.js</span></div>
+      <span class="arrow">→</span>
+      <div class="node"><span class="n-label">Anzeige</span><span class="n-name">MagicMirror²</span><span class="n-sub">2 Module</span></div>
+      <span class="arrow">→</span>
+      <div class="node"><span class="n-label">Optional</span><span class="n-name">Home Assistant</span><span class="n-sub">Licht &amp; Szenen</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Bausteine</span>
+      <h2>Zwei Module, die miteinander sprechen</h2>
+      <p>Beide sind eigenständig nutzbar und kommunizieren über eine schlanke Notification (<code>APAGER_STATE</code>). So bleibt jedes Modul wartbar — und das Zusammenspiel trotzdem nahtlos.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="k">MMM-aPagerAlarm</span>
+        <h3>Das Einsatzfenster</h3>
+        <p style="color:var(--muted); font-size:0.94rem;">Empfängt die Alarmierung und führt durch vier Phasen — vom akuten Alarm bis zur wertschätzenden Rückkehr.</p>
+        <ul>
+          <li>Zentriertes Alarmfenster mit Blaulicht &amp; Ton</li>
+          <li>Ruhige Karten „ist im Einsatz“ / „war im Einsatz“</li>
+          <li>Webhook-Server auf Port 8090</li>
+          <li>Sendet Phasenwechsel an andere Module &amp; Home Assistant</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="k">MMM-SmartCompliments</span>
+        <h3>Der Familienassistent</h3>
+        <p style="color:var(--muted); font-size:0.94rem;">Zeigt kontextabhängig genau eine Botschaft — nach Uhrzeit, Wochentag, Wetter, Kalender, Geburtstagen und Einsatzstatus.</p>
+        <ul>
+          <li>Prioritäts-Engine statt Zufallssprüche</li>
+          <li>Geburtstage, Hochzeitstag, Feiertage, Countdown</li>
+          <li>Danke-Nachwirkung nach dem Einsatz</li>
+          <li>Manueller Ein-/Aus-Schalter auf Port 8091</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hazard"></div></div>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Der Ablauf</span>
+      <h2>Vier Phasen, ein roter Faden</h2>
+      <p>Eine Alarmierung durchläuft die Phasen automatisch und zeitgesteuert. Die Pille rechts zeigt, wie sich der Familienassistent in jeder Phase verhält.</p>
+    </div>
+    <div class="phases">
+      <div class="phase s-family">
+        <div class="state">0</div>
+        <div class="body">
+          <div class="row1"><h3>Familienmodus</h3><span class="dur">Standard</span></div>
+          <p class="desc">Kein Hinweis auf Feuerwehr. Der Spiegel gehört vollständig der Familie.</p>
+          <span class="pill on">SmartCompliments sichtbar</span>
+        </div>
+      </div>
+      <div class="phase s-alarm">
+        <div class="state">1</div>
+        <div class="body">
+          <div class="row1"><h3>Alarm</h3><span class="dur">15 Min</span></div>
+          <p class="desc">Rotes Overlay, Blaulicht-Animation, Alarmton, Countdown. Stichwort, Einheit und Alarmzeit im Blick.</p>
+          <span class="pill off">SmartCompliments ausgeblendet</span>
+        </div>
+      </div>
+      <div class="phase s-info">
+        <div class="state">2</div>
+        <div class="body">
+          <div class="row1"><h3>Papa ist im Einsatz</h3><span class="dur">4 Std</span></div>
+          <p class="desc">Ruhige Glaskarte, keine Alarmfarben. Alle 5 Minuten eine liebevolle Botschaft an den, der draußen hilft.</p>
+          <span class="pill on">SmartCompliments laufen weiter</span>
+        </div>
+      </div>
+      <div class="phase s-return">
+        <div class="state">3</div>
+        <div class="body">
+          <div class="row1"><h3>Papa war im Einsatz</h3><span class="dur">30 Min</span></div>
+          <p class="desc">Grüne Willkommens-Karte. Manuell auslösbar über <span class="mono">/home</span>, sobald du zuhause bist.</p>
+          <span class="pill on">SmartCompliments laufen weiter</span>
+        </div>
+      </div>
+      <div class="phase s-family">
+        <div class="state">↺</div>
+        <div class="body">
+          <div class="row1"><h3>Zurück zur Familie</h3><span class="dur">bis Mitternacht</span></div>
+          <p class="desc">Der Spiegel ist wieder im Alltag — und mischt bis Mitternacht dezente Danke-Botschaften unter die Sprüche.</p>
+          <span class="pill thanks">Danke-Nachwirkung aktiv</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Steuerung</span>
+      <h2>Alles über einfache URLs</h2>
+      <p>Jede Aktion ist ein Aufruf — per Browser-Lesezeichen, NFC-Tag an der Tür oder Automation. Kein Konto, keine App.</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Methode</th><th>Endpunkt</th><th>Wirkung</th><th>Port</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="method">POST/GET</td><td><span class="mono">/alarm</span></td><td>Alarmierung auslösen (Phase 1)</td><td class="port">8090</td></tr>
+          <tr><td class="method">POST/GET</td><td><span class="mono">/home</span></td><td>Sofort in Phase 3 springen</td><td class="port">8090</td></tr>
+          <tr><td class="method">POST/GET</td><td><span class="mono">/clear</span></td><td>Einsatz sofort beenden</td><td class="port">8090</td></tr>
+          <tr><td class="method">GET</td><td><span class="mono">/apager/health</span></td><td>Statusprüfung</td><td class="port">8090</td></tr>
+          <tr><td class="method">POST/GET</td><td><span class="mono">/compliments/off</span></td><td>Kompliments ausblenden</td><td class="port">8091</td></tr>
+          <tr><td class="method">POST/GET</td><td><span class="mono">/compliments/on</span></td><td>Kompliments einblenden</td><td class="port">8091</td></tr>
+          <tr><td class="method">POST/GET</td><td><span class="mono">/compliments/toggle</span></td><td>Umschalten</td><td class="port">8091</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:1.1rem;" class="note"><b>Ports merken:</b> 8080 gehört MagicMirror selbst — nie belegen. 8090 = Einsatzfenster, 8091 = Familienassistent.</div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hazard"></div></div>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Smart Home</span>
+      <h2>Wenn du rausrennst, reagiert das Haus</h2>
+      <p>Bei jedem Phasenwechsel sendet das Einsatzfenster einen Webhook an Home Assistant. So färbt sich z. B. das Flurlicht rot, sobald der Melder geht — und geht nach dem Einsatz von selbst wieder aus.</p>
+    </div>
+    <div class="two-col">
+      <div>
+        <h3 style="margin-bottom:0.7rem;">Was der Mirror sendet</h3>
+        <pre><span class="c">// POST an deinen HA-Webhook</span>
+{
+  <span class="k">"state"</span>: <span class="s">1</span>,        <span class="c">// 1 Alarm · 2 im Einsatz</span>
+  <span class="k">"keyword"</span>: <span class="s">"B2 - Zimmerbrand"</span>,
+  <span class="k">"unit"</span>: <span class="s">"Florian Musterstadt"</span>,
+  <span class="k">"time"</span>: <span class="s">1720000000000</span>
+}</pre>
+        <p style="color:var(--muted); font-size:0.86rem; margin-top:0.7rem;"><span class="mono">state</span>: 1 Alarm · 2 im Einsatz · 3 war im Einsatz · 0 Einsatz vorbei.</p>
+      </div>
+      <div>
+        <h3 style="margin-bottom:0.7rem;">Automation in Home Assistant</h3>
+        <pre><span class="k">trigger:</span>
+  - platform: webhook
+    webhook_id: feuerwehr_alarm
+    local_only: <span class="s">true</span>
+<span class="k">condition:</span>
+  - <span class="s">"{{ trigger.json.state == 1 }}"</span>
+<span class="k">action:</span>
+  - service: light.turn_on
+    target:
+      entity_id: light.flur_hue_go
+    data:
+      rgb_color: [<span class="s">255</span>, <span class="s">0</span>, <span class="s">0</span>]
+      brightness_pct: <span class="s">100</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Loslegen</span>
+      <h2>In sechs Schritten am Spiegel</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="st-body"><h3>Module kopieren</h3><p>Beide Ordner nach <code>~/MagicMirror/modules/</code> legen.</p></div></div>
+      <div class="step"><div class="st-body"><h3>Abhängigkeiten installieren</h3><p>In jedem Modulordner <code>npm install</code> ausführen (beide nutzen einen Webhook-Server).</p></div></div>
+      <div class="step"><div class="st-body"><h3>Ton hinterlegen</h3><p>Optional eine <code>alarm.mp3</code> in <code>MMM-aPagerAlarm/sounds/</code> ablegen.</p></div></div>
+      <div class="step"><div class="st-body"><h3>config.js ergänzen</h3><p>Beide Module eintragen, <code>personName</code>, Geburtstage und ggf. <code>forwardTargets</code> setzen.</p></div></div>
+      <div class="step"><div class="st-body"><h3>Neu starten</h3><p><code>pm2 restart MagicMirror</code> — die Startzeilen der beiden Webhook-Server erscheinen im Log.</p></div></div>
+      <div class="step"><div class="st-body"><h3>Testalarm senden</h3><p><code>…:8090/alarm?keyword=Test&amp;unit=Test</code> im Browser — das Einsatzfenster fährt ein.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap frow">
+    <span>MMM-aPagerAlarm &amp; MMM-SmartCompliments · MIT-Lizenz</span>
+    <span class="mono">Der Spiegel gehört der Familie. 🚒</span>
+  </div>
+</footer>

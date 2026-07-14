@@ -1,0 +1,11 @@
+# Alle Textdateien mit LF auschecken (Ziel ist Linux/Raspberry Pi)
+* text=auto eol=lf
+
+# Skripte immer LF – sonst startet install.sh auf dem Pi nicht
+*.sh text eol=lf
+install.sh text eol=lf
+
+# Binärdateien nicht anfassen
+*.mp3 binary
+*.png binary
+*.jpg binary

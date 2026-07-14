@@ -1,0 +1,365 @@
+/* MMM-aPagerAlarm.css
+ *
+ * Zustand 1 (Alarm): rote, technische Alarmkarte mit Blaulicht.
+ * Zustand 2/3 (im/war Einsatz): ruhige, moderne Glassmorphism-Karten.
+ *
+ * Alle Karten werden per position:fixed + transform exakt mittig platziert,
+ * unabhängig von der MagicMirror-Region.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Root                                                               */
+/* ------------------------------------------------------------------ */
+.apager-hidden {
+	display: none;
+}
+
+.apager-root.apager-active {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	pointer-events: none; /* MagicMirror darunter bleibt bedienbar */
+}
+
+/* Abdunklung (nur Zustand 1) */
+.apager-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.55);
+	animation: apager-fade-in 0.4s ease-out;
+}
+
+/* Gemeinsame Zentrierung aller Karten */
+.apager-card {
+	position: fixed;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	box-sizing: border-box;
+	text-align: center;
+	color: #ffffff;
+}
+
+/* ================================================================== */
+/* Zustand 1 – Alarm                                                  */
+/* ================================================================== */
+.apager-card-alarm {
+	width: 46vw;
+	max-width: 620px;
+	min-width: 340px;
+	padding: 28px 34px 46px 34px;
+	background: linear-gradient(160deg, #d81010 0%, #a40808 100%);
+	border: 3px solid #ff4d4d;
+	border-radius: 26px;
+	box-shadow:
+		0 0 40px 8px rgba(255, 0, 0, 0.75),
+		0 0 120px 20px rgba(255, 0, 0, 0.35),
+		inset 0 0 60px rgba(0, 0, 0, 0.25);
+	overflow: hidden;
+	animation:
+		apager-pop-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+		apager-glow 1.4s ease-in-out infinite alternate;
+}
+
+.apager-card-alarm::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-image: repeating-linear-gradient(
+		45deg,
+		rgba(0, 0, 0, 0.06) 0px,
+		rgba(0, 0, 0, 0.06) 14px,
+		transparent 14px,
+		transparent 28px
+	);
+	pointer-events: none;
+}
+
+.apager-header {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 18px;
+	padding-bottom: 16px;
+	border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+	margin-bottom: 18px;
+}
+
+.apager-title {
+	font-size: 2.4vw;
+	font-weight: 800;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	white-space: nowrap;
+	text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.apager-light {
+	font-size: 2.2vw;
+	display: inline-block;
+	animation: apager-blink 0.8s steps(1) infinite;
+	filter: drop-shadow(0 0 8px rgba(255, 60, 60, 0.9));
+}
+.apager-light-right { animation-delay: 0.4s; }
+
+.apager-label {
+	font-size: 1.0vw;
+	letter-spacing: 3px;
+	opacity: 0.8;
+	text-transform: uppercase;
+	margin-bottom: 4px;
+}
+
+.apager-keyword {
+	font-size: 3.4vw;
+	font-weight: 800;
+	line-height: 1.1;
+	margin: 6px 0 14px 0;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.apager-unit {
+	font-size: 2.2vw;
+	font-weight: 700;
+	color: #ffd23f;
+	margin: 4px 0 12px 0;
+	text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.apager-time {
+	font-size: 2.4vw;
+	font-weight: 700;
+	margin-top: 4px;
+}
+
+.apager-date {
+	font-size: 1.0vw;
+	opacity: 0.85;
+	margin-top: 2px;
+}
+
+.apager-divider {
+	height: 2px;
+	background: rgba(255, 255, 255, 0.25);
+	margin: 16px auto;
+	width: 80%;
+}
+
+.apager-ready {
+	margin-top: 22px;
+	font-size: 2.0vw;
+	font-weight: 800;
+	color: #ffd23f;
+	text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+	animation: apager-pulse 1.2s ease-in-out infinite;
+}
+
+.apager-footer {
+	margin-top: 20px;
+	font-size: 0.95vw;
+	opacity: 0.9;
+}
+#apager-countdown-value {
+	font-weight: 700;
+	color: #ffd23f;
+}
+
+.apager-stripes {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 14px;
+	background-image: repeating-linear-gradient(
+		45deg,
+		#ffd23f 0px, #ffd23f 16px,
+		#1a1a1a 16px, #1a1a1a 32px
+	);
+	opacity: 0.9;
+}
+
+/* ================================================================== */
+/* Zustand 2 & 3 – ruhige Glassmorphism-Karten                        */
+/* ================================================================== */
+.apager-card-info,
+.apager-card-return {
+	width: 40vw;
+	max-width: 560px;
+	min-width: 320px;
+	padding: 46px 44px;
+	border-radius: 28px;
+	background: rgba(255, 255, 255, 0.08);
+	backdrop-filter: blur(18px) saturate(140%);
+	-webkit-backdrop-filter: blur(18px) saturate(140%);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	box-shadow:
+		0 20px 60px rgba(0, 0, 0, 0.45),
+		inset 0 1px 0 rgba(255, 255, 255, 0.15);
+	animation: apager-rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Zustand 2: dezent warmer Akzent */
+.apager-card-info {
+	border-top: 3px solid rgba(255, 160, 90, 0.6);
+}
+
+/* Zustand 3: grüner Akzent (Willkommen zurück) */
+.apager-card-return {
+	border-top: 3px solid rgba(90, 210, 140, 0.7);
+	background: rgba(40, 90, 60, 0.18);
+}
+
+.apager-badge {
+	display: inline-block;
+	font-size: 1.1vw;
+	font-weight: 600;
+	letter-spacing: 1px;
+	padding: 6px 16px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	margin-bottom: 22px;
+	opacity: 0.95;
+}
+
+.apager-headline {
+	font-size: 2.0vw;
+	font-weight: 700;
+	line-height: 1.25;
+	margin-bottom: 18px;
+	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.apager-info-keyword {
+	font-size: 1.5vw;
+	font-weight: 600;
+	opacity: 0.92;
+	margin-bottom: 8px;
+}
+
+.apager-info-meta {
+	font-size: 1.0vw;
+	opacity: 0.7;
+	margin-bottom: 26px;
+}
+
+.apager-heart {
+	font-size: 2.4vw;
+	margin: 8px 0 16px 0;
+	animation: apager-heartbeat 2.4s ease-in-out infinite;
+}
+.apager-heart-big {
+	font-size: 3.2vw;
+	margin-bottom: 24px;
+}
+
+.apager-message {
+	font-size: 1.35vw;
+	font-weight: 400;
+	line-height: 1.5;
+	opacity: 0.95;
+	min-height: 1.6em;
+}
+
+/* Sanftes Einblenden bei Botschaftswechsel */
+.apager-msg-in {
+	animation: apager-fade-in 0.9s ease-out;
+}
+
+/* ================================================================== */
+/* Animationen                                                        */
+/* ================================================================== */
+@keyframes apager-pop-in {
+	from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+	to   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+}
+
+@keyframes apager-rise-in {
+	from { transform: translate(-50%, -46%) scale(0.98); opacity: 0; }
+	to   { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+}
+
+@keyframes apager-fade-in {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
+
+@keyframes apager-glow {
+	from {
+		box-shadow:
+			0 0 30px 6px rgba(255, 0, 0, 0.6),
+			0 0 90px 16px rgba(255, 0, 0, 0.25),
+			inset 0 0 60px rgba(0, 0, 0, 0.25);
+	}
+	to {
+		box-shadow:
+			0 0 55px 12px rgba(255, 40, 40, 0.9),
+			0 0 150px 28px rgba(255, 0, 0, 0.45),
+			inset 0 0 60px rgba(0, 0, 0, 0.25);
+	}
+}
+
+@keyframes apager-blink {
+	0%, 49%   { opacity: 1; filter: drop-shadow(0 0 10px rgba(255, 40, 40, 1)); }
+	50%, 100% { opacity: 0.25; filter: none; }
+}
+
+@keyframes apager-pulse {
+	0%, 100% { transform: scale(1); }
+	50%      { transform: scale(1.06); }
+}
+
+@keyframes apager-heartbeat {
+	0%, 100% { transform: scale(1); }
+	14%      { transform: scale(1.15); }
+	28%      { transform: scale(1); }
+	42%      { transform: scale(1.1); }
+	56%      { transform: scale(1); }
+}
+
+/* Glassmorphism abschaltbar (config.useGlass = false) – solider Hintergrund */
+.apager-no-glass .apager-card-info,
+.apager-no-glass .apager-card-return {
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	background: rgba(25, 28, 32, 0.92);
+}
+.apager-no-glass .apager-card-return {
+	background: rgba(30, 60, 42, 0.92);
+}
+
+/* Animationen abschaltbar (config.animate = false) */
+.apager-no-animate .apager-card,
+.apager-no-animate .apager-overlay,
+.apager-no-animate .apager-light,
+.apager-no-animate .apager-ready,
+.apager-no-animate .apager-heart,
+.apager-no-animate .apager-msg-in {
+	animation: none !important;
+}
+
+/* ================================================================== */
+/* Responsiv – kleine Displays / Hochformat                           */
+/* ================================================================== */
+@media (max-width: 900px), (orientation: portrait) {
+	.apager-card-alarm { width: 82vw; max-width: none; }
+	.apager-title  { font-size: 5vw; }
+	.apager-light  { font-size: 5vw; }
+	.apager-label  { font-size: 2.6vw; }
+	.apager-keyword{ font-size: 7vw; }
+	.apager-unit   { font-size: 5vw; }
+	.apager-time   { font-size: 5.5vw; }
+	.apager-date   { font-size: 2.6vw; }
+	.apager-ready  { font-size: 5vw; }
+	.apager-footer { font-size: 2.4vw; }
+
+	.apager-card-info,
+	.apager-card-return { width: 84vw; max-width: none; padding: 34px 28px; }
+	.apager-badge        { font-size: 3.2vw; }
+	.apager-headline     { font-size: 5vw; }
+	.apager-info-keyword { font-size: 4vw; }
+	.apager-info-meta    { font-size: 2.8vw; }
+	.apager-heart        { font-size: 7vw; }
+	.apager-heart-big    { font-size: 9vw; }
+	.apager-message      { font-size: 3.6vw; }
+}
