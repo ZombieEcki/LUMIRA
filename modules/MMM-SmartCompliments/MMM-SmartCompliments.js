@@ -79,65 +79,125 @@ Module.register("MMM-SmartCompliments", {
 
 		// ---- Nachrichtenlisten (alle frei überschreibbar) ----
 		morningMessages: [
-			"Guten Morgen ☀️",
-			"Aufstehen, die Welt wartet.",
-			"Ein neuer Tag beginnt.",
-			"Kaffee steht dir bestimmt gut. ☕",
-			"Heute wird ein guter Tag."
+			"Guten Morgen, Sonnenschein! ☀️",
+			"Der Kaffee wartet schon ☕",
+			"Heute wird ein guter Tag 🌅",
+			"Aufstehen und strahlen! ✨",
+			"Neuer Tag, neues Glück 🍀",
+			"Heute kannst du alles schaffen 💪",
+			"Erst Kaffee, dann Welt retten ☕🚒",
+			"Starte mit einem Lächeln 😊",
+			"Die Welt wartet auf dich 🌍",
+			"Jeder Tag ist eine neue Chance 🌈"
 		],
 		forenoonMessages: [
-			"Halbzeit bis zum Mittagessen.",
-			"Bleib dran.",
-			"Du schaffst das."
+			"Läuft bei dir! 💪",
+			"Schon genug Wasser getrunken? 💧",
+			"Bald ist Mittagspause 🍽️"
 		],
 		afternoonMessages: [
-			"Weiter geht's.",
-			"Du machst das großartig.",
-			"Kleine Pause gefällig?",
-			"Nicht vergessen zu trinken. 💧"
+			"Läuft bei dir! 💪",
+			"Halbzeit – weiter so! ⏳",
+			"Du machst das großartig 🙌",
+			"Schon genug Wasser getrunken? 💧",
+			"Nicht nachlassen 🚀",
+			"Der Feierabend kommt näher 😄",
+			"Du bist auf dem richtigen Weg 👍",
+			"Kleine Pause? 🍪",
+			"Heute läuft's richtig gut 😎"
 		],
 		eveningMessages: [
-			"Schön, dass ihr zuhause seid.",
-			"Zeit zum Abschalten.",
-			"Genießt den Abend."
+			"Feierabend! 🌙",
+			"Zeit zum Entspannen 🛋️",
+			"Familienzeit ❤️",
+			"Der Tag war deiner 🏆",
+			"Jetzt Füße hochlegen 🍿",
+			"Zeit für einen gemütlichen Abend ✨"
 		],
 		nightMessages: [
-			"Gute Nacht.",
-			"Schlaf gut.",
-			"Träum etwas Schönes."
+			"Gute Nacht 😴",
+			"Morgen wartet ein neuer Tag 🌅"
 		],
 
 		familyMessages: [
-			"❤️ Schön, dass wir zusammen sind.",
-			"❤️ Gemeinsam schaffen wir alles.",
-			"❤️ Familie ist das Wichtigste.",
-			"❤️ Habt einen schönen Tag.",
-			"❤️ Schön, dass es euch gibt.",
-			"❤️ Heute ist ein guter Tag zum Lächeln.",
-			"❤️ Genießt die gemeinsame Zeit."
+			"Du siehst heute fantastisch aus! 😍",
+			"Schön, dass es dich gibt 💛",
+			"Bleib so wie du bist 🌈",
+			"Familie ist das Wichtigste ❤️",
+			"Zuhause ist da, wo die Familie ist 🏡",
+			"Genieße die kleinen Momente 🌼",
+			"Du bist unbezahlbar ❤️",
+			"Nicht jeder Held trägt einen Umhang 🚒",
+			"Retten. Löschen. Bergen. Schützen. ❤️‍🔥",
+			"Möge dein Funkmelder heute ruhig bleiben 📟",
+			"Danke für deinen Einsatz 👨‍🚒"
 		],
 		motivationMessages: [
-			"Gib heute dein Bestes.",
-			"Du kannst mehr als du denkst.",
-			"Jeder Tag ist eine neue Chance.",
-			"Bleib neugierig.",
-			"Schritt für Schritt."
+			"Lächeln nicht vergessen 😊",
+			"Du bist ein Held 🦸",
+			"Mach heute etwas, worauf du morgen stolz bist 🏆",
+			"Du schaffst mehr als du glaubst 💪",
+			"Jeder Tag ist ein Neuanfang 🌅",
+			"Du bist stärker als dein innerer Schweinehund 🐷",
+			"Ein Lächeln kostet nichts 😊",
+			"Heute wird legendär 🌟",
+			"Vergiss nicht zu trinken 💧",
+			"Du bist heute die beste Version von dir 💯",
+			"Alles beginnt mit dem ersten Schritt 👣",
+			"Heute ist dein Tag! 🎉",
+			"Manchmal reicht ein Lächeln, um den Tag zu verändern 😊",
+			"Glück ist selbstgemacht 🍀"
 		],
 		humorMessages: [
-			"Kaffee zählt als Motivation.",
-			"WLAN da? Dann kann nichts schiefgehen.",
-			"Wenn alles schief läuft, erstmal Kaffee.",
-			"Heute nichts vergessen. Außer schlechte Laune."
+			"Das Leben ist zu kurz für schlechte Laune 😄",
+			"Kaffee löst zwar nicht alles... aber vieles ☕",
+			"Kalorien zählen heute nicht 🍕😂",
+			"Der Kühlschrank glaubt an dich 🧀😂",
+			"Erwachsen sein ist auch nur Improvisation 🤣",
+			"Heute bitte keine peinlichen WhatsApps verschicken 📱",
+			"Das Leben ist schön – besonders mit Kaffee ☕"
 		],
 
 		weekdayMessages: {
-			1: ["Neuer Start.", "Mach das Beste daraus."],
-			2: ["Der schwierigste Tag ist geschafft."],
-			3: ["Bergfest."],
-			4: ["Das Wochenende kommt näher."],
-			5: ["Fast geschafft."],
-			6: ["Familienzeit."],
-			0: ["Akkus aufladen."]
+			1: [
+				"Montag... Kaffee hilft! ☕",
+				"Neue Woche – neue Chancen 🚀",
+				"Montag ist nur der Anfang 💪",
+				"Du schaffst auch diesen Montag 😄"
+			],
+			2: [
+				"Dienstag läuft doch schon viel besser 😎",
+				"Heute wird produktiv 📈",
+				"Bleib dran! 👍"
+			],
+			3: [
+				"Bergfest! ⛰️",
+				"Die Hälfte der Woche ist geschafft 🎉",
+				"Das Wochenende kommt näher 😄"
+			],
+			4: [
+				"Fast Freitag 😉",
+				"Nur noch einmal schlafen 😄",
+				"Endspurt! 🏁"
+			],
+			5: [
+				"Freitag!! 🎉",
+				"Das Wochenende ruft 🍻",
+				"Heute ist gute Laune Pflicht 😎",
+				"Nur noch bis Feierabend 💪"
+			],
+			6: [
+				"Schönes Wochenende ☀️",
+				"Genieße den Tag ❤️",
+				"Zeit für Familie 🏡",
+				"Mach heute etwas Schönes 😊"
+			],
+			0: [
+				"Genieße den Sonntag ☕",
+				"Akkus aufladen 🔋",
+				"Familienzeit ❤️",
+				"Entspannt in die neue Woche starten 🌈"
+			]
 		},
 		seasonMessages: {
 			spring: ["Die Natur wacht auf. 🌱"],

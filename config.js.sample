@@ -1,8 +1,11 @@
-/* MagicMirror² Konfiguration – statische Vorlage
+/* MagicMirror² – LUMIRA Konfiguration (Vorlage)
  *
- * Wird nur bei "./install.sh --no-wizard" verwendet.
+ * Wird bei "./install.sh --no-wizard" verwendet oder als Referenz.
  * Normalerweise erzeugt der Assistent die config.js automatisch.
- * Passe die mit <-- ANPASSEN markierten Stellen an.
+ *
+ * Passe die mit <-- ANPASSEN markierten Stellen an:
+ *   - Koordinaten (lat/lon)   - Kalender-URL   - Home-Assistant-URL
+ *   - Geburtstage/Hochzeitstag - personName
  */
 let config = {
 	address: "0.0.0.0",
@@ -10,95 +13,192 @@ let config = {
 	basePath: "/",
 	ipWhitelist: [],
 
+	useHttps: false,
 	language: "de",
 	locale: "de-DE",
+	logLevel: ["INFO", "LOG", "WARN", "ERROR"],
 	timeFormat: 24,
 	units: "metric",
 
 	modules: [
 		{ module: "alert" },
 		{ module: "updatenotification", position: "top_bar" },
-		{ module: "clock", position: "top_left" },
-
 		{
-			module: "calendar",
-			header: "Familienkalender",
-			position: "top_left",
-			config: {
-				calendars: [
-					// <-- ANPASSEN: iCloud-/ICS-Link (webcal:// wird zu https://)
-					{ symbol: "calendar-check", url: "https://example.com/dein-kalender.ics" }
-				]
-			}
-		},
-
-		{
-			module: "weather",
+			module: "clock",
 			position: "top_right",
 			config: {
-				weatherProvider: "openmeteo",
-				type: "current",
-				lat: 48.137,   // <-- ANPASSEN
-				lon: 11.575    // <-- ANPASSEN
+				displayType: "digital",
+				displaySeconds: false
 			}
 		},
+
+		/* --- DWD-Regenradar (benötigt installiertes MMM-RainRadarDWD) --- */
 		{
-			module: "weather",
+			module: "MMM-RainRadarDWD",
 			position: "top_right",
-			header: "Wettervorhersage",
 			config: {
-				weatherProvider: "openmeteo",
-				type: "forecast",
-				lat: 48.137,   // <-- ANPASSEN
-				lon: 11.575    // <-- ANPASSEN
+				lat: 48.4325808,          // <-- ANPASSEN
+				lon: 11.5981814,          // <-- ANPASSEN
+
+				alwaysVisible: true,
+				showIfRainWithin: 120,
+
+				timePast: 60,
+				timeFuture: 120,
+				frameStep: 10,
+
+				width: "350px",
+				height: "350px",
+				border: "none",
+				zoomLevel: 9,
+				cloudBlur: 12,
+				markerSymbol: "fa-home",
+				markerColor: "#ff0000",
+
+				showLegend: true,
+				legendPosition: "bottom",
+
+				textPast: "PAST",
+				textNow: "NOW",
+				textForecast: "FORECAST",
+				textRainExpected: " - Rain expected:",
+				textSnowExpected: " - Snow expected:",
+				textSleetExpected: " - Sleet expected:",
+				textHailExpected: " - Hail expected:",
+				textLoading: "Loading data...",
+				textLight: "Light",
+				textHeavy: "Heavy",
+
+				animationSpeed: 2000,
+				updateInterval: 600000,
+				logLevel: "INFO"
 			}
 		},
 
-		// Optional – erst nach Installation des Moduls aktivieren:
-		// { module: "MMM-RainRadarDWD", position: "bottom_left" },
-
-		{
-			module: "newsfeed",
-			position: "bottom_bar",
-			config: {
-				feeds: [
-					{ title: "Tagesschau", url: "https://www.tagesschau.de/xml/rss2/" }
-				],
-				showSourceTitle: true,
-				showPublishDate: true,
-				broadcastNewsFeeds: true,
-				broadcastNewsUpdates: true
-			}
-		},
-
-		{
-			module: "MMM-aPagerAlarm",
-			position: "fullscreen_above",
-			config: {
-				webhookPort: 8090,
-				personName: "Papa",   // <-- ANPASSEN
-				playSound: true,
-				soundFile: "alarm.mp3",
-				forwardTargets: [
-					// "http://192.168.178.156:8123/api/webhook/feuerwehr_alarm"
-				]
-			}
-		},
+		/* --- Familienassistent (Sprüche kommen aus den Modul-Defaults) --- */
 		{
 			module: "MMM-SmartCompliments",
 			position: "top_center",
 			config: {
 				updateInterval: 30000,
 				fadeSpeed: 4000,
-				firefighterIntegration: true,
-				hideOnAlarmPhases: [1],
-				afterDutyEnabled: true,
-				manualControlEnabled: true,
-				manualControlPort: 8091,
+
+				// Persönliche Ereignisse  <-- ANPASSEN
 				birthdays: [
-					// { name: "Marie", date: "04-06" }
+					{ name: "Marie", date: "04-06" },
+					{ name: "Papa",  date: "04-24" },
+					{ name: "Maja",  date: "04-28" },
+					{ name: "Mama",  date: "06-11" }
 				],
-				weddingDate: ""
+				birthdayText: "🥳 Happy Birthday, {name}!",
+				birthdayReminderDays: 3,
+				weddingDate: "2016-07-13",      // <-- ANPASSEN
+				weddingText: "❤️ Alles Gute zum Hochzeitstag!",
+				anniversaryReminderDays: 7,
+
+				// Feuerwehr-Kopplung
+				firefighterIntegration: true,
+				hideOnAlarmPhases: [1],          // nur im akuten Alarm ausblenden
+
+				// Nachwirkung nach dem Einsatz
+				afterDutyEnabled: true,
+				afterDutyExclusive: false,
+				afterDutyDurationMinutes: 0,
+
+				// Manueller Schalter (Port 8091)
+				manualControlEnabled: true,
+				manualControlPort: 8091
+
+				// Eigene Sprüche? Siehe modules/MMM-SmartCompliments/CONFIG.md
+			}
+		},
+
+		/* --- Feuerwehr-Einsatzfenster --- */
+		{
+			module: "MMM-aPagerAlarm",
+			position: "fullscreen_above",
+			config: {
+				webhookPort: 8090,
+				webhookPath: "/alarm",
+				title: "EINSATZ",
+				readyText: "👷 Bereit machen!",
+				personName: "Papa",            // <-- ANPASSEN
+
+				alarmDuration: 15,
+				infoDuration: 240,
+				returnDuration: 30,
+
+				playSound: true,
+				soundFile: "alarm.mp3",
+				dimBackground: true,
+				showCountdown: true,
+
+				// Home Assistant (optional):
+				forwardTargets: [
+					// "http://192.168.178.156:8123/api/webhook/feuerwehr_alarm"   // <-- ANPASSEN
+				]
+			}
+		},
+
+		/* --- Familienkalender (iCloud/ICS) --- */
+		{
+			module: "calendar",
+			header: "Familienkalender",
+			position: "bottom_left",
+			config: {
+				maximumEntries: 5,
+				calendars: [
+					{
+						symbol: "calendar-check",
+						url: "https://example.com/dein-kalender.ics"   // <-- ANPASSEN (webcal:// -> https://)
+					}
+				]
+			}
+		},
+
+		/* --- Wetter (Open-Meteo) --- */
+		{
+			module: "weather",
+			position: "top_right",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "current",
+				lat: 48.4325546,   // <-- ANPASSEN
+				lon: 11.5973532    // <-- ANPASSEN
+			}
+		},
+		{
+			module: "weather",
+			position: "top_right",
+			header: "Das Wetter in",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "forecast",
+				lat: 48.4325546,   // <-- ANPASSEN
+				lon: 11.5973532    // <-- ANPASSEN
+			}
+		},
+
+		/* --- Nachrichten --- */
+		{
+			module: "newsfeed",
+			position: "bottom_bar",
+			config: {
+				feeds: [
+					{
+						title: "Tagesschau",
+						url: "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"
+					}
+				],
+				showSourceTitle: false,
+				showPublishDate: true,
+				reloadInterval: 300000,
+				updateInterval: 20000,
+				maxNewsItems: 10,
+				wrapTitle: true,
+				wrapDescription: false,
+				ignoreOldItems: true,
+				ignoreOlderThan: 86400000
 			}
 		}
 	]

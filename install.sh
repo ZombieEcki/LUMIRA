@@ -91,7 +91,7 @@ geocode() {
 # ---------------------------------------------------------------------------
 # Ergebnis-Variablen
 PERSON_NAME="Papa"; LAT="48.137"; LON="11.575"; LOCATION_NAME="München"
-CAL_URL=""; RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/xml/rss2/"
+CAL_URL=""; RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"
 HA_URL=""; RAINRADAR_URL=""
 
 run_wizard() {
@@ -141,7 +141,7 @@ run_wizard() {
   case "$choice" in
     2) RSS_TITLE="heise"; RSS_URL="https://www.heise.de/rss/heise-atom.xml" ;;
     3) RSS_TITLE="$(ask "Titel des Feeds" "Nachrichten")"; RSS_URL="$(ask "RSS-URL" "")" ;;
-    *) RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/xml/rss2/" ;;
+    *) RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml" ;;
   esac
   echo
 
@@ -181,8 +181,9 @@ write_config() {
 		{
 			module: "calendar",
 			header: "Familienkalender",
-			position: "top_left",
+			position: "bottom_left",
 			config: {
+				maximumEntries: 5,
 				calendars: [ { symbol: "calendar-check", url: "$CAL_URL" } ]
 			}
 		},
@@ -197,10 +198,15 @@ EOF
 			position: "bottom_bar",
 			config: {
 				feeds: [ { title: "$RSS_TITLE", url: "$RSS_URL" } ],
-				showSourceTitle: true,
+				showSourceTitle: false,
 				showPublishDate: true,
-				broadcastNewsFeeds: true,
-				broadcastNewsUpdates: true
+				reloadInterval: 300000,
+				updateInterval: 20000,
+				maxNewsItems: 10,
+				wrapTitle: true,
+				wrapDescription: false,
+				ignoreOldItems: true,
+				ignoreOlderThan: 86400000
 			}
 		},
 EOF
@@ -211,8 +217,28 @@ EOF
     RAIN_BLOCK=$(cat <<EOF
 		{
 			module: "MMM-RainRadarDWD",
-			position: "bottom_left"
-			// Optionen siehe README des Moduls (ggf. lat/lon ergänzen)
+			position: "top_right",
+			config: {
+				lat: ${LAT},
+				lon: ${LON},
+				alwaysVisible: true,
+				showIfRainWithin: 120,
+				timePast: 60,
+				timeFuture: 120,
+				frameStep: 10,
+				width: "350px",
+				height: "350px",
+				border: "none",
+				zoomLevel: 9,
+				cloudBlur: 12,
+				markerSymbol: "fa-home",
+				markerColor: "#ff0000",
+				showLegend: true,
+				legendPosition: "bottom",
+				animationSpeed: 2000,
+				updateInterval: 600000,
+				logLevel: "INFO"
+			}
 		},
 EOF
 )
@@ -237,7 +263,12 @@ let config = {
 	modules: [
 		{ module: "alert" },
 		{ module: "updatenotification", position: "top_bar" },
-		{ module: "clock", position: "top_left" },
+		{
+			module: "clock",
+			position: "top_right",
+			config: { displayType: "digital", displaySeconds: false }
+		},
+${RAIN_BLOCK}
 ${CAL_BLOCK}
 		{
 			module: "weather",
@@ -260,7 +291,6 @@ ${CAL_BLOCK}
 				lon: ${LON}
 			}
 		},
-${RAIN_BLOCK}
 ${NEWS_BLOCK}
 		{
 			module: "MMM-aPagerAlarm",
