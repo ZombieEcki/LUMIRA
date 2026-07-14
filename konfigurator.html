@@ -1,0 +1,450 @@
+<title>LUMIRA – Konfigurator</title>
+<style>
+  :root {
+    --bg: #0E1013; --surface: #16191E; --surface-2: #1D2129; --field: #12151A;
+    --border: #2A2F38; --border-2: #363c47;
+    --ink: #F3F1EC; --muted: #9AA0AB; --faint: #6C7280;
+    --accent: #E5322C; --accent-ink: #ff6a5f; --amber: #F5B301; --green: #46B676;
+    --hazard-dark: #14161A;
+    --radius: 14px;
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #EEECEA; --surface: #FFFFFF; --surface-2: #F5F3F0; --field: #FFFFFF;
+      --border: #DED9D2; --border-2: #cfc9c0;
+      --ink: #17191D; --muted: #5C626C; --faint: #8A8F98;
+      --accent: #D21E24; --accent-ink: #C31B21; --green: #1F945A; --hazard-dark: #1A1C20;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0E1013;--surface:#16191E;--surface-2:#1D2129;--field:#12151A;--border:#2A2F38;--border-2:#363c47;
+    --ink:#F3F1EC;--muted:#9AA0AB;--faint:#6C7280;--accent:#E5322C;--accent-ink:#ff6a5f;--green:#46B676;
+  }
+  :root[data-theme="light"] {
+    --bg:#EEECEA;--surface:#FFFFFF;--surface-2:#F5F3F0;--field:#FFFFFF;--border:#DED9D2;--border-2:#cfc9c0;
+    --ink:#17191D;--muted:#5C626C;--faint:#8A8F98;--accent:#D21E24;--accent-ink:#C31B21;--green:#1F945A;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-sans);
+    font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3 { margin:0; text-wrap:balance; }
+  .mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  a { color:var(--accent-ink); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+
+  /* Header */
+  header { border-bottom:1px solid var(--border); }
+  .head-in { max-width:1180px; margin:0 auto; padding:16px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .brand { font-weight:850; letter-spacing:.28em; font-size:.9rem; display:inline-flex; align-items:center; }
+  .brand::before { content:""; width:10px; height:10px; border-radius:2px; background:var(--accent);
+    margin-right:.55rem; box-shadow:0 0 10px color-mix(in srgb,var(--accent) 60%,transparent); }
+  .brand-sub { font-family:var(--font-mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .head-spacer { flex:1; }
+  .hazard { height:8px; background-image:repeating-linear-gradient(-45deg,var(--amber) 0 14px,var(--hazard-dark) 14px 28px); opacity:.9; }
+
+  /* Layout */
+  .wrap { max-width:1180px; margin:0 auto; padding:22px 20px 60px; display:grid;
+    grid-template-columns:1fr 420px; gap:26px; align-items:start; }
+  @media (max-width:900px){ .wrap{ grid-template-columns:1fr; } }
+
+  .col-form { display:flex; flex-direction:column; gap:18px; min-width:0; }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 18px 20px; }
+  .card > h2 { font-size:1.02rem; font-weight:750; letter-spacing:-.01em; display:flex; align-items:center; gap:.55rem; }
+  .card > h2 .num { font-family:var(--font-mono); font-size:.7rem; color:var(--accent-ink);
+    border:1px solid var(--border); border-radius:6px; padding:.1rem .4rem; }
+  .card .hint { color:var(--muted); font-size:.85rem; margin:.3rem 0 0; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+  @media (max-width:520px){ .grid2{ grid-template-columns:1fr; } }
+  .field { display:flex; flex-direction:column; gap:5px; margin-top:14px; }
+  .field.small { margin-top:0; }
+  label { font-size:.78rem; font-weight:600; color:var(--muted); letter-spacing:.01em; }
+  label .opt { color:var(--faint); font-weight:400; }
+  input[type=text], input[type=url], input[type=number], select {
+    width:100%; background:var(--field); color:var(--ink); border:1px solid var(--border-2);
+    border-radius:9px; padding:9px 11px; font-size:.9rem; font-family:inherit; }
+  input:focus, select:focus { border-color:var(--accent); outline:none; }
+  input::placeholder { color:var(--faint); }
+  .mono-in { font-family:var(--font-mono); }
+
+  /* Edition cards */
+  .editions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+  @media (max-width:520px){ .editions{ grid-template-columns:1fr; } }
+  .ed { position:relative; border:1px solid var(--border-2); border-radius:12px; padding:12px 13px; cursor:pointer; background:var(--field); transition:border-color .15s, background .15s; }
+  .ed:hover { border-color:var(--border); }
+  .ed input { position:absolute; opacity:0; pointer-events:none; }
+  .ed.sel { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 10%,var(--field)); }
+  .ed .et { font-weight:750; font-size:.95rem; display:flex; align-items:center; gap:.4rem; }
+  .ed .ed-sub { color:var(--muted); font-size:.8rem; margin-top:3px; }
+
+  /* Toggle */
+  .toggle { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 0; }
+  .toggle:not(:last-child){ border-bottom:1px solid var(--border); }
+  .toggle .tl { font-size:.9rem; }
+  .toggle .tl small { display:block; color:var(--muted); font-size:.78rem; margin-top:2px; }
+  .sw { --w:44px; width:var(--w); height:26px; border-radius:999px; background:var(--border-2); position:relative; flex:none; cursor:pointer; transition:background .15s; border:none; padding:0; }
+  .sw::after { content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .15s; }
+  .sw[aria-checked="true"] { background:var(--green); }
+  .sw[aria-checked="true"]::after { transform:translateX(18px); }
+
+  /* Birthdays */
+  .bdays { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .bday { display:grid; grid-template-columns:1fr 130px 38px; gap:8px; }
+  .bday input[type=text]{ padding:8px 10px; }
+  .btn-x { border:1px solid var(--border-2); background:var(--field); color:var(--muted); border-radius:8px; cursor:pointer; font-size:1rem; }
+  .btn-x:hover { color:var(--accent-ink); border-color:var(--accent); }
+  .btn-add { margin-top:10px; background:var(--surface-2); border:1px dashed var(--border-2); color:var(--ink);
+    border-radius:9px; padding:8px 12px; font-size:.85rem; cursor:pointer; }
+  .btn-add:hover { border-color:var(--accent); }
+
+  .disabled-note { color:var(--faint); font-size:.85rem; font-style:italic; margin-top:12px; }
+  .collapsed { display:none; }
+
+  /* Output pane */
+  .col-out { position:sticky; top:18px; display:flex; flex-direction:column; gap:12px; }
+  @media (max-width:900px){ .col-out{ position:static; } }
+  .out-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .out-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 14px; border-bottom:1px solid var(--border); }
+  .out-head h3 { font-size:.86rem; font-family:var(--font-mono); color:var(--muted); font-weight:600; letter-spacing:.04em; }
+  .out-actions { display:flex; gap:8px; }
+  .btn { border:1px solid var(--border-2); background:var(--surface-2); color:var(--ink); border-radius:8px;
+    padding:6px 11px; font-size:.8rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:.35rem; }
+  .btn:hover { border-color:var(--accent); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover { filter:brightness(1.06); }
+  pre { margin:0; padding:14px; overflow:auto; max-height:64vh; font-family:var(--font-mono); font-size:.76rem; line-height:1.5; color:var(--ink); background:var(--field); }
+  .tip { background:color-mix(in srgb,var(--amber) 9%,var(--surface)); border:1px solid var(--border);
+    border-left:3px solid var(--amber); border-radius:0 10px 10px 0; padding:10px 12px; font-size:.82rem; color:var(--muted); }
+  .tip b { color:var(--ink); }
+
+  .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); opacity:0;
+    background:var(--green); color:#04140b; font-weight:700; font-size:.85rem; padding:9px 16px; border-radius:999px; pointer-events:none; transition:opacity .2s, transform .2s; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+
+<header>
+  <div class="head-in">
+    <span class="brand">LUMIRA</span>
+    <span class="brand-sub">Konfigurator</span>
+    <span class="head-spacer"></span>
+    <span class="brand-sub">Der Spiegel gehört der Familie. 🚒</span>
+  </div>
+  <div class="hazard"></div>
+</header>
+
+<div class="wrap">
+  <!-- FORM -->
+  <form class="col-form" id="form" autocomplete="off">
+
+    <div class="card">
+      <h2><span class="num">1</span> Edition wählen</h2>
+      <p class="hint">Legt fest, welche Funktionen aktiv sind. Du kannst danach alles anpassen.</p>
+      <div class="editions" id="editions">
+        <label class="ed sel"><input type="radio" name="edition" value="home" checked>
+          <span class="et">🏡 LUMIRA Home</span><span class="ed-sub">Nur Familie – ohne Alarmierung</span></label>
+        <label class="ed"><input type="radio" name="edition" value="fire">
+          <span class="et">🚒 LUMIRA Fire</span><span class="ed-sub">Familie + Feuerwehr-Alarmierung</span></label>
+        <label class="ed"><input type="radio" name="edition" value="rescue">
+          <span class="et">🚑 LUMIRA Rescue</span><span class="ed-sub">Familie + Rettungsdienst</span></label>
+        <label class="ed"><input type="radio" name="edition" value="business">
+          <span class="et">💼 LUMIRA Business</span><span class="ed-sub">Für Unternehmen &amp; Büros</span></label>
+        <label class="ed"><input type="radio" name="edition" value="station">
+          <span class="et">🚨 LUMIRA Station</span><span class="ed-sub">Anzeige im Gerätehaus</span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span> Standort</h2>
+      <p class="hint">Für Wetter und Regenradar. Koordinaten findest du z. B. über Google Maps (Rechtsklick).</p>
+      <div class="field"><label>Ortsname <span class="opt">(nur Anzeige)</span></label>
+        <input type="text" id="city" placeholder="z. B. Musterstadt"></div>
+      <div class="grid2">
+        <div class="field small"><label>Breitengrad (lat)</label>
+          <input type="text" class="mono-in" id="lat" placeholder="52.520" value="52.520"></div>
+        <div class="field small"><label>Längengrad (lon)</label>
+          <input type="text" class="mono-in" id="lon" placeholder="13.405" value="13.405"></div>
+      </div>
+      <div class="toggle" style="margin-top:14px;">
+        <div class="tl">Regenradar (DWD)<small>Benötigt das Modul MMM-RainRadarDWD</small></div>
+        <button type="button" class="sw" id="sw-rain" aria-checked="true" role="switch"></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">3</span> Familie</h2>
+      <div class="field"><label id="lbl-person">Name der Person</label>
+        <input type="text" id="personName" placeholder="z. B. Papa" value="Papa"></div>
+
+      <label style="margin-top:16px; display:block;">Geburtstage <span class="opt">(optional)</span></label>
+      <div class="bdays" id="bdays"></div>
+      <button type="button" class="btn-add" id="addBday">+ Geburtstag hinzufügen</button>
+
+      <div class="grid2" style="margin-top:16px;">
+        <div class="field small"><label>Hochzeitstag <span class="opt">(JJJJ-MM-TT)</span></label>
+          <input type="text" class="mono-in" id="wedding" placeholder="2016-07-13"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">4</span> Kalender &amp; Nachrichten</h2>
+      <div class="field"><label>Kalender-URL <span class="opt">(iCloud/ICS – webcal:// oder https://)</span></label>
+        <input type="url" class="mono-in" id="calUrl" placeholder="https://…/kalender.ics"></div>
+      <div class="field"><label>Nachrichten-Feed</label>
+        <select id="newsPreset">
+          <option value="tagesschau">Tagesschau</option>
+          <option value="heise">heise online</option>
+          <option value="custom">Eigener RSS-Feed…</option>
+        </select></div>
+      <div class="field small collapsed" id="newsCustomWrap"><label>RSS-URL</label>
+        <input type="url" class="mono-in" id="newsUrl" placeholder="https://…/feed.xml"></div>
+    </div>
+
+    <div class="card" id="alarmCard">
+      <h2><span class="num">5</span> Alarmierung</h2>
+      <p class="hint" id="alarmHint">Wird über den Webhook <span class="mono">/alarm</span> (Port 8090) ausgelöst.</p>
+      <div class="grid2">
+        <div class="field small"><label>Überschrift</label>
+          <input type="text" id="title" placeholder="EINSATZ" value="EINSATZ"></div>
+        <div class="field small"><label>Alarm-Dauer (Min)</label>
+          <input type="number" class="mono-in" id="alarmDuration" value="15" min="1"></div>
+        <div class="field small"><label>„im Einsatz" (Min)</label>
+          <input type="number" class="mono-in" id="infoDuration" value="240" min="1"></div>
+        <div class="field small"><label>„war im Einsatz" (Min)</label>
+          <input type="number" class="mono-in" id="returnDuration" value="30" min="1"></div>
+      </div>
+      <div class="toggle" style="margin-top:6px;">
+        <div class="tl">Alarmton abspielen<small>Datei sounds/alarm.mp3</small></div>
+        <button type="button" class="sw" id="sw-sound" aria-checked="true" role="switch"></button>
+      </div>
+      <div class="field small" style="margin-top:6px;"><label>Home-Assistant-Webhook <span class="opt">(optional)</span></label>
+        <input type="url" class="mono-in" id="haUrl" placeholder="http://<HA-IP>:8123/api/webhook/alarm"></div>
+    </div>
+
+    <div class="card" id="alarmOff" style="display:none;">
+      <h2><span class="num">5</span> Alarmierung</h2>
+      <p class="disabled-note">In der Edition „FamilyMirror Home" ist die Alarmierung deaktiviert. Wähle oben eine andere Edition, um sie zu aktivieren.</p>
+    </div>
+  </form>
+
+  <!-- OUTPUT -->
+  <div class="col-out">
+    <div class="out-card">
+      <div class="out-head">
+        <h3>config.js</h3>
+        <div class="out-actions">
+          <button type="button" class="btn" id="btnCopy">📋 Kopieren</button>
+          <button type="button" class="btn primary" id="btnDownload">⬇ Download</button>
+        </div>
+      </div>
+      <pre id="out"></pre>
+    </div>
+    <div class="tip"><b>So geht's:</b> Fülle die Felder aus, lade die <span class="mono">config.js</span> herunter und lege sie auf dem Pi unter <span class="mono">~/MagicMirror/config/</span> ab. Danach <span class="mono">pm2 restart MagicMirror</span>.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Kopiert!</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+
+  var state = {
+    edition:"home", city:"", lat:"52.520", lon:"13.405", rain:true,
+    personName:"Papa", bdays:[], wedding:"",
+    calUrl:"", newsPreset:"tagesschau", newsUrl:"",
+    title:"EINSATZ", alarmDuration:15, infoDuration:240, returnDuration:30, sound:true, haUrl:""
+  };
+
+  var NEWS = {
+    tagesschau:{ t:"Tagesschau", u:"https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml" },
+    heise:{ t:"heise", u:"https://www.heise.de/rss/heise-atom.xml" }
+  };
+
+  // ---- Birthdays UI ----
+  function renderBdays(){
+    var box = $("#bdays"); box.innerHTML = "";
+    state.bdays.forEach(function(b, i){
+      var row = document.createElement("div"); row.className = "bday";
+      row.innerHTML =
+        '<input type="text" placeholder="Name" data-k="name" data-i="'+i+'" value="'+esc(b.name)+'">'+
+        '<input type="text" class="mono-in" placeholder="MM-TT" data-k="date" data-i="'+i+'" value="'+esc(b.date)+'">'+
+        '<button type="button" class="btn-x" data-del="'+i+'" title="Entfernen">×</button>';
+      box.appendChild(row);
+    });
+  }
+  function esc(s){ return String(s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+
+  $("#addBday").addEventListener("click", function(){
+    state.bdays.push({ name:"", date:"" }); renderBdays(); render();
+  });
+  $("#bdays").addEventListener("input", function(e){
+    var t = e.target, i = t.getAttribute("data-i"), k = t.getAttribute("data-k");
+    if(i!==null){ state.bdays[+i][k] = t.value; render(); }
+  });
+  $("#bdays").addEventListener("click", function(e){
+    var d = e.target.getAttribute("data-del");
+    if(d!==null){ state.bdays.splice(+d,1); renderBdays(); render(); }
+  });
+
+  // ---- Switches ----
+  function bindSwitch(id, key){
+    var el = $(id);
+    el.addEventListener("click", function(){
+      state[key] = !state[key];
+      el.setAttribute("aria-checked", state[key] ? "true":"false");
+      render();
+    });
+  }
+  bindSwitch("#sw-rain","rain");
+  bindSwitch("#sw-sound","sound");
+
+  // ---- Edition presets ----
+  var EDN = {
+    home:{ alarm:false, title:"EINSATZ", personLabel:"Name der Person" },
+    fire:{ alarm:true,  title:"EINSATZ", personLabel:"Name der Person im Einsatz" },
+    rescue:{ alarm:true, title:"EINSATZ", personLabel:"Name der Person im Dienst" },
+    business:{ alarm:false, title:"INFO", personLabel:"Anzeigename" },
+    station:{ alarm:true, title:"ALARM", personLabel:"Bezeichnung der Einheit" }
+  };
+  function applyEdition(){
+    var e = EDN[state.edition];
+    $("#lbl-person").textContent = e.personLabel;
+    // Titel nur setzen, wenn Nutzer nicht selbst geändert hat -> einfach übernehmen
+    state.title = e.title; $("#title").value = e.title;
+    var on = e.alarm;
+    $("#alarmCard").style.display = on ? "" : "none";
+    $("#alarmOff").style.display  = on ? "none" : "";
+    // Edition-Karten markieren
+    document.querySelectorAll(".ed").forEach(function(l){
+      l.classList.toggle("sel", l.querySelector("input").value === state.edition);
+    });
+  }
+
+  // ---- Read simple inputs ----
+  function bind(id, key, num){
+    var el = $(id); if(!el) return;
+    el.addEventListener("input", function(){ state[key] = num ? (+el.value||0) : el.value; render(); });
+  }
+  bind("#city","city"); bind("#lat","lat"); bind("#lon","lon");
+  bind("#personName","personName"); bind("#wedding","wedding");
+  bind("#calUrl","calUrl"); bind("#newsUrl","newsUrl");
+  bind("#title","title");
+  bind("#alarmDuration","alarmDuration",true);
+  bind("#infoDuration","infoDuration",true);
+  bind("#returnDuration","returnDuration",true);
+  bind("#haUrl","haUrl");
+
+  document.getElementById("editions").addEventListener("change", function(e){
+    state.edition = e.target.value; applyEdition(); render();
+  });
+  $("#newsPreset").addEventListener("change", function(){
+    state.newsPreset = this.value;
+    $("#newsCustomWrap").classList.toggle("collapsed", this.value !== "custom");
+    render();
+  });
+
+  // ---- Config generation ----
+  function q(s){ return JSON.stringify(String(s)); }
+  function num(v, d){ var n = parseFloat(v); return isFinite(n) ? n : d; }
+
+  function generate(){
+    var m = [];
+    m.push('\t\t{ module: "alert" }');
+    m.push('\t\t{ module: "updatenotification", position: "top_bar" }');
+    m.push('\t\t{\n\t\t\tmodule: "clock",\n\t\t\tposition: "top_left",\n\t\t\tconfig: { displayType: "digital", displaySeconds: false }\n\t\t}');
+
+    // Wetter zuerst, dann Regenradar (vertikal getauscht), beide top_right
+    var lat = num(state.lat,52.52), lon = num(state.lon,13.405);
+    var hdr = state.city ? ('\n\t\t\theader: "Das Wetter in ' + state.city.replace(/"/g,'') + '",') : '';
+    m.push('\t\t{\n\t\t\tmodule: "weather",\n\t\t\tposition: "top_right",\n\t\t\tconfig: { weatherProvider: "openmeteo", type: "current", lat: '+lat+', lon: '+lon+' }\n\t\t}');
+    m.push('\t\t{\n\t\t\tmodule: "weather",\n\t\t\tposition: "top_right",'+hdr+'\n\t\t\tconfig: { weatherProvider: "openmeteo", type: "forecast", lat: '+lat+', lon: '+lon+' }\n\t\t}');
+
+    if(state.rain){
+      m.push('\t\t{\n\t\t\tmodule: "MMM-RainRadarDWD",\n\t\t\tposition: "top_right",\n\t\t\tconfig: {\n'+
+        '\t\t\t\tlat: '+lat+', lon: '+lon+',\n'+
+        '\t\t\t\talwaysVisible: true, showIfRainWithin: 120,\n'+
+        '\t\t\t\ttimePast: 60, timeFuture: 120, frameStep: 10,\n'+
+        '\t\t\t\twidth: "350px", height: "350px", zoomLevel: 9, cloudBlur: 12,\n'+
+        '\t\t\t\tmarkerSymbol: "fa-home", markerColor: "#ff0000",\n'+
+        '\t\t\t\tshowLegend: true, legendPosition: "bottom",\n'+
+        '\t\t\t\tanimationSpeed: 2000, updateInterval: 600000\n'+
+        '\t\t\t}\n\t\t}');
+    }
+
+    if(state.calUrl){
+      var cal = state.calUrl.replace(/^webcal:\/\//,'https://');
+      m.push('\t\t{\n\t\t\tmodule: "calendar",\n\t\t\theader: "Familienkalender",\n\t\t\tposition: "bottom_left",\n'+
+        '\t\t\tconfig: {\n\t\t\t\tmaximumEntries: 5,\n\t\t\t\tcalendars: [ { symbol: "calendar-check", url: '+q(cal)+' } ]\n\t\t\t}\n\t\t}');
+    }
+
+    // News
+    var nt, nu;
+    if(state.newsPreset === "custom"){ nt = "Nachrichten"; nu = state.newsUrl; }
+    else { nt = NEWS[state.newsPreset].t; nu = NEWS[state.newsPreset].u; }
+    if(nu){
+      m.push('\t\t{\n\t\t\tmodule: "newsfeed",\n\t\t\tposition: "bottom_bar",\n\t\t\tconfig: {\n'+
+        '\t\t\t\tfeeds: [ { title: '+q(nt)+', url: '+q(nu)+' } ],\n'+
+        '\t\t\t\tshowSourceTitle: false, showPublishDate: true,\n'+
+        '\t\t\t\treloadInterval: 300000, updateInterval: 20000, maxNewsItems: 10,\n'+
+        '\t\t\t\tignoreOldItems: true, ignoreOlderThan: 86400000\n\t\t\t}\n\t\t}');
+    }
+
+    // Alarm (nur wenn Edition es vorsieht)
+    var alarmOn = EDN[state.edition].alarm;
+    if(alarmOn){
+      var ha = state.haUrl ? '\n\t\t\t\tforwardTargets: [ '+q(state.haUrl)+' ],' : '\n\t\t\t\tforwardTargets: [],';
+      m.push('\t\t{\n\t\t\tmodule: "MMM-aPagerAlarm",\n\t\t\tposition: "fullscreen_above",\n\t\t\tconfig: {\n'+
+        '\t\t\t\twebhookPort: 8090,\n'+
+        '\t\t\t\ttitle: '+q(state.title||"EINSATZ")+',\n'+
+        '\t\t\t\tpersonName: '+q(state.personName||"")+',\n'+
+        '\t\t\t\talarmDuration: '+(state.alarmDuration||15)+', infoDuration: '+(state.infoDuration||240)+', returnDuration: '+(state.returnDuration||30)+',\n'+
+        '\t\t\t\tplaySound: '+(state.sound?'true':'false')+', soundFile: "alarm.mp3",\n'+
+        '\t\t\t\tdimBackground: true, showCountdown: true,'+ha+'\n\t\t\t}\n\t\t}');
+    }
+
+    // SmartCompliments
+    var bd = state.bdays.filter(function(b){ return b.name && b.date; })
+      .map(function(b){ return '\t\t\t\t\t{ name: '+q(b.name)+', date: '+q(b.date)+' }'; }).join(",\n");
+    var scLines = [];
+    scLines.push('\t\t\t\tupdateInterval: 30000, fadeSpeed: 4000');
+    scLines.push('\t\t\t\tmanualControlEnabled: true, manualControlPort: 8091');
+    if(alarmOn){ scLines.push('\t\t\t\tfirefighterIntegration: true, hideOnAlarmPhases: [1], afterDutyEnabled: true'); }
+    else { scLines.push('\t\t\t\tfirefighterIntegration: false'); }
+    if(bd){ scLines.push('\t\t\t\tbirthdays: [\n'+bd+'\n\t\t\t\t], birthdayText: "🥳 Happy Birthday, {name}!"'); }
+    if(state.wedding){ scLines.push('\t\t\t\tweddingDate: '+q(state.wedding)+', weddingText: "❤️ Alles Gute zum Hochzeitstag!"'); }
+    m.push('\t\t{\n\t\t\tmodule: "MMM-SmartCompliments",\n\t\t\tposition: "top_center",\n\t\t\tconfig: {\n'+ scLines.join(",\n") +'\n\t\t\t}\n\t\t}');
+
+    return '/* MagicMirror² – LUMIRA ('+state.edition+') – erzeugt mit dem Konfigurator */\n'+
+      'let config = {\n'+
+      '\taddress: "0.0.0.0",\n\tport: 8080,\n\tbasePath: "/",\n\tipWhitelist: [],\n\n'+
+      '\tlanguage: "de",\n\tlocale: "de-DE",\n\ttimeFormat: 24,\n\tunits: "metric",\n\n'+
+      '\tmodules: [\n'+ m.join(",\n") +'\n\t]\n};\n\n'+
+      'if (typeof module !== "undefined") { module.exports = config; }\n';
+  }
+
+  function render(){ $("#out").textContent = generate(); }
+
+  // ---- Copy / Download ----
+  function toast(msg){ var t=$("#toast"); t.textContent=msg; t.classList.add("show"); setTimeout(function(){ t.classList.remove("show"); },1400); }
+  $("#btnCopy").addEventListener("click", function(){
+    var txt = $("#out").textContent;
+    function fallback(){ var ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); toast("Kopiert!"); }catch(e){ toast("Konnte nicht kopieren"); } document.body.removeChild(ta); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast("Kopiert!"); }, fallback);
+    } else { fallback(); }
+  });
+  $("#btnDownload").addEventListener("click", function(){
+    var blob = new Blob([$("#out").textContent], { type:"text/javascript" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "config.js";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000); toast("config.js heruntergeladen");
+  });
+
+  // init
+  renderBdays(); applyEdition(); render();
+})();
+</script>
