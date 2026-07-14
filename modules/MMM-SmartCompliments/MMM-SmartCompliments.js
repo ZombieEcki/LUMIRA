@@ -61,7 +61,7 @@ Module.register("MMM-SmartCompliments", {
 
 		// Persönliche Ereignisse
 		birthdays: [                 // { name, date: "MM-TT" }
-			// { name: "Marie", date: "03-15" }
+			// { name: "Max", date: "01-01" }
 		],
 		birthdayReminderDays: 3,     // Vorlauf für Geburtstagserinnerung
 		birthdayText: "🎂 Heute hat {name} Geburtstag.",   // {name} wird ersetzt

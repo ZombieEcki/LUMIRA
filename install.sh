@@ -90,7 +90,7 @@ geocode() {
 # Der Assistent
 # ---------------------------------------------------------------------------
 # Ergebnis-Variablen
-PERSON_NAME="Papa"; LAT="48.137"; LON="11.575"; LOCATION_NAME="München"
+PERSON_NAME="Papa"; LAT="52.520"; LON="13.405"; LOCATION_NAME="Berlin"
 CAL_URL=""; RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"
 HA_URL=""; RAINRADAR_URL=""
 
@@ -107,7 +107,7 @@ run_wizard() {
 
   step "Standort (für Wetter & Regenradar)"
   while :; do
-    local city; city="$(ask "Ort/Stadt (z. B. Allershausen) – leer = manuell" "")"
+    local city; city="$(ask "Ort/Stadt (z. B. Berlin) – leer = manuell" "")"
     if [ -z "$city" ]; then
       LAT="$(ask "Breitengrad (lat)" "$LAT")"
       LON="$(ask "Längengrad (lon)" "$LON")"
@@ -315,7 +315,7 @@ ${NEWS_BLOCK}
 				manualControlEnabled: true,
 				manualControlPort: 8091,
 				birthdays: [
-					// { name: "Marie", date: "04-06" }
+					// { name: "Max", date: "01-01" }
 				],
 				weddingDate: ""
 			}

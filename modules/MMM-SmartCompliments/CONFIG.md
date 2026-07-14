@@ -26,7 +26,7 @@ Alle Optionen sind optional. Unten ein umfangreiches Beispiel, danach die Detail
 
         // Persönliche Ereignisse
         birthdays: [
-            { name: "Marie", date: "03-15" },
+            { name: "Max", date: "03-15" },
             { name: "Opa",   date: "11-02" }
         ],
         birthdayReminderDays: 3,

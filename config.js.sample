@@ -37,8 +37,8 @@ let config = {
 			module: "MMM-RainRadarDWD",
 			position: "top_right",
 			config: {
-				lat: 48.4325808,          // <-- ANPASSEN
-				lon: 11.5981814,          // <-- ANPASSEN
+				lat: 52.520,              // <-- ANPASSEN
+				lon: 13.405,              // <-- ANPASSEN
 
 				alwaysVisible: true,
 				showIfRainWithin: 120,
@@ -85,14 +85,11 @@ let config = {
 
 				// Persönliche Ereignisse  <-- ANPASSEN
 				birthdays: [
-					{ name: "Marie", date: "04-06" },
-					{ name: "Papa",  date: "04-24" },
-					{ name: "Maja",  date: "04-28" },
-					{ name: "Mama",  date: "06-11" }
+					// { name: "Max", date: "01-01" }
 				],
 				birthdayText: "🥳 Happy Birthday, {name}!",
 				birthdayReminderDays: 3,
-				weddingDate: "2016-07-13",      // <-- ANPASSEN
+				weddingDate: "",                // <-- ANPASSEN ("JJJJ-MM-TT")
 				weddingText: "❤️ Alles Gute zum Hochzeitstag!",
 				anniversaryReminderDays: 7,
 
@@ -135,7 +132,7 @@ let config = {
 
 				// Home Assistant (optional):
 				forwardTargets: [
-					// "http://192.168.178.156:8123/api/webhook/feuerwehr_alarm"   // <-- ANPASSEN
+					// "http://<HA-IP>:8123/api/webhook/feuerwehr_alarm"   // <-- ANPASSEN
 				]
 			}
 		},
@@ -163,8 +160,8 @@ let config = {
 			config: {
 				weatherProvider: "openmeteo",
 				type: "current",
-				lat: 48.4325546,   // <-- ANPASSEN
-				lon: 11.5973532    // <-- ANPASSEN
+				lat: 52.520,   // <-- ANPASSEN
+				lon: 13.405    // <-- ANPASSEN
 			}
 		},
 		{
@@ -174,8 +171,8 @@ let config = {
 			config: {
 				weatherProvider: "openmeteo",
 				type: "forecast",
-				lat: 48.4325546,   // <-- ANPASSEN
-				lon: 11.5973532    // <-- ANPASSEN
+				lat: 52.520,   // <-- ANPASSEN
+				lon: 13.405    // <-- ANPASSEN
 			}
 		},
 

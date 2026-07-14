@@ -54,7 +54,7 @@ Es sind **keine** npm-Abhängigkeiten nötig – reines Frontend-Modul.
         emojis: true,
         fadeSpeed: 3000,
         birthdays: [
-            { name: "Marie", date: "03-15" }
+            { name: "Max", date: "03-15" }
         ],
         weddingDate: "2010-06-20"
     }
