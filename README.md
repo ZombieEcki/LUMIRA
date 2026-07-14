@@ -1,4 +1,4 @@
-<h1 align="center">LUMIRA</h1>
+<p align="center"><img src="logo/lumira-logo-website.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="640"></p>
 <p align="center"><b>MagicMirror² – Feuerwehr- &amp; Familien-Informationssystem</b></p>
 <p align="center"><i>Der Spiegel gehört der Familie. Bis der Melder geht.</i></p>
 
