@@ -1,4 +1,4 @@
-<title>Feuerwehr &amp; Familie – MagicMirror System</title>
+<title>LUMIRA – MagicMirror Feuerwehr &amp; Familie</title>
 <style>
   :root {
     --bg: #0E1013;
@@ -70,6 +70,23 @@
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--faint);
+  }
+
+  .brandrow { display: flex; align-items: baseline; gap: 0.7rem 0.9rem; flex-wrap: wrap; }
+  .brand {
+    font-weight: 850;
+    letter-spacing: 0.34em;
+    font-size: 1rem;
+    display: inline-flex; align-items: center;
+  }
+  .brand::before {
+    content: ""; width: 10px; height: 10px; border-radius: 2px;
+    background: var(--accent); margin-right: 0.6rem;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  .brand-sub {
+    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--faint);
   }
 
   h1, h2, h3 { text-wrap: balance; margin: 0; }
@@ -299,6 +316,12 @@
   .step p { color: var(--muted); font-size: 0.9rem; }
   .step code { background: var(--surface-2); border: 1px solid var(--border); padding: 0.05rem 0.35rem; border-radius: 5px; font-size: 0.82rem; }
 
+  .auto-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1.4rem; margin-top: 1.3rem; }
+  .auto { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); font-size: 0.94rem; }
+  .auto code { background: var(--surface-2); border: 1px solid var(--border); padding: 0.02rem 0.32rem; border-radius: 5px; font-size: 0.82rem; color: var(--ink); }
+  .dot-a { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; box-shadow: 0 0 8px color-mix(in srgb, var(--green) 55%, transparent); }
+  @media (max-width: 620px) { .auto-list { grid-template-columns: 1fr; } }
+
   /* ---------- Footer ---------- */
   footer { border-top: 1px solid var(--border); padding: 2.4rem 0 3rem; color: var(--faint); font-size: 0.86rem; }
   footer .frow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; align-items: center; }
@@ -322,12 +345,15 @@
 <div class="hero">
   <div class="wrap hero-grid">
     <div>
-      <span class="eyebrow">MagicMirror² · Feuerwehr &amp; Familie</span>
+      <div class="brandrow">
+        <span class="brand">LUMIRA</span>
+        <span class="brand-sub">MagicMirror² · Feuerwehr &amp; Familie</span>
+      </div>
       <h1>Der Spiegel gehört der Familie.<br><span class="flip">Bis der Melder geht.</span></h1>
       <p class="lede">Ein Familien-Informationssystem für den MagicMirror: im Alltag warme Botschaften, bei einer Alarmierung über aPager PRO ein klares Einsatzfenster — und nach dem Einsatz automatisch wieder Familie.</p>
       <div class="hero-tags">
-        <span class="tag">2 Module</span>
-        <span class="tag">Webhook-gesteuert</span>
+        <span class="tag">Ein-Befehl-Setup</span>
+        <span class="tag">Wayland-Autostart</span>
         <span class="tag">aPager PRO</span>
         <span class="tag">Home Assistant</span>
         <span class="tag">Raspberry Pi</span>
@@ -529,22 +555,29 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow">Loslegen</span>
-      <h2>In sechs Schritten am Spiegel</h2>
+      <h2>Ein Befehl. Der Rest läuft von allein.</h2>
+      <p>Auf dem Raspberry Pi klonen und starten — der Assistent installiert alles, fragt deine Daten ab und richtet den Autostart ein.</p>
     </div>
-    <div class="steps">
-      <div class="step"><div class="st-body"><h3>Module kopieren</h3><p>Beide Ordner nach <code>~/MagicMirror/modules/</code> legen.</p></div></div>
-      <div class="step"><div class="st-body"><h3>Abhängigkeiten installieren</h3><p>In jedem Modulordner <code>npm install</code> ausführen (beide nutzen einen Webhook-Server).</p></div></div>
-      <div class="step"><div class="st-body"><h3>Ton hinterlegen</h3><p>Optional eine <code>alarm.mp3</code> in <code>MMM-aPagerAlarm/sounds/</code> ablegen.</p></div></div>
-      <div class="step"><div class="st-body"><h3>config.js ergänzen</h3><p>Beide Module eintragen, <code>personName</code>, Geburtstage und ggf. <code>forwardTargets</code> setzen.</p></div></div>
-      <div class="step"><div class="st-body"><h3>Neu starten</h3><p><code>pm2 restart MagicMirror</code> — die Startzeilen der beiden Webhook-Server erscheinen im Log.</p></div></div>
-      <div class="step"><div class="st-body"><h3>Testalarm senden</h3><p><code>…:8090/alarm?keyword=Test&amp;unit=Test</code> im Browser — das Einsatzfenster fährt ein.</p></div></div>
+    <pre><span class="c"># auf dem Raspberry Pi</span>
+git clone https://github.com/ZombieEcki/LUMIRA.git ~/LUMIRA
+<span class="k">cd</span> ~/LUMIRA
+chmod +x install.sh
+./install.sh</pre>
+    <div class="auto-list">
+      <div class="auto"><span class="dot-a"></span>Node.js &amp; MagicMirror² installieren</div>
+      <div class="auto"><span class="dot-a"></span>beide Module + Abhängigkeiten</div>
+      <div class="auto"><span class="dot-a"></span>Standort, Kalender &amp; News abfragen</div>
+      <div class="auto"><span class="dot-a"></span><code>config.js</code> automatisch erzeugen</div>
+      <div class="auto"><span class="dot-a"></span>Autostart per pm2 (Wayland)</div>
+      <div class="auto"><span class="dot-a"></span>Neustart-fest — startet beim Booten</div>
     </div>
+    <div style="margin-top:1.2rem;" class="note"><b>Später ändern:</b> <span class="mono">./install.sh --reconfigure</span> erzeugt die config.js neu — ohne Neuinstallation.</div>
   </div>
 </section>
 
 <footer>
   <div class="wrap frow">
-    <span>MMM-aPagerAlarm &amp; MMM-SmartCompliments · MIT-Lizenz</span>
+    <span><b>LUMIRA</b> · MIT-Lizenz · <a href="https://github.com/ZombieEcki/LUMIRA">github.com/ZombieEcki/LUMIRA</a></span>
     <span class="mono">Der Spiegel gehört der Familie. 🚒</span>
   </div>
 </footer>
