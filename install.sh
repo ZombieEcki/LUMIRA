@@ -349,10 +349,12 @@ if [ "$RECONFIGURE" -eq 1 ]; then
 fi
 
 # --- 0/1: System & Node -----------------------------------------------------
-step "System-Pakete (git, curl, build-essential)"
+step "System-Pakete (git, curl, build-essential, Emoji-Font)"
 sudo apt-get update -y
-sudo apt-get install -y git curl ca-certificates build-essential
-ok "vorhanden"
+sudo apt-get install -y git curl ca-certificates build-essential \
+  fonts-noto-color-emoji fontconfig
+sudo fc-cache -f >/dev/null 2>&1 || true
+ok "Basis-Pakete & Farb-Emoji-Schrift vorhanden"
 
 step "Node.js prüfen (v20+)"
 NEED_NODE=1

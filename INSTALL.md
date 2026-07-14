@@ -94,6 +94,7 @@ http://<pi-ip>:8091/compliments/toggle              # Kompliments schalten
 | Kalender leer | Ist der iCloud-Kalender wirklich öffentlich freigegeben? |
 | `MMM-RainRadarDWD` fehlt | Git-URL korrekt? Sonst Modul weglassen. |
 | Port `EADDRINUSE` | 8090/8091 belegt – anderen Port in der config wählen. |
+| Emojis als leere Kästchen | Farb-Emoji-Schrift fehlt: `sudo apt-get install -y fonts-noto-color-emoji && sudo fc-cache -f`, dann `pm2 restart MagicMirror`. (Das Skript macht das automatisch.) |
 
 ## Was das Skript nicht anfasst
 
