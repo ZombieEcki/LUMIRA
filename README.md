@@ -10,8 +10,23 @@ einem Raspberry Pi: MagicMirror², alle Module, eine per Assistent erzeugte
 `config.js` **und** den automatischen Start beim Booten.
 
 > 📋 **[CHECKLIST.md](CHECKLIST.md)** – live Übersicht, was schon erledigt ist und was als Nächstes geplant ist.
-> 🛜 **[SELFSERVICE-KONZEPT.md](SELFSERVICE-KONZEPT.md)** – Konzept für Ersteinrichtung & Konfiguration per WLAN-Access-Point, ganz ohne SSH.
-> 📦 **[PRODUKTVARIANTEN-KONZEPT.md](PRODUKTVARIANTEN-KONZEPT.md)** – Konzept für die Editionen Home/Fire/Rescue/Business/Station.
+> 🛜 **[concept/selfservice.md](concept/selfservice.md)** – Konzept für Ersteinrichtung & Konfiguration per WLAN-Access-Point, ganz ohne SSH.
+> 📦 **[concept/produktvarianten.md](concept/produktvarianten.md)** – Konzept für die Editionen Home/Fire/Rescue/Business/Station.
+
+## 📁 Projektstruktur
+
+| Ordner | Inhalt |
+|--------|--------|
+| [`modules/`](modules) | Die beiden Eigenmodule (MMM-aPagerAlarm, MMM-SmartCompliments) |
+| [`version/`](version) | Basis-`config.js`-Vorlage je Edition, für die manuelle Grundinstallation |
+| [`docs/`](docs) | Geräte-/Installationsdokumentation |
+| [`concept/`](concept) | Ausformulierte Konzepte & Ideen für kommende Features |
+| [`logo/`](logo) | Markenmaterial |
+
+**Zwei getrennte Rollen:** Wir richten ein Gerät **manuell** mit der passenden
+Edition aus `version/<edition>/` ein (Grundinstallation). Der Kunde
+konfiguriert danach **nur noch seine eigenen Daten** per Captive Portal &
+Web – siehe [concept/selfservice.md](concept/selfservice.md).
 
 ## 🚀 Installation in einem Befehl
 
@@ -115,7 +130,8 @@ pm2 stop MagicMirror      # anhalten
 
 ## 📖 Dokumentation
 
-- [INSTALL.md](INSTALL.md) – ausführliche Installation &amp; Fehlerbehebung
+- [docs/INSTALL.md](docs/INSTALL.md) – ausführliche Installation &amp; Fehlerbehebung
+- [docs/README.md](docs/README.md) – Dokumentations-Übersicht
 - [index.html](index.html) – Projekt-Landingpage
 - [modules/MMM-aPagerAlarm](modules/MMM-aPagerAlarm) – Alarmmodul
 - [modules/MMM-SmartCompliments](modules/MMM-SmartCompliments) – Familienassistent

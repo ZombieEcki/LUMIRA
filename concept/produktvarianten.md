@@ -3,23 +3,29 @@
 Wie die fünf LUMIRA-Editionen zustande kommen, und warum ein Gerät immer nur
 **eine** davon ist.
 
-> Status: Konzept fertig, Umsetzung offen. Siehe [CHECKLIST.md](CHECKLIST.md).
-> Verwandt: [konfigurator.html](konfigurator.html) (zeigt die Editions-Auswahl
-> bereits im Prototyp), [SELFSERVICE-KONZEPT.md](SELFSERVICE-KONZEPT.md)
-> (dort wird die Edition künftig im Setup-Schritt gewählt).
+> Status: Konzept fertig, Umsetzung offen. Siehe [CHECKLIST.md](../CHECKLIST.md).
+> Verwandt: [konfigurator.html](../konfigurator.html) (zeigt die Editions-Auswahl
+> bereits im Prototyp), [selfservice.md](selfservice.md) (Kunden-Konfiguration
+> **innerhalb** einer bereits feststehenden Edition), [`version/`](../version/)
+> (Basis-Vorlagen je Edition für die manuelle Grundinstallation).
 
 ---
 
 ## 1. Grundprinzip
 
-**Die Edition ist eine Installations-Entscheidung, kein Laufzeit-Schalter.**
+**Die Edition ist eine Installations-Entscheidung, kein Laufzeit-Schalter,
+und wird manuell festgelegt – nicht vom Kunden.**
 
-Bei der Einrichtung eines Geräts (heute: `install.sh`-Wizard, künftig: das
-WLAN-Setup-Portal) wählt man **eine** Edition. Diese legt fest, welche Module
-aktiv sind und mit welchen Standardwerten/Texten sie starten. Danach verhält
-sich das Gerät wie ein fertiges Produkt dieser Edition — vergleichbar mit
-einem gekauften Gerätemodell, nicht mit einer Einstellung, die man mal eben
-im Menü umschaltet.
+Wir (LUMIRA) nehmen die **Grundinstallation** eines Geräts manuell vor und
+legen dabei **eine** Edition fest (siehe [`version/`](../version/)). Diese
+legt fest, welche Module aktiv sind und mit welchen Standardwerten/Texten sie
+starten. Danach verhält sich das Gerät wie ein fertiges Produkt dieser
+Edition — vergleichbar mit einem gekauften Gerätemodell, nicht mit einer
+Einstellung, die man mal eben im Menü umschaltet.
+
+Der Kunde bekommt die Edition-Entscheidung gar nicht zu sehen: Er
+konfiguriert anschließend nur noch **seine** Daten (Name, Standort, Kalender,
+WLAN …) per Captive Portal/Web – siehe [selfservice.md](selfservice.md).
 
 Einzelne Werte (Name, Farben, Texte) bleiben natürlich weiterhin frei
 änderbar — nur der **Grundzuschnitt** (welche Module überhaupt laufen) ist
@@ -52,7 +58,7 @@ Edition (siehe Abschnitt 4).
 
 Eine Edition ist eine **Vorlage** (Bundle aus Modul-Auswahl + Textprofil),
 keine eigene Codebasis. Im geplanten `settings.json → config.js`-Generator
-(siehe SELFSERVICE-KONZEPT.md) bekommt jede Edition eine feste Zuordnung:
+(siehe [selfservice.md](selfservice.md)) bekommt jede Edition eine feste Zuordnung:
 
 ```
 edition: "home" | "fire" | "rescue" | "business" | "station"
@@ -100,12 +106,25 @@ Bewusst knapp gehalten – das sind Denkanstöße, keine Zusagen oder Spezifikat
 
 ## 5. Wo die Edition gewählt wird
 
-- **Heute:** im `install.sh`-Wizard könnte eine einfache Auswahlfrage
-  ergänzt werden (`1) Home 2) Fire 3) Rescue 4) Business 5) Station`),
-  die die passenden Module vorauswählt.
-- **Künftig:** als erster Schritt im Selbstkonfigurations-Portal
-  (SELFSERVICE-KONZEPT.md, Abschnitt 3, Portal-Schritt 2) – genau die Stelle,
-  an der `konfigurator.html` diese Auswahl heute schon prototypisch zeigt.
+**Ausschließlich bei der manuellen Grundinstallation durch uns** – nicht vom
+Kunden, nicht per Wizard-Frage, nicht im Self-Service-Portal.
 
-Beide Wege sollen auf **denselben** Editions-Vorlagen aufsetzen, damit es
-nur eine Stelle gibt, an der „was gehört zu welcher Edition" gepflegt wird.
+Ablauf: Zur bestellten Edition gehört eine fertige Vorlage unter
+[`version/<edition>/config.js.sample`](../version/) (z. B. `version/fire/`).
+Bei der Grundinstallation eines Geräts wird `install.sh` wie gewohnt
+ausgeführt, anschließend die passende Vorlage aus `version/<edition>/` als
+`config.js` eingesetzt (statt der generischen Wurzel-Vorlage). Damit ist die
+Edition festgelegt, **bevor** das Gerät an den Kunden geht.
+
+Der Kunde selbst sieht später nur noch den Self-Service-Teil
+([selfservice.md](selfservice.md)) – dort taucht „Edition" als Begriff gar
+nicht auf, das Portal zeigt nur die Felder, die zur bereits eingebauten
+Edition passen.
+
+> Optionaler Komfort für uns intern: `install.sh` könnte künftig ein Flag
+> `--edition=fire` bekommen, das automatisch die passende Vorlage aus
+> `version/` einsetzt, statt sie manuell zu kopieren. Das bleibt aber ein
+> internes Werkzeug für die Grundinstallation, kein kundenseitiger Schalter.
+
+Alle Editions-Vorlagen unter `version/` bleiben die **eine** Stelle, an der
+„was gehört zu welcher Edition" gepflegt wird.

@@ -4,10 +4,19 @@ Wie ein Kunde LUMIRA **einrichtet und später ändert**, ohne je ein Terminal
 zu öffnen. Der Pi spannt bei Bedarf ein eigenes WLAN auf; alle Einstellungen
 laufen über eine Web-Oberfläche.
 
-> Status: Konzept fertig, Umsetzung offen. Siehe [CHECKLIST.md](CHECKLIST.md).
-> Verwandt: [MMM-SmartCompliments](modules/MMM-SmartCompliments), [konfigurator.html](konfigurator.html) (Vorstufe, läuft heute browserseitig ohne Backend).
+> Status: Konzept fertig, Umsetzung offen. Siehe [CHECKLIST.md](../CHECKLIST.md).
+> Verwandt: [MMM-SmartCompliments](../modules/MMM-SmartCompliments), [konfigurator.html](../konfigurator.html) (Vorstufe, läuft heute browserseitig ohne Backend), [produktvarianten.md](produktvarianten.md).
 
 ---
+
+## 0. Abgrenzung zur Grundinstallation
+
+Dieses Konzept deckt **nur die Kunden-Konfiguration** ab (Standort, Kalender,
+Name, WLAN …) – **nicht** die Wahl der Edition (Home/Fire/Rescue/Business/
+Station). Die Edition wird vorher im Rahmen der **manuellen Grundinstallation**
+festgelegt (siehe [`version/`](../version/) und
+[produktvarianten.md](produktvarianten.md)). Das hier beschriebene Portal
+startet also immer auf einem Gerät, dessen Edition bereits feststeht.
 
 ## 1. Zielbild
 
@@ -90,10 +99,11 @@ wieder erscheinenden `LUMIRA-Setup`-WLAN zu verbinden.
    alternativ ruft der Kunde `lumira.local` manuell auf.
 5. **Portal Schritt 1 – Heimnetz:** Liste der in Reichweite gefundenen
    WLANs (Scan), Auswahl + Passwort eingeben.
-6. **Portal Schritt 2 – Persönliches:** dieselben Felder wie im heutigen
-   `konfigurator.html`-Prototyp: Edition (Home/Fire/Rescue/Business/Station),
-   Name, Standort, Kalender-URL, Nachrichten-Feed, Geburtstage,
-   Home-Assistant-Webhook (optional).
+6. **Portal Schritt 2 – Persönliches:** die Felder, die zur bereits fest-
+   stehenden Edition passen (siehe Abschnitt 0) – Name, Standort, Kalender-URL,
+   Nachrichten-Feed, Geburtstage, bei Fire/Rescue/Station zusätzlich
+   Home-Assistant-Webhook (optional). Dieselben Felder wie im heutigen
+   `konfigurator.html`-Prototyp, nur ohne die dortige Editions-Auswahl.
 7. **„Einrichten" klicken.** Das Portal testet die WLAN-Verbindung im
    Hintergrund (ohne den Pi sofort umzuschalten, damit man bei Fehlern
    nicht ausgesperrt ist).
@@ -108,7 +118,7 @@ wieder erscheinenden `LUMIRA-Setup`-WLAN zu verbinden.
 
 ## 4. Weitere Konfiguration – die zwei Wege
 
-### a) Normale Einstellungen (Name, Kalender, Sprüche, Geburtstage, Edition …)
+### a) Normale Einstellungen (Name, Kalender, Sprüche, Geburtstage …)
 
 Läuft **ohne** erneuten Setup-Modus. Das Portal bleibt nach der Ersteinrichtung
 dauerhaft im Hintergrund aktiv und ist **im Heimnetz** jederzeit erreichbar:
@@ -225,6 +235,9 @@ LUMIRA/
 │       └── lumira-provision.service
 ├── modules/
 │   └── MMM-LumiraStatus/      neues Mini-Modul (Abschnitt 5)
+├── version/<edition>/         Basis-Vorlage je Edition (siehe produktvarianten.md) –
+│                               Ausgangspunkt für generate-config.js, NICHT Teil
+│                               des Kunden-Portals
 └── settings.default.json
 ```
 

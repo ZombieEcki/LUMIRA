@@ -4,7 +4,7 @@ Live-Übersicht, was bereits fertig ist und was als Nächstes geplant ist.
 Wird bei jedem Fortschritt aktualisiert — einfach diese Datei auf GitHub öffnen,
 um den aktuellen Stand zu sehen.
 
-> Zum Projekt: [README.md](README.md) · Zur Installation: [INSTALL.md](INSTALL.md)
+> Zum Projekt: [README.md](README.md) · Zur Installation: [docs/INSTALL.md](docs/INSTALL.md)
 
 ---
 
@@ -33,6 +33,11 @@ um den aktuellen Stand zu sehen.
 - [x] Uhr oben links, Regenradar unter der Wettervorhersage
 - [x] Personenbezogene Beispieldaten aus dem öffentlichen Repo entfernt
 
+### Projektstruktur
+- [x] Repo aufgeräumt: [`concept/`](concept) (Ideen/Konzepte), [`docs/`](docs)
+      (Geräte-Doku), [`version/`](version) (Basis-Vorlage je Edition)
+- [x] Repo auf **privat** gestellt, Pi-Zugriff per Deploy Key (SSH)
+
 ### Marke & Präsentation
 - [x] LUMIRA-Logo eingebunden (Landingpage, Konfigurator, README)
 - [x] Landingpage (`index.html`) mit Architektur, 4-Phasen-Timeline, Home-Assistant-Beispiel
@@ -46,12 +51,12 @@ um den aktuellen Stand zu sehen.
 
 | # | Idee | Status |
 |---|------|--------|
-| 1 | **Selbstkonfiguration per WLAN-Access-Point** – Pi spannt eigenes WLAN auf, Kunde konfiguriert per Web-UI ohne SSH | 🟡 Konzept fertig ([SELFSERVICE-KONZEPT.md](SELFSERVICE-KONZEPT.md)), Umsetzung offen |
+| 1 | **Selbstkonfiguration per WLAN-Access-Point** – Pi spannt eigenes WLAN auf, Kunde konfiguriert per Web-UI ohne SSH | 🟡 Konzept fertig ([concept/selfservice.md](concept/selfservice.md)), Umsetzung offen |
 | 2 | **Weitere Melde-Apps** mit Webhook prüfen (Divera, Alamos, FF-Agent …) | 📋 geplant (Recherche) |
 | 3 | ~~Layout: Uhr links, Regenradar unter Wetter~~ | ✅ erledigt |
 | 4 | **Alarm komplett abschaltbar** per Config (`enabled: false`) | 📋 geplant |
 | 5 | **Zielgruppen-Profile** (Feuerwehr/Rettungsdienst/Polizei/THW/Familie/Verein) | 📋 geplant |
-| 6 | **Produktvarianten**: LUMIRA Home/Fire/Rescue/Business/Station | 🟡 Konzept fertig ([PRODUKTVARIANTEN-KONZEPT.md](PRODUKTVARIANTEN-KONZEPT.md)) + Konfigurator-Prototyp, echte Profile in den Modulen fehlen noch |
+| 6 | **Produktvarianten**: LUMIRA Home/Fire/Rescue/Business/Station | 🟡 Konzept fertig ([concept/produktvarianten.md](concept/produktvarianten.md)) + Basis-Vorlagen unter [`version/`](version) + Konfigurator-Prototyp |
 | 7 | **Mehrsprachigkeit** (Sprachdateien für Oberfläche & Botschaften) | 📋 geplant |
 | 8 | **Hintergrund-Option** (Farbe/Bild/Slideshow) | 📋 geplant |
 

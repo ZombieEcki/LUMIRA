@@ -1,0 +1,87 @@
+/* MagicMirror² – LUMIRA STATION (Basis-Vorlage für die Grundinstallation)
+ *
+ * Für Gerätehäuser/Wachen – reine Einsatz-/Infowand, kein Familienmodus.
+ * Siehe ../../concept/produktvarianten.md und ../README.md für den Ablauf
+ * der Grundinstallation.
+ *
+ * Passe die mit <-- ANPASSEN markierten Stellen an, bevor das Gerät in
+ * Betrieb geht.
+ */
+let config = {
+	address: "0.0.0.0",
+	port: 8080,
+	basePath: "/",
+	ipWhitelist: [],
+
+	useHttps: false,
+	language: "de",
+	locale: "de-DE",
+	logLevel: ["INFO", "LOG", "WARN", "ERROR"],
+	timeFormat: 24,
+	units: "metric",
+
+	modules: [
+		{ module: "alert" },
+		{ module: "updatenotification", position: "top_bar" },
+		{
+			module: "clock",
+			position: "top_left",
+			config: {
+				displayType: "digital",
+				displaySeconds: false
+			}
+		},
+
+		/* --- Wetter (Open-Meteo) – operativ relevant, z. B. Anfahrtsbedingungen --- */
+		{
+			module: "weather",
+			position: "top_right",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "current",
+				lat: 52.520,   // <-- ANPASSEN
+				lon: 13.405    // <-- ANPASSEN
+			}
+		},
+		{
+			module: "weather",
+			position: "top_right",
+			header: "Das Wetter in",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "forecast",
+				lat: 52.520,   // <-- ANPASSEN
+				lon: 13.405    // <-- ANPASSEN
+			}
+		},
+
+		/* --- Einsatzfenster (Dauer-Anzeige der Wache) --- */
+		{
+			module: "MMM-aPagerAlarm",
+			position: "fullscreen_above",
+			config: {
+				webhookPort: 8090,
+				webhookPath: "/alarm",
+				title: "ALARM",
+				readyText: "🚒 Bereit machen!",
+				personName: "Wache",           // <-- ANPASSEN (z. B. Gerätehaus-Name)
+
+				alarmDuration: 15,
+				infoDuration: 240,
+				returnDuration: 30,
+
+				playSound: true,
+				soundFile: "alarm.mp3",
+				dimBackground: true,
+				showCountdown: true,
+
+				// Home Assistant (optional):
+				forwardTargets: [
+					// "http://<HA-IP>:8123/api/webhook/feuerwehr_alarm"   // <-- ANPASSEN
+				]
+			}
+		}
+	]
+};
+
+if (typeof module !== "undefined") { module.exports = config; }
