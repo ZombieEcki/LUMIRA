@@ -43,6 +43,10 @@ um den aktuellen Stand zu sehen.
 - [x] Landingpage (`index.html`) mit Architektur, 4-Phasen-Timeline, Home-Assistant-Beispiel
 - [x] **Konfigurator-Prototyp** (`konfigurator.html`) – erzeugt live eine `config.js`,
       inkl. Editions-Auswahl (Home/Fire/Rescue/Business/Station)
+- [x] **Portal-Vorschau** (`portal.html`) – mehrseitiges Steuerungs- &amp;
+      Konfigurationsportal (Dashboard, Familie, Standort, Kalender, Alarm,
+      WLAN, Darstellung/Sprache als Vorschau), passt sich automatisch an die
+      installierte Edition an – keine Editions-Auswahl im Portal selbst
 - [x] Vollständige Doku je Modul (README/CONFIG/WEBHOOK/CHANGELOG)
 
 ---

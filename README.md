@@ -133,6 +133,8 @@ pm2 stop MagicMirror      # anhalten
 - [docs/INSTALL.md](docs/INSTALL.md) – ausführliche Installation &amp; Fehlerbehebung
 - [docs/README.md](docs/README.md) – Dokumentations-Übersicht
 - [index.html](index.html) – Projekt-Landingpage
+- [konfigurator.html](konfigurator.html) – Vorschau der Ersteinrichtung (config.js erzeugen)
+- [portal.html](portal.html) – Vorschau des Steuerungs- &amp; Konfigurationsportals (Mehrseiten, editionsabhängig)
 - [modules/MMM-aPagerAlarm](modules/MMM-aPagerAlarm) – Alarmmodul
 - [modules/MMM-SmartCompliments](modules/MMM-SmartCompliments) – Familienassistent
 

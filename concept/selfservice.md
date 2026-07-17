@@ -5,7 +5,11 @@ zu öffnen. Der Pi spannt bei Bedarf ein eigenes WLAN auf; alle Einstellungen
 laufen über eine Web-Oberfläche.
 
 > Status: Konzept fertig, Umsetzung offen. Siehe [CHECKLIST.md](../CHECKLIST.md).
-> Verwandt: [MMM-SmartCompliments](../modules/MMM-SmartCompliments), [konfigurator.html](../konfigurator.html) (Vorstufe, läuft heute browserseitig ohne Backend), [produktvarianten.md](produktvarianten.md).
+> Verwandt: [MMM-SmartCompliments](../modules/MMM-SmartCompliments),
+> [konfigurator.html](../konfigurator.html) (Ersteinrichtungs-Vorstufe) und
+> [portal.html](../portal.html) (Vorschau des dauerhaften Steuerungs- &amp;
+> Konfigurationsportals aus Abschnitt 4a) – beide laufen heute browserseitig
+> ohne echtes Backend. [produktvarianten.md](produktvarianten.md).
 
 ---
 
@@ -121,7 +125,10 @@ wieder erscheinenden `LUMIRA-Setup`-WLAN zu verbinden.
 ### a) Normale Einstellungen (Name, Kalender, Sprüche, Geburtstage …)
 
 Läuft **ohne** erneuten Setup-Modus. Das Portal bleibt nach der Ersteinrichtung
-dauerhaft im Hintergrund aktiv und ist **im Heimnetz** jederzeit erreichbar:
+dauerhaft im Hintergrund aktiv und ist **im Heimnetz** jederzeit erreichbar.
+Eine mehrseitige Vorschau dieses Portals (Steuerung + Konfigurationsseiten,
+passt sich automatisch an die installierte Edition an) liegt als Prototyp in
+[portal.html](../portal.html):
 
 ```
 http://lumira.local:8092
