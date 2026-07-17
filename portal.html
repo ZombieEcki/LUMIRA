@@ -73,6 +73,16 @@
     color:var(--amber); border:1px solid color-mix(in srgb, var(--amber) 45%, var(--border)); border-radius:999px;
     padding:.05rem .4rem; }
 
+  /* Mobile Seiten-Navigation: Dropdown statt Button-Liste */
+  .mobile-nav { display:none; margin-bottom:16px; }
+  .mobile-nav .glabel { font-family:var(--font-mono); font-size:.63rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--faint); padding:0 2px; margin-bottom:5px; display:block; }
+  .mobile-nav select { font-size:.92rem; font-weight:600; padding:11px 12px; }
+
+  /* Muss NACH .navgroup/.mobile-nav stehen, sonst gewinnt bei gleicher
+     Spezifitaet die spaetere unbedingte Regel im Quelltext. */
+  @media (max-width:860px){ .navgroup{ display:none; } .mobile-nav{ display:block; } }
+
   .sidebar-spacer { flex:1; }
 
   .devpicker { border:1px dashed var(--border-2); border-radius:11px; padding:9px 10px; margin-top:6px; }
@@ -202,6 +212,11 @@
       <div class="edn"><span class="swatch" id="edn-swatch"></span><span id="edn-name">LUMIRA Fire</span></div>
       <div class="edn-sub">Edition · bei der Grundinstallation festgelegt</div>
       <div class="status-row"><span class="dot"></span><span>Im Heimnetz verbunden</span></div>
+    </div>
+
+    <div class="mobile-nav">
+      <span class="glabel">Seite</span>
+      <select id="page-select" aria-label="Seite wählen"></select>
     </div>
 
     <nav class="navgroup">
@@ -502,6 +517,20 @@
     bdays: [{ name: "Max", date: "01.01." }]
   };
 
+  // Gleiche Seiten wie in der Sidebar – Grundlage fuer das Mobil-Dropdown.
+  // "need" verweist auf ein EDITIONS[...]-Flag; ohne "need" immer sichtbar.
+  var PAGES = [
+    { id:"steuerung",   icon:"🎛",  label:"Steuerung",          group:"Übersicht" },
+    { id:"familie",     icon:"👪",  label:"Familie",            group:"Konfiguration", need:"hasFamily" },
+    { id:"standort",    icon:"📍",  label:"Standort & Wetter",  group:"Konfiguration" },
+    { id:"kalender",    icon:"📅",  label:"Kalender & News",    group:"Konfiguration", need:"hasCal" },
+    { id:"alarm",       icon:"🚒",  label:"Alarmierung",        group:"Konfiguration", need:"hasAlarm" },
+    { id:"wlan",        icon:"📶",  label:"WLAN",                group:"Konfiguration" },
+    { id:"darstellung", icon:"🎨",  label:"Darstellung",        group:"Mehr", beta:true },
+    { id:"sprache",     icon:"🗣️", label:"Sprache & Alexa",     group:"Mehr", beta:true },
+    { id:"info",        icon:"ℹ️",  label:"Info",                group:"Mehr" }
+  ];
+
   function toast(msg){
     var t = $("#toast"); t.textContent = msg; t.classList.add("show");
     clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 1900);
@@ -542,6 +571,7 @@
     var alwaysOk = ["steuerung","standort","wlan","darstellung","sprache","info"].indexOf(state.page) !== -1;
     if (!stillVisible && !alwaysOk) { goPage("steuerung"); }
 
+    renderMobileSelect();
     updatePhaseTile();
   }
 
@@ -550,11 +580,35 @@
     btn.style.display = show ? "" : "none";
   }
 
+  /* ---------- Mobil-Dropdown (Alternative zur Sidebar-Liste) ---------- */
+  function renderMobileSelect(){
+    var e = EDITIONS[state.edition];
+    var sel = $("#page-select");
+    sel.innerHTML = "";
+    var groups = {};
+    PAGES.forEach(function(p){
+      if (p.need && !e[p.need]) return;
+      if (!groups[p.group]) {
+        groups[p.group] = document.createElement("optgroup");
+        groups[p.group].label = p.group;
+        sel.appendChild(groups[p.group]);
+      }
+      var opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.icon + " " + p.label + (p.beta ? " (geplant)" : "");
+      groups[p.group].appendChild(opt);
+    });
+    sel.value = state.page;
+  }
+  $("#page-select").addEventListener("change", function(){ goPage(this.value); });
+
   /* ---------- Seitennavigation ---------- */
   function goPage(name){
     state.page = name;
     $$(".navbtn").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-page") === name); });
     $$(".page").forEach(function(p){ p.classList.toggle("active", p.getAttribute("data-page") === name); });
+    var sel = $("#page-select");
+    if (sel && sel.value !== name && sel.querySelector('option[value="' + name + '"]')) { sel.value = name; }
     if (history.replaceState) history.replaceState(null, "", "#" + name);
     window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   }
