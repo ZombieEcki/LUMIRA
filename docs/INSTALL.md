@@ -31,19 +31,22 @@ chmod +x install.sh
 ./install.sh
 ```
 
-## Der Setup-Assistent
+## Was `install.sh` NICHT mehr abfragt
 
-Nach der Basis-Installation fragt das Skript interaktiv ab:
+`install.sh` fragt **keine persönlichen Daten** mehr ab (Name, Standort,
+Kalender, News, Home-Assistant-Webhook). Das ist Absicht: Der Assistent lief
+früher interaktiv im Terminal – das widerspricht dem Self-Service-Gedanken,
+bei dem der Kunde selbst über das Portal konfiguriert (siehe
+[concept/selfservice.md](../concept/selfservice.md)). `install.sh` erledigt
+nur noch die technische Grundinstallation:
 
-1. **Name der Person im Einsatz** (z. B. „Papa")
-2. **Home-Assistant-Webhook-URL** – optional, für Licht bei Alarm
-3. **Ort/Stadt** – wird automatisch in Koordinaten umgewandelt (Open-Meteo)
-4. **Kalender-URL** – iCloud/ICS (`webcal://` wird automatisch umgewandelt)
-5. **Nachrichten-Feed** – Tagesschau / heise / eigener RSS
-6. **Regenradar** – standardmäßig installiert ([realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD)); im Assistenten lässt sich stattdessen eine andere Git-URL angeben oder ganz ablehnen
-7. **Autostart per pm2** – ja/nein
+- **Edition** (`--edition=`) und **Hostname** (`--hostname=`)
+- **Regenradar**-Modul installieren (Standard: ja, [realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD); `--no-rainradar` bzw. `--rainradar-url=` zum Abwählen/Ersetzen)
+- **Autostart per pm2** (Standard: ja; `--no-pm2` zum Abwählen)
 
-Jede Frage hat einen Vorschlag in `[ ]`; Enter übernimmt ihn.
+`config.js` entsteht danach mit Platzhalter-Werten (Name „Papa", Standort
+Berlin, Tagesschau-Feed usw.) – die echten Daten trägt der Kunde über das
+Self-Service-Portal ein (siehe unten).
 
 ## Edition & Hostname (Grundinstallation)
 
@@ -81,7 +84,7 @@ sudo journalctl -u lumira-provision -f   # Logs Watchdog
 # ohne pm2:
 cd ~/MagicMirror && npm start
 
-# mit pm2 (nach Frage „Autostart" = ja): läuft bereits
+# mit pm2 (Standard): läuft bereits
 pm2 logs MagicMirror        # Logs ansehen
 pm2 startup                 # einmalig für Start beim Booten (zeigt sudo-Befehl)
 pm2 save
@@ -90,20 +93,31 @@ pm2 save
 Alarmton (optional): eine `alarm.mp3` nach
 `~/MagicMirror/modules/MMM-aPagerAlarm/sounds/` legen.
 
-## Config später ändern
+## Persönliche Daten eintragen
+
+Über das [Self-Service-Portal](../lumira-portal) unter
+`http://<hostname>.local:8092`: Name, Standort (mit Ortssuche –
+`/api/geocode`, ersetzt die frühere Kommandozeilen-Geocodierung), Kalender,
+Nachrichten-Feed, Alarmeinstellungen, WLAN. Änderungen werden sofort
+gespeichert und starten MagicMirror automatisch neu.
+
+## config.js manuell/erneut erzeugen
 
 ```bash
-cd ~/feuerwehr-setup
-./install.sh --reconfigure     # Assistent erneut, nur config.js
+cd ~/LUMIRA
+./install.sh --reconfigure                 # nur Edition/Hostname neu, Kundendaten bleiben
+./install.sh --reconfigure --edition=rescue # z.B. Edition wechseln
 ```
 
-Oder die Datei direkt bearbeiten: `~/MagicMirror/config/config.js`.
+Direktes Bearbeiten von `~/MagicMirror/config/config.js` funktioniert auch,
+wird aber beim nächsten Speichern im Portal wieder überschrieben.
 
 ## iCloud-Kalender-URL finden
 
 1. In der iCloud-Kalender-Weboberfläche den Kalender **freigeben** (öffentlich).
 2. Den `webcal://…`-Link kopieren.
-3. Im Assistenten einfügen – die Umwandlung nach `https://` passiert automatisch.
+3. Im Self-Service-Portal (Seite „Kalender & News") einfügen – die Umwandlung
+   nach `https://` passiert automatisch.
 
 ## Testen
 
@@ -120,7 +134,7 @@ http://<pi-ip>:8092/api/status                      # Self-Service-Portal Status
 |---------|--------|
 | `Bitte NICHT als root ausführen` | Ohne `sudo` starten. |
 | `\r`-/Zeilenende-Fehler | `sed -i 's/\r$//' install.sh`. |
-| Ort wird nicht gefunden | Internet prüfen oder Koordinaten manuell eingeben (Assistent bietet das an). |
+| Ort wird nicht gefunden | Internet prüfen oder Koordinaten im Portal manuell eingeben (Standort-Seite). |
 | Wetter bleibt leer | `lat`/`lon` in der config prüfen. |
 | Kalender leer | Ist der iCloud-Kalender wirklich öffentlich freigegeben? |
 | `MMM-RainRadarDWD` fehlt | Git-URL korrekt? Sonst Modul weglassen. |

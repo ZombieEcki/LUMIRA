@@ -6,8 +6,10 @@
 
 LUMIRA ist ein komplettes, sofort einsatzbereites MagicMirror²-Setup für
 Feuerwehrangehörige und ihre Familien. Ein einziger Befehl installiert alles auf
-einem Raspberry Pi: MagicMirror², alle Module, eine per Assistent erzeugte
-`config.js` **und** den automatischen Start beim Booten.
+einem Raspberry Pi: MagicMirror², alle Module, eine lauffähige `config.js`
+**und** den automatischen Start beim Booten. Die persönlichen Daten (Name,
+Standort, Kalender …) trägt der Kunde danach selbst über das
+Self-Service-Portal ein – nicht mehr interaktiv im Terminal.
 
 > 📋 **[CHECKLIST.md](CHECKLIST.md)** – live Übersicht, was schon erledigt ist und was als Nächstes geplant ist.
 > 🛜 **[lumira-portal/](lumira-portal)** – Self-Service-Portal (Ersteinrichtung & laufende Konfiguration, Port 8092), siehe [concept/selfservice.md](concept/selfservice.md).
@@ -48,14 +50,14 @@ Das Skript erledigt automatisch:
 3. **MagicMirror²** klonen &amp; installieren
 4. alle **Eigenmodule** installieren (inkl. `MMM-LumiraStatus`)
 5. das **Self-Service-Portal** (`lumira-portal`, Port 8092) samt Watchdog als systemd-Dienste einrichten
-6. deine Daten **abfragen** (Standort, Kalender, News …)
-7. **`config.js`** aus `settings.json` erzeugen
-8. **Autostart** per pm2 einrichten (Wayland, startet beim Booten)
+6. **`config.js`** mit Platzhalter-Werten für die gewählte Edition erzeugen
+7. **Autostart** per pm2 einrichten (Wayland, startet beim Booten)
 
-Am Ende läuft LUMIRA – und startet nach jedem Neustart des Pi von selbst.
-Änderungen später: entweder erneut `./install.sh --reconfigure`, oder bequem
-im Browser unter `http://lumira.local:8092` (siehe
-[lumira-portal/](lumira-portal)).
+Am Ende läuft LUMIRA mit Platzhalter-Daten – und startet nach jedem Neustart
+des Pi von selbst. Die echten persönlichen Daten (Name, Standort, Kalender,
+News, WLAN …) trägt der Kunde danach selbst im Browser unter
+`http://lumira.local:8092` ein (siehe [lumira-portal/](lumira-portal)),
+keine Terminal-Eingabe mehr nötig.
 
 ## 🧩 Enthaltene Module
 
@@ -72,17 +74,22 @@ im Browser unter `http://lumira.local:8092` (siehe
 | **`MMM-SmartCompliments`** | intelligente Familien-/Motivationssprüche | **Eigen** |
 | **`MMM-LumiraStatus`** | Setup-Anleitung/QR-Code bzw. dezenter Status-Hinweis auf dem Spiegel | **Eigen** |
 
-## 🧙 Was der Assistent abfragt
+## 🧙 Was im Self-Service-Portal einzutragen ist
 
-| Frage | Wofür | Automatik |
-|-------|-------|-----------|
+Nicht mehr Teil von `install.sh` – trägt der Kunde selbst unter
+`http://lumira.local:8092` ein (siehe [lumira-portal/](lumira-portal)):
+
+| Feld | Wofür | Automatik |
+|------|-------|-----------|
 | **Name der Person** | Alarm-/Familienkarten | — |
 | **Home-Assistant-Webhook** (optional) | Licht bei Alarm | wird in `forwardTargets` eingetragen |
-| **Ort/Stadt** | Wetter &amp; Standort | wird per Open-Meteo automatisch in Koordinaten umgewandelt |
+| **Ort/Stadt** | Wetter &amp; Standort | Ortssuche im Portal wandelt automatisch in Koordinaten um (Open-Meteo) |
 | **Kalender-URL** | Familienkalender | `webcal://` → `https://` automatisch |
 | **Nachrichten-Feed** | Newsticker | Auswahl Tagesschau / heise / eigener RSS |
-| **Regenradar** | DWD-Radar | standardmäßig installiert (realoliwer/MMM-RainRadarDWD), andere Git-URL oder Ablehnen möglich |
-| **Autostart** | Start beim Booten | richtet pm2 + Wayland ein |
+| **WLAN** | Heimnetz | Scan + Verbinden direkt im Portal |
+
+**Regenradar** und **Autostart** bleiben Installations-Entscheidungen
+(`./install.sh --no-rainradar` / `--rainradar-url=` bzw. `--no-pm2`).
 
 ## 🚒 Die vier Phasen
 
@@ -135,12 +142,14 @@ pm2 stop MagicMirror      # anhalten
 |--------|---------|
 | `./install.sh` | volle Installation mit Assistent + Autostart |
 | `./install.sh --reconfigure` | nur die `config.js` neu erzeugen |
-| `./install.sh --no-wizard` | ohne Fragen (nutzt `config.js.sample`) |
+| `./install.sh --no-wizard` | statische `config.js.sample` statt settings.json-Pipeline |
 | `./install.sh --no-pm2` | ohne Autostart |
 | `./install.sh --force-config` | vorhandene `config.js` überschreiben (Backup) |
 | `./install.sh --edition=fire` | Edition der Grundinstallation (`home\|fire\|rescue\|business\|station`, Standard `fire`) |
 | `./install.sh --hostname=lumira` | Hostname für `http://<name>.local:8092` (Standard `lumira`) |
 | `./install.sh --no-selfservice` | ohne Self-Service-Portal/Watchdog (lumira-portal) |
+| `./install.sh --no-rainradar` | ohne DWD-Regenradar-Modul |
+| `./install.sh --rainradar-url=…` | abweichende Git-URL für das Regenradar-Modul |
 
 ## 📖 Dokumentation
 
@@ -159,7 +168,7 @@ pm2 stop MagicMirror      # anhalten
 - **Alarmton**: `alarm.mp3` liegt aus Lizenzgründen nicht im Repo – nach der
   Installation nach `modules/MMM-aPagerAlarm/sounds/` legen.
 - **iCloud-Kalender** muss öffentlich freigegeben sein.
-- **Regenradar**: standardmäßig [realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD); im Assistenten mit „Nein" abwählbar oder mit eigener Git-URL ersetzbar.
+- **Regenradar**: standardmäßig [realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD); per `./install.sh --no-rainradar` abwählbar oder mit `--rainradar-url=` ersetzbar.
 - **Autostart** setzt eine grafische Wayland-Sitzung voraus (Bookworm-Standard).
 
 ## Lizenz

@@ -154,7 +154,14 @@
       <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Standort &amp; Wetter</h1>
         <p>Für Wettervorhersage und Regenradar.</p></div>
       <div class="card">
-        <div class="field first"><label>Ortsname <span class="opt">(nur Anzeige)</span></label><input type="text" id="loc-name"></div>
+        <div class="field first"><label>Ort/Stadt suchen</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="loc-search" placeholder="z. B. Musterstadt">
+            <button type="button" class="btn" id="loc-search-btn" style="flex:none;">🔍 Suchen</button>
+          </div>
+          <div class="wifi-list" id="loc-results" hidden></div>
+        </div>
+        <div class="field"><label>Ortsname <span class="opt">(nur Anzeige)</span></label><input type="text" id="loc-name"></div>
         <div class="grid2">
           <div class="field"><label>Breitengrad</label><input type="text" class="mono-in" id="loc-lat"></div>
           <div class="field"><label>Längengrad</label><input type="text" class="mono-in" id="loc-lon"></div>

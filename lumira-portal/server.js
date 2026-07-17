@@ -9,6 +9,7 @@
 const path = require("path");
 const os = require("os");
 const http = require("http");
+const https = require("https");
 const express = require("express");
 const bodyParser = require("body-parser");
 const crypto = require("crypto");
@@ -155,6 +156,34 @@ app.get("/api/settings", requireAuth, (req, res) => {
 	// PIN-Hash/-Salt nie ans Frontend ausliefern.
 	const { portal, ...safe } = settings;
 	res.json(Object.assign({}, safe, { portal: { pinSet: !!(portal && portal.pinHash) } }));
+});
+
+// Ort/Stadt -> Koordinaten (Open-Meteo Geocoding, kostenlos, kein Schlüssel).
+// Ersetzt die frühere geocode()-Funktion aus install.sh's Assistenten -
+// die Standortsuche gehört jetzt zum Portal (siehe concept/selfservice.md).
+app.get("/api/geocode", requireAuth, (req, res) => {
+	const query = String(req.query.q || "").trim();
+	if (!query) return res.status(400).json({ error: "Suchbegriff fehlt" });
+	const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=de&format=json`;
+	https.get(url, { timeout: 6000 }, (up) => {
+		let body = "";
+		up.on("data", (chunk) => (body += chunk));
+		up.on("end", () => {
+			try {
+				const data = JSON.parse(body);
+				const results = (data.results || []).map((r) => ({
+					name: [r.name, r.admin1, r.country].filter(Boolean).join(", "),
+					lat: r.latitude,
+					lon: r.longitude
+				}));
+				res.json({ results });
+			} catch (err) {
+				res.status(502).json({ error: "Antwort der Geocoding-API konnte nicht gelesen werden" });
+			}
+		});
+	}).on("error", (err) => {
+		res.status(502).json({ error: `Geocoding nicht erreichbar (kein Internet?): ${err.message}` });
+	}).on("timeout", function () { this.destroy(new Error("Zeitüberschreitung")); });
 });
 
 app.post("/api/settings", requireAuth, async (req, res) => {

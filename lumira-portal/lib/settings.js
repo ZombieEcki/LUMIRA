@@ -14,7 +14,11 @@ const { isValidEdition, DEFAULT_EDITION } = require("./editions");
 const LUMIRA_HOME = process.env.LUMIRA_HOME || path.join(os.homedir(), ".lumira");
 const SETTINGS_PATH = process.env.LUMIRA_SETTINGS_PATH || path.join(LUMIRA_HOME, "settings.json");
 const BACKUP_DIR = path.join(LUMIRA_HOME, "backups");
-const DEFAULTS_PATH = path.join(__dirname, "..", "..", "settings.default.json");
+// Muss INNERHALB von lumira-portal/ liegen (nicht im Repo-Root): install.sh
+// kopiert nur den lumira-portal/-Unterordner auf den Pi (nach ~/lumira-portal),
+// "../.." vom Repo-Root aus würde dort ins Leere zeigen (siehe CHECKLIST.md-
+// Vorfall: lumira-portal.service ENOENT auf .../home/<user>/settings.default.json).
+const DEFAULTS_PATH = path.join(__dirname, "..", "settings.default.json");
 const MAX_BACKUPS = 15;
 
 function readDefaults() {

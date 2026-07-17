@@ -7,27 +7,38 @@
 #   - MagicMirror²
 #   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments,
 #     modules/MMM-LumiraStatus)
-#   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD,
-#     im Assistenten kann stattdessen eine andere Git-URL angegeben werden)
-#   - eine fertige config.js – interaktiv abgefragt (Standort, Kalender, News …)
+#   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD)
+#   - eine lauffähige config.js mit Platzhalter-Werten für die gewählte Edition
 #   - optional Autostart per pm2
+#
+# WICHTIG: Dieses Skript fragt KEINE persönlichen Daten mehr ab (Name,
+# Standort, Kalender, News, Home-Assistant-Webhook). Das ist Absicht: diese
+# Angaben macht der Kunde selbst über das Self-Service-Portal – entweder beim
+# Ersteinrichten über den Captive-Portal-Access-Point oder jederzeit später
+# unter http://<hostname>.local:8092 (siehe concept/selfservice.md). Dieses
+# Skript kümmert sich nur noch um die technische Grundinstallation (Edition,
+# Hostname, Module, Dienste).
 #
 # Aufruf:
 #   chmod +x install.sh
-#   ./install.sh                 # volle Installation mit Assistent (inkl. Autostart)
-#   ./install.sh --reconfigure   # nur die config.js neu erzeugen (Assistent)
-#   ./install.sh --no-wizard      # Installation ohne Fragen (nutzt config.js.sample)
-#   ./install.sh --no-pm2         # ohne Autostart installieren
-#   ./install.sh --edition=fire   # Edition der Grundinstallation (home|fire|rescue|business|station, Standard: fire)
+#   ./install.sh                    # volle Installation (inkl. Autostart)
+#   ./install.sh --reconfigure      # config.js aus dem aktuellen settings.json neu erzeugen
+#   ./install.sh --no-wizard        # config.js.sample statt settings.json-Pipeline nutzen
+#   ./install.sh --no-pm2           # ohne Autostart installieren
+#   ./install.sh --edition=fire     # Edition der Grundinstallation (home|fire|rescue|business|station, Standard: fire)
 #   ./install.sh --hostname=lumira  # Hostname für http://<name>.local:8092 (Standard: lumira)
 #   ./install.sh --no-selfservice   # ohne Self-Service-Portal/Watchdog (siehe concept/selfservice.md)
+#   ./install.sh --no-rainradar     # ohne DWD-Regenradar-Modul
+#   ./install.sh --rainradar-url=…  # abweichende Git-URL für das Regenradar-Modul
 #
 # Self-Service-Portal (lumira-portal, Port 8092) & Watchdog werden standard-
-# mäßig mit eingerichtet: config.js entsteht ab jetzt aus settings.json über
+# mäßig mit eingerichtet: config.js entsteht aus settings.json über
 # lumira-portal/lib/generate-config.js – dieselbe Logik, die auch das
 # Web-Portal für spätere Änderungen nutzt (siehe concept/selfservice.md
-# Abschnitt 7). Setzt systemd + NetworkManager voraus (Raspberry Pi OS
-# Bookworm); fehlt eines davon, wird der jeweilige Teil übersprungen.
+# Abschnitt 7). --reconfigure überschreibt dabei NUR Edition/Hostname, alle
+# bereits über das Portal eingetragenen Kundendaten bleiben unangetastet.
+# Setzt systemd + NetworkManager voraus (Raspberry Pi OS Bookworm); fehlt
+# eines davon, wird der jeweilige Teil übersprungen.
 #
 # Autostart nutzt Wayland (Raspberry Pi OS Bookworm):
 #   WAYLAND_DISPLAY=wayland-0 · XDG_RUNTIME_DIR=/run/user/$(id -u) · npm start
@@ -44,6 +55,8 @@ OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus")
 
 WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0
 EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1
+RAINRADAR_URL_DEFAULT="https://github.com/realoliwer/MMM-RainRadarDWD"
+RAINRADAR_URL="$RAINRADAR_URL_DEFAULT"
 for arg in "$@"; do
   case "$arg" in
     --with-pm2) WITH_PM2=1 ;;
@@ -54,7 +67,9 @@ for arg in "$@"; do
     --edition=*) EDITION="${arg#*=}" ;;
     --hostname=*) HOSTNAME_NEW="${arg#*=}" ;;
     --no-selfservice) WITH_SELFSERVICE=0 ;;
-    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//' | head -n 36; exit 0 ;;
+    --no-rainradar) RAINRADAR_URL="" ;;
+    --rainradar-url=*) RAINRADAR_URL="${arg#*=}" ;;
+    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//' | head -n 44; exit 0 ;;
     *) echo "Unbekannte Option: $arg"; exit 1 ;;
   esac
 done
@@ -79,115 +94,14 @@ warn() { echo "  ${YLW}!${RST} $*"; }
 die()  { echo "${RED}${BOLD}Fehler:${RST} $*" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
-# Eingabe-Helfer
-# ---------------------------------------------------------------------------
-ask() {  # $1 Frage, $2 Default -> gibt Wert auf stdout
-  local p="$1" d="${2:-}" ans
-  if [ -n "$d" ]; then read -r -p "  $p [$d]: " ans || true; printf '%s' "${ans:-$d}"
-  else read -r -p "  $p: " ans || true; printf '%s' "$ans"; fi
-}
-ask_yesno() {  # $1 Frage, $2 Default(J/N)
-  local p="$1" d="${2:-N}" ans hint
-  [ "$d" = "J" ] && hint="J/n" || hint="j/N"
-  read -r -p "  $p [$hint]: " ans || true; ans="${ans:-$d}"
-  case "$ans" in [jJyY]*) return 0 ;; *) return 1 ;; esac
-}
-urlencode() { node -e 'process.stdout.write(encodeURIComponent(process.argv[1]||""))' "$1"; }
-
-# Standort -> Koordinaten (Open-Meteo Geocoding, kostenlos, kein Schlüssel)
-GEO_LAT=""; GEO_LON=""; GEO_NAME=""
-geocode() {
-  local enc json parsed
-  enc="$(urlencode "$1")"
-  json="$(curl -fsSL "https://geocoding-api.open-meteo.com/v1/search?name=${enc}&count=1&language=de&format=json" 2>/dev/null || true)"
-  [ -z "$json" ] && return 1
-  parsed="$(printf '%s' "$json" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{try{const j=JSON.parse(s);if(j.results&&j.results.length){const r=j.results[0];const n=[r.name,r.admin1,r.country].filter(Boolean).join(", ");process.stdout.write(r.latitude+"|"+r.longitude+"|"+n);}}catch(e){}});' 2>/dev/null || true)"
-  [ -z "$parsed" ] && return 1
-  GEO_LAT="${parsed%%|*}"; local rest="${parsed#*|}"; GEO_LON="${rest%%|*}"; GEO_NAME="${rest#*|}"
-  return 0
-}
-
-# ---------------------------------------------------------------------------
-# Der Assistent
-# ---------------------------------------------------------------------------
-# Ergebnis-Variablen
-PERSON_NAME="Papa"; LAT="52.520"; LON="13.405"; LOCATION_NAME="Berlin"
-CAL_URL=""; RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"
-HA_URL=""
-RAINRADAR_URL_DEFAULT="https://github.com/realoliwer/MMM-RainRadarDWD"
-RAINRADAR_URL="$RAINRADAR_URL_DEFAULT"
-
-run_wizard() {
-  echo
-  echo "${BOLD}Setup-Assistent${RST} – ich frage jetzt die persönlichen Daten ab."
-  echo "  (Enter übernimmt jeweils den Vorschlag in eckigen Klammern.)"
-  echo
-
-  step "Feuerwehr"
-  PERSON_NAME="$(ask "Name der Person im Einsatz" "Papa")"
-  HA_URL="$(ask "Home-Assistant-Webhook-URL bei Alarm (optional)" "")"
-  echo
-
-  step "Standort (für Wetter & Regenradar)"
-  while :; do
-    local city; city="$(ask "Ort/Stadt (z. B. Berlin) – leer = manuell" "")"
-    if [ -z "$city" ]; then
-      LAT="$(ask "Breitengrad (lat)" "$LAT")"
-      LON="$(ask "Längengrad (lon)" "$LON")"
-      LOCATION_NAME="$(ask "Ortsname (Anzeige)" "Zuhause")"
-      break
-    fi
-    if geocode "$city"; then
-      echo "  → gefunden: ${BOLD}${GEO_NAME}${RST}  (lat ${GEO_LAT}, lon ${GEO_LON})"
-      if ask_yesno "Übernehmen?" "J"; then
-        LAT="$GEO_LAT"; LON="$GEO_LON"; LOCATION_NAME="$GEO_NAME"; break
-      fi
-    else
-      warn "Ort nicht gefunden (Internet/Schreibweise prüfen)."
-      if ask_yesno "Koordinaten manuell eingeben?" "N"; then
-        LAT="$(ask "Breitengrad (lat)" "$LAT")"
-        LON="$(ask "Längengrad (lon)" "$LON")"
-        LOCATION_NAME="$(ask "Ortsname (Anzeige)" "Zuhause")"; break
-      fi
-    fi
-  done
-  echo
-
-  step "Familienkalender"
-  CAL_URL="$(ask "Kalender-URL (iCloud/ICS, webcal:// oder https://) – leer = überspringen" "")"
-  CAL_URL="${CAL_URL/webcal:\/\//https://}"
-  echo
-
-  step "Nachrichten-Feed"
-  echo "    1) Tagesschau   2) heise online   3) eigener RSS-Feed"
-  local choice; choice="$(ask "Auswahl" "1")"
-  case "$choice" in
-    2) RSS_TITLE="heise"; RSS_URL="https://www.heise.de/rss/heise-atom.xml" ;;
-    3) RSS_TITLE="$(ask "Titel des Feeds" "Nachrichten")"; RSS_URL="$(ask "RSS-URL" "")" ;;
-    *) RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml" ;;
-  esac
-  echo
-
-  step "Regenradar (DWD)"
-  if ask_yesno "DWD-Regenradar installieren?" "J"; then
-    RAINRADAR_URL="$(ask "Git-URL des Moduls (Enter = Standard)" "$RAINRADAR_URL_DEFAULT")"
-  else
-    RAINRADAR_URL=""
-  fi
-  echo
-
-  step "Autostart"
-  if ask_yesno "MagicMirror automatisch beim Booten starten (pm2, Wayland)?" "J"; then WITH_PM2=1; else WITH_PM2=0; fi
-  echo
-}
-
-# ---------------------------------------------------------------------------
 # config.js schreiben
 #
-# settings.json ist seit der Selfservice-Umsetzung die einzige Wahrheit
-# (siehe concept/selfservice.md Abschnitt 7): der Assistent hier schreibt nur
-# noch die Antworten dorthin, die eigentliche config.js entsteht über
-# denselben Generator, den auch das Web-Portal für spätere Änderungen nutzt.
+# settings.json ist die einzige Wahrheit (siehe concept/selfservice.md
+# Abschnitt 7). Dieses Skript trägt hier NUR Edition und Hostname ein - alle
+# persönlichen Felder (Name, Standort, Kalender, News, HA-Webhook) bleiben
+# unangetastet, falls sie schon existieren (z.B. weil der Kunde sie bereits
+# über das Self-Service-Portal eingetragen hat). Ein wiederholter Aufruf
+# (auch --reconfigure) überschreibt also nie Kundendaten.
 # ---------------------------------------------------------------------------
 write_config() {
   local CONFIG="$MM_DIR/config/config.js"
@@ -207,26 +121,19 @@ write_config() {
 
   local SETTINGS_JSON
   SETTINGS_JSON="$(node -e '
-    const [edition, hostname, personName, haUrl, lat, lon, locName, calUrl, rssTitle, rssUrl, rainEnabled] = process.argv.slice(1);
-    process.stdout.write(JSON.stringify({
-      edition, hostname,
-      person: { name: personName },
-      location: { name: locName, lat: Number(lat), lon: Number(lon) },
-      rainRadar: { enabled: rainEnabled === "true" },
-      calendar: { url: calUrl },
-      news: { title: rssTitle, url: rssUrl },
-      alarm: { haWebhookUrl: haUrl }
-    }));
-  ' "$EDITION" "$HOSTNAME_NEW" "$PERSON_NAME" "$HA_URL" "$LAT" "$LON" "$LOCATION_NAME" "$CAL_URL" "$RSS_TITLE" "$RSS_URL" "$RAIN_ENABLED")"
+    const [edition, hostname, rainEnabled] = process.argv.slice(1);
+    process.stdout.write(JSON.stringify({ edition, hostname, rainRadar: { enabled: rainEnabled === "true" } }));
+  ' "$EDITION" "$HOSTNAME_NEW" "$RAIN_ENABLED")"
 
   echo "$SETTINGS_JSON" | node "$SCRIPT_DIR/lumira-portal/bin/save-settings-cli.js" >/dev/null
   node "$SCRIPT_DIR/lumira-portal/bin/generate-config-cli.js" --out="$CONFIG"
 
-  ok "config.js geschrieben (Standort: ${LOCATION_NAME}, Edition: ${EDITION})"
+  ok "config.js geschrieben (Edition: ${EDITION}, Hostname: ${HOSTNAME_NEW})"
 }
 
 # Regenradar-Modul installieren (Standard: realoliwer/MMM-RainRadarDWD,
-# im Assistenten überschreibbar). Idempotent, auch von --reconfigure nutzbar.
+# mit --no-rainradar abwählbar oder --rainradar-url=… ersetzbar). Idempotent,
+# auch von --reconfigure nutzbar.
 install_rainradar() {
   [ -n "$RAINRADAR_URL" ] || return 0
   step "MMM-RainRadarDWD installieren"
@@ -330,9 +237,10 @@ echo "Ziel: ${MM_DIR}"
 command -v sudo >/dev/null 2>&1 || die "sudo wird benötigt."
 
 # --- Nur neu konfigurieren? -------------------------------------------------
+# Setzt nur Edition/Hostname in settings.json neu und erzeugt config.js
+# daraus - alle über das Portal eingetragenen Kundendaten bleiben erhalten.
 if [ "$RECONFIGURE" -eq 1 ]; then
-  command -v node >/dev/null 2>&1 || die "Node.js wird für den Assistenten benötigt (erst normale Installation ausführen)."
-  run_wizard
+  command -v node >/dev/null 2>&1 || die "Node.js wird benötigt (erst normale Installation ausführen)."
   install_rainradar
   write_config
   echo; echo "${GRN}${BOLD}config.js neu erzeugt.${RST} Neustart: pm2 restart MagicMirror  (oder npm start)"
@@ -398,20 +306,13 @@ done
 
 install_lumira_portal
 
-# --- Assistent (Standort/Kalender/News) -------------------------------------
-if [ "$NO_WIZARD" -eq 0 ] && [ -t 0 ]; then
-  run_wizard
-else
-  warn "Assistent übersprungen – nutze Vorlage/Standardwerte"
-fi
-
 # --- 4: Regenradar (Standard: realoliwer/MMM-RainRadarDWD) -----------------
 install_rainradar
 
 # --- 5: config.js -----------------------------------------------------------
 step "config.js einrichten"
-if [ "$NO_WIZARD" -eq 1 ] || [ ! -t 0 ]; then
-  # Ohne Assistent: statische Vorlage nutzen, falls vorhanden
+if [ "$NO_WIZARD" -eq 1 ]; then
+  # --no-wizard: statische Vorlage nutzen statt der settings.json-Pipeline
   CFG="$MM_DIR/config/config.js"
   if [ -f "$SCRIPT_DIR/config.js.sample" ] && { [ ! -f "$CFG" ] || [ "$FORCE_CONFIG" -eq 1 ]; }; then
     [ -f "$CFG" ] && cp "$CFG" "$CFG.backup.$(date +%Y%m%d-%H%M%S)"
@@ -448,14 +349,16 @@ EOS
 fi
 
 echo
-echo "${GRN}${BOLD}Fertig!${RST}"
+echo "${GRN}${BOLD}Grundinstallation fertig!${RST}"
 echo "  • Edition:     $EDITION"
-echo "  • config.js:   $MM_DIR/config/config.js"
+echo "  • config.js:   $MM_DIR/config/config.js (Platzhalter-Werte)"
 echo "  • Neu konfigurieren jederzeit:  ./install.sh --reconfigure"
 if [ "$WITH_PM2" -eq 1 ]; then echo "  • Läuft via pm2.  Logs:  pm2 logs MagicMirror"
 else echo "  • Starten:  cd $MM_DIR && npm start"; fi
 if [ "$WITH_SELFSERVICE" -eq 1 ]; then
   echo "  • Self-Service-Portal:  http://${HOSTNAME_NEW}.local:8092  (Logs: sudo journalctl -u lumira-portal -f)"
+  echo "  • Persönliche Daten (Name, Standort, Kalender, WLAN …) jetzt dort eintragen"
+  echo "    – entweder direkt im Heimnetz oder über den Setup-Access-Point \"LUMIRA-Setup\""
 fi
 echo "  • Testalarm:  http://<pi-ip>:8090/alarm?keyword=Test&unit=Test"
 echo "  • Ports: 8080 MagicMirror · 8090 aPagerAlarm · 8091 SmartCompliments · 8092 lumira-portal"

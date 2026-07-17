@@ -160,6 +160,7 @@
       wireSteuerung();
       wireWlan();
       wireSicherheit();
+      wireStandortSearch();
       $("#addBday").addEventListener("click", function () { $("#bdays").appendChild(bdayRow({ name: "", date: "" })); });
       refreshStatus();
       setInterval(refreshStatus, 5000);
@@ -376,6 +377,46 @@
       $("#compliments-state").textContent = data.enabled === false ? "Aus" : "An";
     }).catch(function () {
       $("#compliments-state").textContent = "–";
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Standort suchen (ersetzt die frühere Geocoding-Frage im install.sh-Assistenten)
+  // ---------------------------------------------------------------------
+  function wireStandortSearch() {
+    $("#loc-search-btn").addEventListener("click", searchLocation);
+    $("#loc-search").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); searchLocation(); } });
+  }
+
+  function searchLocation() {
+    var query = $("#loc-search").value.trim();
+    var results = $("#loc-results");
+    if (!query) return;
+    results.hidden = false;
+    results.innerHTML = '<div class="save-hint">Suche läuft…</div>';
+    api("/api/geocode?q=" + encodeURIComponent(query)).then(function (data) {
+      var list = data.results || [];
+      if (!list.length) {
+        results.innerHTML = '<div class="save-hint">Nichts gefunden.</div>';
+        return;
+      }
+      results.innerHTML = "";
+      list.forEach(function (r) {
+        var row = document.createElement("div");
+        row.className = "wifi-item";
+        row.innerHTML = '<span class="ssid">📍 ' + escapeHtml(r.name) + '</span>' +
+          '<span class="sig">' + r.lat.toFixed(2) + ", " + r.lon.toFixed(2) + '</span>';
+        row.addEventListener("click", function () {
+          $("#loc-name").value = r.name;
+          $("#loc-lat").value = r.lat;
+          $("#loc-lon").value = r.lon;
+          results.hidden = true;
+          $("#loc-search").value = "";
+        });
+        results.appendChild(row);
+      });
+    }).catch(function (err) {
+      results.innerHTML = '<div class="save-hint">' + escapeHtml(err.message) + "</div>";
     });
   }
 

@@ -6,6 +6,7 @@
 // Einzel-Skript (kein Dauerprozess) – systemd übernimmt die Wiederholung.
 "use strict";
 
+const fs = require("fs");
 const netLib = require("./lib/net");
 const modeLib = require("./lib/mode");
 const settingsLib = require("./lib/settings");
@@ -38,6 +39,10 @@ async function enterSetup(settings, reason) {
 }
 
 async function main() {
+	// Vor dem ersten mode.set() (auch aus einem vorherigen Lauf) prüfen, ob
+	// dies der allererste Aufruf seit der Installation ist - siehe Hinweis
+	// unten zu isFirstRun.
+	const isFirstRun = !fs.existsSync(modeLib.MODE_PATH);
 	const current = modeLib.get();
 	const settings = settingsLib.load();
 
@@ -54,15 +59,20 @@ async function main() {
 		return;
 	}
 
-	// FAMILY-Modus: Erstinbetriebnahme ohne hinterlegtes Heimnetz → sofort
-	// SETUP (Abschnitt 3, Schritt 1), kein Grace-Zeitraum nötig.
-	if (!settings.network.homeSsid) {
-		log("kein Heimnetz hinterlegt – Ersteinrichtung");
+	const { online } = await netLib.checkConnectivity();
+
+	// Absichtlich NICHT allein an settings.network.homeSsid festgemacht: viele
+	// Pis kommen schon mit fertig eingerichtetem WLAN (z.B. per Raspberry Pi
+	// Imager vorbelegt), bevor LUMIRA je installiert wurde - homeSsid bleibt
+	// dann leer, obwohl der Pi längst online ist. Nur beim allerersten Lauf
+	// UND wenn wirklich keine Verbindung besteht, sofort in SETUP springen
+	// (Abschnitt 3, Schritt 1); sonst normal über die Offline-Schwelle unten.
+	if (isFirstRun && !online) {
+		log("erster Start ohne Verbindung – Ersteinrichtung");
 		await enterSetup(settings, "first-boot");
 		return;
 	}
 
-	const { online } = await netLib.checkConnectivity();
 	if (online) {
 		if (current.offlineChecks) modeLib.set(modeLib.MODES.FAMILY, { offlineChecks: 0 });
 		return;
