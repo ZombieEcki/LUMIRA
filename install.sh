@@ -265,10 +265,9 @@ let config = {
 		{ module: "updatenotification", position: "top_bar" },
 		{
 			module: "clock",
-			position: "top_right",
+			position: "top_left",
 			config: { displayType: "digital", displaySeconds: false }
 		},
-${RAIN_BLOCK}
 ${CAL_BLOCK}
 		{
 			module: "weather",
@@ -291,6 +290,7 @@ ${CAL_BLOCK}
 				lon: ${LON}
 			}
 		},
+${RAIN_BLOCK}
 ${NEWS_BLOCK}
 		{
 			module: "MMM-aPagerAlarm",

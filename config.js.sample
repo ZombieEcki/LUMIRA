@@ -25,53 +25,10 @@ let config = {
 		{ module: "updatenotification", position: "top_bar" },
 		{
 			module: "clock",
-			position: "top_right",
+			position: "top_left",
 			config: {
 				displayType: "digital",
 				displaySeconds: false
-			}
-		},
-
-		/* --- DWD-Regenradar (benötigt installiertes MMM-RainRadarDWD) --- */
-		{
-			module: "MMM-RainRadarDWD",
-			position: "top_right",
-			config: {
-				lat: 52.520,              // <-- ANPASSEN
-				lon: 13.405,              // <-- ANPASSEN
-
-				alwaysVisible: true,
-				showIfRainWithin: 120,
-
-				timePast: 60,
-				timeFuture: 120,
-				frameStep: 10,
-
-				width: "350px",
-				height: "350px",
-				border: "none",
-				zoomLevel: 9,
-				cloudBlur: 12,
-				markerSymbol: "fa-home",
-				markerColor: "#ff0000",
-
-				showLegend: true,
-				legendPosition: "bottom",
-
-				textPast: "PAST",
-				textNow: "NOW",
-				textForecast: "FORECAST",
-				textRainExpected: " - Rain expected:",
-				textSnowExpected: " - Snow expected:",
-				textSleetExpected: " - Sleet expected:",
-				textHailExpected: " - Hail expected:",
-				textLoading: "Loading data...",
-				textLight: "Light",
-				textHeavy: "Heavy",
-
-				animationSpeed: 2000,
-				updateInterval: 600000,
-				logLevel: "INFO"
 			}
 		},
 
@@ -173,6 +130,49 @@ let config = {
 				type: "forecast",
 				lat: 52.520,   // <-- ANPASSEN
 				lon: 13.405    // <-- ANPASSEN
+			}
+		},
+
+		/* --- DWD-Regenradar (benötigt installiertes MMM-RainRadarDWD) – unter der Wettervorhersage --- */
+		{
+			module: "MMM-RainRadarDWD",
+			position: "top_right",
+			config: {
+				lat: 52.520,              // <-- ANPASSEN
+				lon: 13.405,              // <-- ANPASSEN
+
+				alwaysVisible: true,
+				showIfRainWithin: 120,
+
+				timePast: 60,
+				timeFuture: 120,
+				frameStep: 10,
+
+				width: "350px",
+				height: "350px",
+				border: "none",
+				zoomLevel: 9,
+				cloudBlur: 12,
+				markerSymbol: "fa-home",
+				markerColor: "#ff0000",
+
+				showLegend: true,
+				legendPosition: "bottom",
+
+				textPast: "PAST",
+				textNow: "NOW",
+				textForecast: "FORECAST",
+				textRainExpected: " - Rain expected:",
+				textSnowExpected: " - Snow expected:",
+				textSleetExpected: " - Sleet expected:",
+				textHailExpected: " - Hail expected:",
+				textLoading: "Loading data...",
+				textLight: "Light",
+				textHeavy: "Heavy",
+
+				animationSpeed: 2000,
+				updateInterval: 600000,
+				logLevel: "INFO"
 			}
 		},
 
