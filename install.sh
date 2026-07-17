@@ -6,7 +6,8 @@
 #   - Node.js (falls fehlend/zu alt)
 #   - MagicMirror²
 #   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments)
-#   - optional MMM-RainRadarDWD (Git-URL wird abgefragt)
+#   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD,
+#     im Assistenten kann stattdessen eine andere Git-URL angegeben werden)
 #   - eine fertige config.js – interaktiv abgefragt (Standort, Kalender, News …)
 #   - optional Autostart per pm2
 #
@@ -92,7 +93,9 @@ geocode() {
 # Ergebnis-Variablen
 PERSON_NAME="Papa"; LAT="52.520"; LON="13.405"; LOCATION_NAME="Berlin"
 CAL_URL=""; RSS_TITLE="Tagesschau"; RSS_URL="https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"
-HA_URL=""; RAINRADAR_URL=""
+HA_URL=""
+RAINRADAR_URL_DEFAULT="https://github.com/realoliwer/MMM-RainRadarDWD"
+RAINRADAR_URL="$RAINRADAR_URL_DEFAULT"
 
 run_wizard() {
   echo
@@ -145,9 +148,11 @@ run_wizard() {
   esac
   echo
 
-  step "Regenradar (optional)"
-  if ask_yesno "DWD-Regenradar (MMM-RainRadarDWD) installieren?" "N"; then
-    RAINRADAR_URL="$(ask "Git-URL des Moduls" "")"
+  step "Regenradar (DWD)"
+  if ask_yesno "DWD-Regenradar installieren?" "J"; then
+    RAINRADAR_URL="$(ask "Git-URL des Moduls (Enter = Standard)" "$RAINRADAR_URL_DEFAULT")"
+  else
+    RAINRADAR_URL=""
   fi
   echo
 
@@ -329,6 +334,25 @@ EOF
   ok "config.js geschrieben (Standort: ${LOCATION_NAME})"
 }
 
+# Regenradar-Modul installieren (Standard: realoliwer/MMM-RainRadarDWD,
+# im Assistenten überschreibbar). Idempotent, auch von --reconfigure nutzbar.
+install_rainradar() {
+  [ -n "$RAINRADAR_URL" ] || return 0
+  step "MMM-RainRadarDWD installieren"
+  if [ -d "$MM_DIR/modules/MMM-RainRadarDWD" ]; then
+    ok "bereits vorhanden"
+    return 0
+  fi
+  if git clone "$RAINRADAR_URL" "$MM_DIR/modules/MMM-RainRadarDWD" 2>/dev/null; then
+    if [ -f "$MM_DIR/modules/MMM-RainRadarDWD/package.json" ] && grep -q '"dependencies"' "$MM_DIR/modules/MMM-RainRadarDWD/package.json"; then
+      ( cd "$MM_DIR/modules/MMM-RainRadarDWD" && npm install --no-audit --no-fund ) || warn "npm install fehlgeschlagen"
+    fi
+    ok "installiert ($RAINRADAR_URL)"
+  else
+    warn "Konnte MMM-RainRadarDWD nicht klonen ($RAINRADAR_URL) – wird in der config ausgelassen"
+  fi
+}
+
 # ===========================================================================
 # Ablauf
 # ===========================================================================
@@ -343,6 +367,7 @@ command -v sudo >/dev/null 2>&1 || die "sudo wird benötigt."
 if [ "$RECONFIGURE" -eq 1 ]; then
   command -v node >/dev/null 2>&1 || die "Node.js wird für den Assistenten benötigt (erst normale Installation ausführen)."
   run_wizard
+  install_rainradar
   write_config
   echo; echo "${GRN}${BOLD}config.js neu erzeugt.${RST} Neustart: pm2 restart MagicMirror  (oder npm start)"
   exit 0
@@ -410,20 +435,8 @@ else
   warn "Assistent übersprungen – nutze Vorlage/Standardwerte"
 fi
 
-# --- 4: Optional MMM-RainRadarDWD ------------------------------------------
-if [ -n "$RAINRADAR_URL" ]; then
-  step "MMM-RainRadarDWD installieren"
-  if [ -d "$MM_DIR/modules/MMM-RainRadarDWD" ]; then
-    ok "bereits vorhanden"
-  elif git clone "$RAINRADAR_URL" "$MM_DIR/modules/MMM-RainRadarDWD" 2>/dev/null; then
-    if [ -f "$MM_DIR/modules/MMM-RainRadarDWD/package.json" ] && grep -q '"dependencies"' "$MM_DIR/modules/MMM-RainRadarDWD/package.json"; then
-      ( cd "$MM_DIR/modules/MMM-RainRadarDWD" && npm install --no-audit --no-fund ) || warn "npm install fehlgeschlagen"
-    fi
-    ok "installiert"
-  else
-    warn "Konnte MMM-RainRadarDWD nicht klonen – wird in der config ausgelassen"
-  fi
-fi
+# --- 4: Regenradar (Standard: realoliwer/MMM-RainRadarDWD) -----------------
+install_rainradar
 
 # --- 5: config.js -----------------------------------------------------------
 step "config.js einrichten"

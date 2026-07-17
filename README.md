@@ -39,7 +39,7 @@ Am Ende läuft LUMIRA – und startet nach jedem Neustart des Pi von selbst.
 | `calendar` | Familienkalender (iCloud/ICS) | Standard |
 | `weather` (current + forecast) | Wetter über Open-Meteo | Standard |
 | `newsfeed` | Nachrichtenticker (RSS) | Standard |
-| `MMM-RainRadarDWD` | DWD-Regenradar (optional) | Drittanbieter |
+| [`MMM-RainRadarDWD`](https://github.com/realoliwer/MMM-RainRadarDWD) | DWD-Regenradar (Standard, abwählbar) | Drittanbieter |
 | **`MMM-aPagerAlarm`** | Feuerwehr-Alarmierung + Home-Assistant-Weiterleitung | **Eigen** |
 | **`MMM-SmartCompliments`** | intelligente Familien-/Motivationssprüche | **Eigen** |
 
@@ -52,7 +52,7 @@ Am Ende läuft LUMIRA – und startet nach jedem Neustart des Pi von selbst.
 | **Ort/Stadt** | Wetter &amp; Standort | wird per Open-Meteo automatisch in Koordinaten umgewandelt |
 | **Kalender-URL** | Familienkalender | `webcal://` → `https://` automatisch |
 | **Nachrichten-Feed** | Newsticker | Auswahl Tagesschau / heise / eigener RSS |
-| **Regenradar** (optional) | DWD-Radar | klont &amp; trägt das Modul ein |
+| **Regenradar** | DWD-Radar | standardmäßig installiert (realoliwer/MMM-RainRadarDWD), andere Git-URL oder Ablehnen möglich |
 | **Autostart** | Start beim Booten | richtet pm2 + Wayland ein |
 
 ## 🚒 Die vier Phasen
@@ -121,7 +121,7 @@ pm2 stop MagicMirror      # anhalten
 - **Alarmton**: `alarm.mp3` liegt aus Lizenzgründen nicht im Repo – nach der
   Installation nach `modules/MMM-aPagerAlarm/sounds/` legen.
 - **iCloud-Kalender** muss öffentlich freigegeben sein.
-- **Regenradar**: Git-URL im Assistenten angeben (sonst wird es ausgelassen).
+- **Regenradar**: standardmäßig [realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD); im Assistenten mit „Nein" abwählbar oder mit eigener Git-URL ersetzbar.
 - **Autostart** setzt eine grafische Wayland-Sitzung voraus (Bookworm-Standard).
 
 ## Lizenz

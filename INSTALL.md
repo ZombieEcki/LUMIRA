@@ -40,7 +40,7 @@ Nach der Basis-Installation fragt das Skript interaktiv ab:
 3. **Ort/Stadt** – wird automatisch in Koordinaten umgewandelt (Open-Meteo)
 4. **Kalender-URL** – iCloud/ICS (`webcal://` wird automatisch umgewandelt)
 5. **Nachrichten-Feed** – Tagesschau / heise / eigener RSS
-6. **Regenradar** – optional, Git-URL von MMM-RainRadarDWD
+6. **Regenradar** – standardmäßig installiert ([realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD)); im Assistenten lässt sich stattdessen eine andere Git-URL angeben oder ganz ablehnen
 7. **Autostart per pm2** – ja/nein
 
 Jede Frage hat einen Vorschlag in `[ ]`; Enter übernimmt ihn.
