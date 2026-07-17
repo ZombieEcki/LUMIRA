@@ -46,7 +46,7 @@ um den aktuellen Stand zu sehen.
 
 | # | Idee | Status |
 |---|------|--------|
-| 1 | **Selbstkonfiguration per WLAN-Access-Point** – Pi spannt eigenes WLAN auf, Kunde konfiguriert per Web-UI ohne SSH | 📋 geplant (6-Phasen-Plan steht) |
+| 1 | **Selbstkonfiguration per WLAN-Access-Point** – Pi spannt eigenes WLAN auf, Kunde konfiguriert per Web-UI ohne SSH | 🟡 Konzept fertig ([SELFSERVICE-KONZEPT.md](SELFSERVICE-KONZEPT.md)), Umsetzung offen |
 | 2 | **Weitere Melde-Apps** mit Webhook prüfen (Divera, Alamos, FF-Agent …) | 📋 geplant (Recherche) |
 | 3 | ~~Layout: Uhr links, Regenradar unter Wetter~~ | ✅ erledigt |
 | 4 | **Alarm komplett abschaltbar** per Config (`enabled: false`) | 📋 geplant |

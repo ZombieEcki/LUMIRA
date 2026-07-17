@@ -10,6 +10,7 @@ einem Raspberry Pi: MagicMirror², alle Module, eine per Assistent erzeugte
 `config.js` **und** den automatischen Start beim Booten.
 
 > 📋 **[CHECKLIST.md](CHECKLIST.md)** – live Übersicht, was schon erledigt ist und was als Nächstes geplant ist.
+> 🛜 **[SELFSERVICE-KONZEPT.md](SELFSERVICE-KONZEPT.md)** – Konzept für Ersteinrichtung & Konfiguration per WLAN-Access-Point, ganz ohne SSH.
 
 ## 🚀 Installation in einem Befehl
 
