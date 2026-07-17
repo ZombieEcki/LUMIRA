@@ -9,6 +9,8 @@ Feuerwehrangehörige und ihre Familien. Ein einziger Befehl installiert alles au
 einem Raspberry Pi: MagicMirror², alle Module, eine per Assistent erzeugte
 `config.js` **und** den automatischen Start beim Booten.
 
+> 📋 **[CHECKLIST.md](CHECKLIST.md)** – live Übersicht, was schon erledigt ist und was als Nächstes geplant ist.
+
 ## 🚀 Installation in einem Befehl
 
 ```bash
