@@ -5,7 +5,8 @@
 # Installiert auf einem Raspberry Pi (Raspberry Pi OS / Debian/Ubuntu):
 #   - Node.js (falls fehlend/zu alt)
 #   - MagicMirror²
-#   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments)
+#   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments,
+#     modules/MMM-LumiraStatus)
 #   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD,
 #     im Assistenten kann stattdessen eine andere Git-URL angegeben werden)
 #   - eine fertige config.js – interaktiv abgefragt (Standort, Kalender, News …)
@@ -17,6 +18,16 @@
 #   ./install.sh --reconfigure   # nur die config.js neu erzeugen (Assistent)
 #   ./install.sh --no-wizard      # Installation ohne Fragen (nutzt config.js.sample)
 #   ./install.sh --no-pm2         # ohne Autostart installieren
+#   ./install.sh --edition=fire   # Edition der Grundinstallation (home|fire|rescue|business|station, Standard: fire)
+#   ./install.sh --hostname=lumira  # Hostname für http://<name>.local:8092 (Standard: lumira)
+#   ./install.sh --no-selfservice   # ohne Self-Service-Portal/Watchdog (siehe concept/selfservice.md)
+#
+# Self-Service-Portal (lumira-portal, Port 8092) & Watchdog werden standard-
+# mäßig mit eingerichtet: config.js entsteht ab jetzt aus settings.json über
+# lumira-portal/lib/generate-config.js – dieselbe Logik, die auch das
+# Web-Portal für spätere Änderungen nutzt (siehe concept/selfservice.md
+# Abschnitt 7). Setzt systemd + NetworkManager voraus (Raspberry Pi OS
+# Bookworm); fehlt eines davon, wird der jeweilige Teil übersprungen.
 #
 # Autostart nutzt Wayland (Raspberry Pi OS Bookworm):
 #   WAYLAND_DISPLAY=wayland-0 · XDG_RUNTIME_DIR=/run/user/$(id -u) · npm start
@@ -29,9 +40,10 @@ set -euo pipefail
 MM_DIR="${MM_DIR:-$HOME/MagicMirror}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
 MM_REPO="https://github.com/MagicMirrorOrg/MagicMirror"
-OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments")
+OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus")
 
 WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0
+EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1
 for arg in "$@"; do
   case "$arg" in
     --with-pm2) WITH_PM2=1 ;;
@@ -39,10 +51,18 @@ for arg in "$@"; do
     --force-config) FORCE_CONFIG=1 ;;
     --reconfigure) RECONFIGURE=1 ;;
     --no-wizard) NO_WIZARD=1 ;;
-    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//' | head -n 22; exit 0 ;;
+    --edition=*) EDITION="${arg#*=}" ;;
+    --hostname=*) HOSTNAME_NEW="${arg#*=}" ;;
+    --no-selfservice) WITH_SELFSERVICE=0 ;;
+    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//' | head -n 36; exit 0 ;;
     *) echo "Unbekannte Option: $arg"; exit 1 ;;
   esac
 done
+
+case "$EDITION" in
+  home|fire|rescue|business|station) ;;
+  *) echo "Unbekannte Edition: $EDITION (home|fire|rescue|business|station)"; exit 1 ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -163,6 +183,11 @@ run_wizard() {
 
 # ---------------------------------------------------------------------------
 # config.js schreiben
+#
+# settings.json ist seit der Selfservice-Umsetzung die einzige Wahrheit
+# (siehe concept/selfservice.md Abschnitt 7): der Assistent hier schreibt nur
+# noch die Antworten dorthin, die eigentliche config.js entsteht über
+# denselben Generator, den auch das Web-Portal für spätere Änderungen nutzt.
 # ---------------------------------------------------------------------------
 write_config() {
   local CONFIG="$MM_DIR/config/config.js"
@@ -177,161 +202,27 @@ write_config() {
     cp "$CONFIG" "$BAK"; warn "vorhandene config.js gesichert: $BAK"
   fi
 
-  # Optionale Blöcke zusammensetzen
-  local CAL_BLOCK="" NEWS_BLOCK="" RAIN_BLOCK="" HA_TARGETS=""
-  [ -n "$HA_URL" ] && HA_TARGETS="\"$HA_URL\""
+  local RAIN_ENABLED="true"
+  [ -n "$RAINRADAR_URL" ] || RAIN_ENABLED="false"
 
-  if [ -n "$CAL_URL" ]; then
-    CAL_BLOCK=$(cat <<EOF
-		{
-			module: "calendar",
-			header: "Familienkalender",
-			position: "bottom_left",
-			config: {
-				maximumEntries: 5,
-				calendars: [ { symbol: "calendar-check", url: "$CAL_URL" } ]
-			}
-		},
-EOF
-)
-  fi
+  local SETTINGS_JSON
+  SETTINGS_JSON="$(node -e '
+    const [edition, hostname, personName, haUrl, lat, lon, locName, calUrl, rssTitle, rssUrl, rainEnabled] = process.argv.slice(1);
+    process.stdout.write(JSON.stringify({
+      edition, hostname,
+      person: { name: personName },
+      location: { name: locName, lat: Number(lat), lon: Number(lon) },
+      rainRadar: { enabled: rainEnabled === "true" },
+      calendar: { url: calUrl },
+      news: { title: rssTitle, url: rssUrl },
+      alarm: { haWebhookUrl: haUrl }
+    }));
+  ' "$EDITION" "$HOSTNAME_NEW" "$PERSON_NAME" "$HA_URL" "$LAT" "$LON" "$LOCATION_NAME" "$CAL_URL" "$RSS_TITLE" "$RSS_URL" "$RAIN_ENABLED")"
 
-  if [ -n "$RSS_URL" ]; then
-    NEWS_BLOCK=$(cat <<EOF
-		{
-			module: "newsfeed",
-			position: "bottom_bar",
-			config: {
-				feeds: [ { title: "$RSS_TITLE", url: "$RSS_URL" } ],
-				showSourceTitle: false,
-				showPublishDate: true,
-				reloadInterval: 300000,
-				updateInterval: 20000,
-				maxNewsItems: 10,
-				wrapTitle: true,
-				wrapDescription: false,
-				ignoreOldItems: true,
-				ignoreOlderThan: 86400000
-			}
-		},
-EOF
-)
-  fi
+  echo "$SETTINGS_JSON" | node "$SCRIPT_DIR/lumira-portal/bin/save-settings-cli.js" >/dev/null
+  node "$SCRIPT_DIR/lumira-portal/bin/generate-config-cli.js" --out="$CONFIG"
 
-  if [ -d "$MM_DIR/modules/MMM-RainRadarDWD" ]; then
-    RAIN_BLOCK=$(cat <<EOF
-		{
-			module: "MMM-RainRadarDWD",
-			position: "top_right",
-			config: {
-				lat: ${LAT},
-				lon: ${LON},
-				alwaysVisible: true,
-				showIfRainWithin: 120,
-				timePast: 60,
-				timeFuture: 120,
-				frameStep: 10,
-				width: "350px",
-				height: "350px",
-				border: "none",
-				zoomLevel: 9,
-				cloudBlur: 12,
-				markerSymbol: "fa-home",
-				markerColor: "#ff0000",
-				showLegend: true,
-				legendPosition: "bottom",
-				animationSpeed: 2000,
-				updateInterval: 600000,
-				logLevel: "INFO"
-			}
-		},
-EOF
-)
-  fi
-
-  cat > "$CONFIG" <<EOF
-/* MagicMirror² – automatisch erzeugt vom Setup-Assistenten
- * $(date)
- * Erneut ausführen: ./install.sh --reconfigure
- */
-let config = {
-	address: "0.0.0.0",
-	port: 8080,
-	basePath: "/",
-	ipWhitelist: [],
-
-	language: "de",
-	locale: "de-DE",
-	timeFormat: 24,
-	units: "metric",
-
-	modules: [
-		{ module: "alert" },
-		{ module: "updatenotification", position: "top_bar" },
-		{
-			module: "clock",
-			position: "top_left",
-			config: { displayType: "digital", displaySeconds: false }
-		},
-${CAL_BLOCK}
-		{
-			module: "weather",
-			position: "top_right",
-			config: {
-				weatherProvider: "openmeteo",
-				type: "current",
-				lat: ${LAT},
-				lon: ${LON}
-			}
-		},
-		{
-			module: "weather",
-			position: "top_right",
-			header: "Wettervorhersage",
-			config: {
-				weatherProvider: "openmeteo",
-				type: "forecast",
-				lat: ${LAT},
-				lon: ${LON}
-			}
-		},
-${RAIN_BLOCK}
-${NEWS_BLOCK}
-		{
-			module: "MMM-aPagerAlarm",
-			position: "fullscreen_above",
-			config: {
-				webhookPort: 8090,
-				personName: "${PERSON_NAME}",
-				playSound: true,
-				soundFile: "alarm.mp3",
-				forwardTargets: [ ${HA_TARGETS} ]
-			}
-		},
-		{
-			module: "MMM-SmartCompliments",
-			position: "top_center",
-			config: {
-				updateInterval: 30000,
-				fadeSpeed: 4000,
-				firefighterIntegration: true,
-				hideOnAlarmPhases: [1],
-				afterDutyEnabled: true,
-				manualControlEnabled: true,
-				manualControlPort: 8091,
-				birthdays: [
-					// { name: "Max", date: "01-01" }
-				],
-				weddingDate: ""
-			}
-		}
-	]
-};
-
-if (typeof module !== "undefined") { module.exports = config; }
-EOF
-
-  ok "config.js geschrieben (Standort: ${LOCATION_NAME})"
+  ok "config.js geschrieben (Standort: ${LOCATION_NAME}, Edition: ${EDITION})"
 }
 
 # Regenradar-Modul installieren (Standard: realoliwer/MMM-RainRadarDWD,
@@ -351,6 +242,81 @@ install_rainradar() {
   else
     warn "Konnte MMM-RainRadarDWD nicht klonen ($RAINRADAR_URL) – wird in der config ausgelassen"
   fi
+}
+
+# Hostname setzen, damit das Self-Service-Portal unter http://<name>.local:8092
+# erreichbar ist (siehe concept/selfservice.md). Erfordert systemd
+# (hostnamectl) – auf anderen Systemen wird der Schritt übersprungen.
+set_hostname() {
+  step "Hostname (für http://${HOSTNAME_NEW}.local:8092)"
+  if ! command -v hostnamectl >/dev/null 2>&1; then
+    warn "hostnamectl nicht verfügbar – Hostname-Änderung übersprungen"
+    return 0
+  fi
+  local CURRENT; CURRENT="$(hostnamectl --static 2>/dev/null || hostname)"
+  if [ "$CURRENT" = "$HOSTNAME_NEW" ]; then
+    ok "Hostname bereits '$HOSTNAME_NEW'"
+  else
+    sudo hostnamectl set-hostname "$HOSTNAME_NEW"
+    if grep -q '^127\.0\.1\.1' /etc/hosts 2>/dev/null; then
+      sudo sed -i "s/^127\.0\.1\.1.*/127.0.1.1\t$HOSTNAME_NEW/" /etc/hosts
+    else
+      printf '127.0.1.1\t%s\n' "$HOSTNAME_NEW" | sudo tee -a /etc/hosts >/dev/null
+    fi
+    ok "Hostname gesetzt: $CURRENT → $HOSTNAME_NEW (vollständig wirksam nach Neustart)"
+  fi
+
+  if dpkg -s avahi-daemon >/dev/null 2>&1; then
+    ok "avahi-daemon bereits vorhanden (für ${HOSTNAME_NEW}.local)"
+  elif sudo apt-get install -y avahi-daemon >/dev/null 2>&1; then
+    ok "avahi-daemon installiert (für ${HOSTNAME_NEW}.local)"
+  else
+    warn "avahi-daemon konnte nicht installiert werden – ${HOSTNAME_NEW}.local löst evtl. nicht auf"
+  fi
+}
+
+# LUMIRA Self-Service-Portal (lumira-portal, Port 8092) + Watchdog
+# (lumira-provision) einrichten, siehe concept/selfservice.md Abschnitt 7/8.
+# Läuft als eigene systemd-Dienste unter dem aktuellen Benutzer (kein root).
+install_lumira_portal() {
+  if [ "$WITH_SELFSERVICE" -eq 0 ]; then
+    warn "Self-Service-Portal übersprungen (--no-selfservice)"
+    return 0
+  fi
+  step "LUMIRA Self-Service-Portal (lumira-portal, Port 8092)"
+
+  local DEST="$HOME/lumira-portal"
+  mkdir -p "$DEST"
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete --exclude node_modules --exclude public/node_modules "$SCRIPT_DIR/lumira-portal"/ "$DEST"/
+  else
+    rm -rf "$DEST"; mkdir -p "$DEST"
+    ( cd "$SCRIPT_DIR/lumira-portal" && tar --exclude=node_modules -cf - . ) | ( cd "$DEST" && tar -xf - )
+  fi
+  ( cd "$DEST" && npm install --no-audit --no-fund --omit=dev ) && ok "lumira-portal installiert" \
+    || { warn "npm install für lumira-portal fehlgeschlagen"; return 0; }
+
+  if ! command -v systemctl >/dev/null 2>&1; then
+    warn "systemd nicht verfügbar – Dienste übersprungen (manueller Start: node $DEST/server.js)"
+    return 0
+  fi
+  if ! command -v nmcli >/dev/null 2>&1; then
+    warn "nmcli/NetworkManager nicht gefunden – WLAN-Access-Point (Phase 2/3) funktioniert erst nach dessen Installation"
+  fi
+
+  local UNIT_SRC="$DEST/systemd"
+  for f in lumira-portal.service lumira-provision.service lumira-provision.timer; do
+    sed -e "s#@USER@#$USER#g" -e "s#@HOME@#$HOME#g" "$UNIT_SRC/$f" | sudo tee "/etc/systemd/system/$f" >/dev/null
+  done
+  sudo mkdir -p /etc/polkit-1/rules.d
+  sed "s#@USER@#$USER#g" "$UNIT_SRC/polkit-lumira-nmcli.rules" | sudo tee /etc/polkit-1/rules.d/49-lumira-nmcli.rules >/dev/null
+  sudo mkdir -p /etc/NetworkManager/dnsmasq-shared.d
+  sudo cp "$UNIT_SRC/dnsmasq-shared-captive.conf" /etc/NetworkManager/dnsmasq-shared.d/lumira-captive.conf
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now lumira-portal.service
+  sudo systemctl enable --now lumira-provision.timer
+  ok "Dienste eingerichtet: lumira-portal (Port 8092), lumira-provision (Watchdog, alle 2 Min)"
 }
 
 # ===========================================================================
@@ -380,6 +346,8 @@ sudo apt-get install -y git curl ca-certificates build-essential \
   fonts-noto-color-emoji fontconfig
 sudo fc-cache -f >/dev/null 2>&1 || true
 ok "Basis-Pakete & Farb-Emoji-Schrift vorhanden"
+
+set_hostname
 
 step "Node.js prüfen (v20+)"
 NEED_NODE=1
@@ -427,6 +395,8 @@ for mod in "${OWN_MODULES[@]}"; do
     ( cd "$DEST" && npm install --no-audit --no-fund ); ok "installiert (mit Abhängigkeiten)"
   else ok "installiert"; fi
 done
+
+install_lumira_portal
 
 # --- Assistent (Standort/Kalender/News) -------------------------------------
 if [ "$NO_WIZARD" -eq 0 ] && [ -t 0 ]; then
@@ -479,10 +449,14 @@ fi
 
 echo
 echo "${GRN}${BOLD}Fertig!${RST}"
+echo "  • Edition:     $EDITION"
 echo "  • config.js:   $MM_DIR/config/config.js"
 echo "  • Neu konfigurieren jederzeit:  ./install.sh --reconfigure"
 if [ "$WITH_PM2" -eq 1 ]; then echo "  • Läuft via pm2.  Logs:  pm2 logs MagicMirror"
 else echo "  • Starten:  cd $MM_DIR && npm start"; fi
+if [ "$WITH_SELFSERVICE" -eq 1 ]; then
+  echo "  • Self-Service-Portal:  http://${HOSTNAME_NEW}.local:8092  (Logs: sudo journalctl -u lumira-portal -f)"
+fi
 echo "  • Testalarm:  http://<pi-ip>:8090/alarm?keyword=Test&unit=Test"
-echo "  • Ports: 8080 MagicMirror · 8090 aPagerAlarm · 8091 SmartCompliments"
+echo "  • Ports: 8080 MagicMirror · 8090 aPagerAlarm · 8091 SmartCompliments · 8092 lumira-portal"
 echo

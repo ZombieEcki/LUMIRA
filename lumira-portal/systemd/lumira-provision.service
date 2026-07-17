@@ -1,0 +1,12 @@
+[Unit]
+Description=LUMIRA Watchdog: WLAN-Konnektivität pruefen, ggf. Setup-Modus (einmaliger Lauf)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+Group=@USER@
+WorkingDirectory=@HOME@/lumira-portal
+Environment=LUMIRA_HOME=@HOME@/.lumira
+ExecStart=/usr/bin/env node @HOME@/lumira-portal/provision.js

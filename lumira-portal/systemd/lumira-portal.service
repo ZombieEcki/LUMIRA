@@ -1,0 +1,19 @@
+[Unit]
+Description=LUMIRA Self-Service-Portal (Port 8092)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@HOME@/lumira-portal
+Environment=LUMIRA_MM_CONFIG=@HOME@/MagicMirror/config/config.js
+Environment=LUMIRA_HOME=@HOME@/.lumira
+ExecStart=/usr/bin/env node @HOME@/lumira-portal/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

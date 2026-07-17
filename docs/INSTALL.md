@@ -45,6 +45,36 @@ Nach der Basis-Installation fragt das Skript interaktiv ab:
 
 Jede Frage hat einen Vorschlag in `[ ]`; Enter übernimmt ihn.
 
+## Edition & Hostname (Grundinstallation)
+
+```bash
+./install.sh --edition=fire --hostname=lumira
+```
+
+- `--edition=` legt fest, welche Module in die `config.js` kommen (siehe
+  [concept/produktvarianten.md](../concept/produktvarianten.md)) – Standard
+  `fire`. Nur bei der manuellen Grundinstallation relevant, nie eine
+  Kundeneinstellung.
+- `--hostname=` macht das Gerät unter `http://<name>.local` erreichbar
+  (Standard `lumira`) – installiert dafür `avahi-daemon` und setzt den
+  Hostname per `hostnamectl`.
+- `--no-selfservice` überspringt Installation/Start des
+  [Self-Service-Portals](../lumira-portal) (Port 8092) samt Watchdog, falls
+  nicht gewünscht.
+
+## Self-Service-Portal
+
+Nach der Installation läuft dauerhaft ein Web-Portal unter
+`http://lumira.local:8092`, über das der Kunde später selbst Name, Standort,
+Kalender, Alarmeinstellungen usw. ändern kann – ganz ohne SSH (siehe
+[concept/selfservice.md](../concept/selfservice.md) und
+[lumira-portal/README.md](../lumira-portal/README.md)).
+
+```bash
+sudo journalctl -u lumira-portal -f      # Logs Portal
+sudo journalctl -u lumira-provision -f   # Logs Watchdog
+```
+
 ## Nach der Installation
 
 ```bash
@@ -81,6 +111,7 @@ Oder die Datei direkt bearbeiten: `~/MagicMirror/config/config.js`.
 http://<pi-ip>:8090/alarm?keyword=Test&unit=Test    # Testalarm
 http://<pi-ip>:8090/apager/health                   # Status Alarmmodul
 http://<pi-ip>:8091/compliments/toggle              # Kompliments schalten
+http://<pi-ip>:8092/api/status                      # Self-Service-Portal Status
 ```
 
 ## Fehlerbehebung

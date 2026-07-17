@@ -1,0 +1,48 @@
+{
+  "edition": "fire",
+  "hostname": "lumira",
+  "person": {
+    "name": "Papa"
+  },
+  "family": {
+    "birthdays": [],
+    "weddingDate": ""
+  },
+  "location": {
+    "name": "Berlin",
+    "lat": 52.52,
+    "lon": 13.405
+  },
+  "rainRadar": {
+    "enabled": true
+  },
+  "calendar": {
+    "url": ""
+  },
+  "news": {
+    "title": "Tagesschau",
+    "url": "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"
+  },
+  "alarm": {
+    "title": "EINSATZ",
+    "alarmDuration": 15,
+    "infoDuration": 240,
+    "returnDuration": 30,
+    "playSound": true,
+    "haWebhookUrl": ""
+  },
+  "network": {
+    "mode": "family",
+    "homeSsid": "",
+    "homePsk": "",
+    "apSsid": "LUMIRA-Setup",
+    "apPsk": ""
+  },
+  "portal": {
+    "pinHash": "",
+    "pinSalt": ""
+  },
+  "meta": {
+    "updatedAt": ""
+  }
+}

@@ -43,11 +43,26 @@ um den aktuellen Stand zu sehen.
 - [x] Landingpage (`index.html`) mit Architektur, 4-Phasen-Timeline, Home-Assistant-Beispiel
 - [x] **Konfigurator-Prototyp** (`konfigurator.html`) – erzeugt live eine `config.js`,
       inkl. Editions-Auswahl (Home/Fire/Rescue/Business/Station)
-- [x] **Portal-Vorschau** (`portal.html`) – mehrseitiges Steuerungs- &amp;
-      Konfigurationsportal (Dashboard, Familie, Standort, Kalender, Alarm,
-      WLAN, Darstellung/Sprache als Vorschau), passt sich automatisch an die
-      installierte Edition an – keine Editions-Auswahl im Portal selbst
+- [x] **Portal-Vorschau** (`portal.html`) – statische Design-Vorschau des
+      Steuerungs- &amp; Konfigurationsportals (Ausgangspunkt für lumira-portal)
 - [x] Vollständige Doku je Modul (README/CONFIG/WEBHOOK/CHANGELOG)
+
+### Self-Service-Portal (lumira-portal)
+- [x] **`settings.json`** als einzige Wahrheit + `lib/generate-config.js`
+      (gemeinsam von Portal und `install.sh` genutzt, siehe
+      [concept/selfservice.md](concept/selfservice.md) Abschnitt 7)
+- [x] **Web-Portal im Heimnetz** (Port 8092): Steuerung (Alarm-Proxy,
+      Kompliments-Schalter), Konfigurationsseiten je Edition, PIN-Schutz
+- [x] **`MMM-LumiraStatus`** – Setup-Anleitung + WLAN-QR-Code auf dem
+      Spiegel, dezenter Status-Hinweis im Normalbetrieb
+- [x] **`install.sh`**-Integration: `--edition=`, `--hostname=`,
+      `--no-selfservice`, Hostname-Vergabe (`hostnamectl` + `avahi-daemon`),
+      systemd-Dienste (`lumira-portal`, `lumira-provision`)
+- [x] Access-Point-Modus, Captive Portal &amp; Boot-/Watchdog-Logik
+      (`lib/net.js`, `provision.js`) implementiert – **noch nicht auf
+      echter Pi-Hardware getestet** (Details:
+      [lumira-portal/README.md](lumira-portal/README.md) Abschnitt
+      „Ehrlicher Hinweis zum Umsetzungsstand")
 
 ---
 
@@ -55,7 +70,7 @@ um den aktuellen Stand zu sehen.
 
 | # | Idee | Status |
 |---|------|--------|
-| 1 | **Selbstkonfiguration per WLAN-Access-Point** – Pi spannt eigenes WLAN auf, Kunde konfiguriert per Web-UI ohne SSH | 🟡 Konzept fertig ([concept/selfservice.md](concept/selfservice.md)), Umsetzung offen |
+| 1 | **Selbstkonfiguration per WLAN-Access-Point** – Pi spannt eigenes WLAN auf, Kunde konfiguriert per Web-UI ohne SSH | 🟡 umgesetzt ([lumira-portal/](lumira-portal), [concept/selfservice.md](concept/selfservice.md)), Access-Point/Watchdog noch auf echter Hardware zu verifizieren |
 | 2 | **Weitere Melde-Apps** mit Webhook prüfen (Divera, Alamos, FF-Agent …) | 📋 geplant (Recherche) |
 | 3 | ~~Layout: Uhr links, Regenradar unter Wetter~~ | ✅ erledigt |
 | 4 | **Alarm komplett abschaltbar** per Config (`enabled: false`) | 📋 geplant |
@@ -71,7 +86,8 @@ um den aktuellen Stand zu sehen.
 
 ## Nächster empfohlener Schritt
 
-**#4 Alarm abschaltbar** und weitere kleine Punkte sind schnell umsetzbar.
-**#1 Selbstkonfiguration** (Phase 1: Config-Web-UI ohne AP) ist der Baustein,
-der Editionen, Profile, Sprachen und Hintergrund später alle in eine echte
-Web-Oberfläche auf dem Pi einhängt statt nur im Konfigurator-Prototyp.
+**#1 Selbstkonfiguration** ist implementiert (siehe [lumira-portal/](lumira-portal));
+als Nächstes steht ein echter Praxistest auf einem Raspberry Pi an
+(Access-Point-Umschaltung, Captive Portal auf iOS/Android, Watchdog-Rückfall –
+siehe die Testpunkte in [lumira-portal/README.md](lumira-portal/README.md)).
+Danach sind **#4 Alarm abschaltbar** und weitere kleine Punkte schnell umsetzbar.

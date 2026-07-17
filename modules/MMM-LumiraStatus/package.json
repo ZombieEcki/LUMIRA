@@ -1,0 +1,10 @@
+{
+  "name": "mmm-lumirastatus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LUMIRA – Anzeige des Selfservice-Betriebsmodus (SETUP/FAMILY) auf dem Spiegel selbst",
+  "main": "MMM-LumiraStatus.js",
+  "dependencies": {
+    "qrcode": "^1.5.3"
+  }
+}

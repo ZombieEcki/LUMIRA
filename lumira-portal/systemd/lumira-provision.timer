@@ -1,0 +1,10 @@
+[Unit]
+Description=LUMIRA Watchdog regelmaessig ausfuehren (alle 2 Minuten, plus beim Booten)
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=2min
+Unit=lumira-provision.service
+
+[Install]
+WantedBy=timers.target

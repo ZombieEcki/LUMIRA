@@ -4,12 +4,16 @@ Wie ein Kunde LUMIRA **einrichtet und später ändert**, ohne je ein Terminal
 zu öffnen. Der Pi spannt bei Bedarf ein eigenes WLAN auf; alle Einstellungen
 laufen über eine Web-Oberfläche.
 
-> Status: Konzept fertig, Umsetzung offen. Siehe [CHECKLIST.md](../CHECKLIST.md).
+> Status: **Umgesetzt** in [lumira-portal/](../lumira-portal) (Phasen 1-7,
+> siehe Abschnitt 8) – Access-Point/Captive-Portal/Watchdog (Phasen 2-4)
+> noch nicht auf echter Pi-Hardware verifiziert, Details siehe
+> [lumira-portal/README.md](../lumira-portal/README.md). Siehe auch
+> [CHECKLIST.md](../CHECKLIST.md).
 > Verwandt: [MMM-SmartCompliments](../modules/MMM-SmartCompliments),
-> [konfigurator.html](../konfigurator.html) (Ersteinrichtungs-Vorstufe) und
-> [portal.html](../portal.html) (Vorschau des dauerhaften Steuerungs- &amp;
-> Konfigurationsportals aus Abschnitt 4a) – beide laufen heute browserseitig
-> ohne echtes Backend. [produktvarianten.md](produktvarianten.md).
+> [MMM-LumiraStatus](../modules/MMM-LumiraStatus) (Anzeige auf dem Spiegel,
+> Abschnitt 5), [konfigurator.html](../konfigurator.html) und
+> [portal.html](../portal.html) (statische Design-Vorschauen, Ausgangspunkt
+> für lumira-portal). [produktvarianten.md](produktvarianten.md).
 
 ---
 
@@ -126,9 +130,8 @@ wieder erscheinenden `LUMIRA-Setup`-WLAN zu verbinden.
 
 Läuft **ohne** erneuten Setup-Modus. Das Portal bleibt nach der Ersteinrichtung
 dauerhaft im Hintergrund aktiv und ist **im Heimnetz** jederzeit erreichbar.
-Eine mehrseitige Vorschau dieses Portals (Steuerung + Konfigurationsseiten,
-passt sich automatisch an die installierte Edition an) liegt als Prototyp in
-[portal.html](../portal.html):
+Umgesetzt in [lumira-portal/](../lumira-portal) (Steuerung + Konfigurations-
+seiten, passt sich automatisch an die installierte Edition an):
 
 ```
 http://lumira.local:8092
@@ -252,18 +255,18 @@ LUMIRA/
 
 ## 8. Umsetzung in Phasen
 
-| Phase | Inhalt | Ergebnis |
-|-------|--------|----------|
-| **1** | Web-Portal ohne AP (nur im Heimnetz, Port 8092) | Deckt Abschnitt 4a bereits vollständig ab |
-| **2** | AP-Modus (`nmcli hotspot`, feste IP 192.168.4.1) | Pi kann eigenes WLAN aufspannen |
-| **3** | Captive Portal + WLAN-Onboarding (Scan, Connect, Test) | Deckt Abschnitt 3 (Ersteinrichtung) ab |
-| **4** | Boot-/Watchdog-Logik (`lumira-provision`) | Automatischer Rückfall aus Abschnitt 4b |
-| **5** | `MMM-LumiraStatus`-Mini-Modul | Deckt Abschnitt 5 (Anzeige auf dem Spiegel) ab |
-| **6** | Sicherheit & Feinschliff (PIN, individuelles AP-Passwort, Validierung) | Abschnitt 6 |
-| **7** | Integration in `install.sh` (Portal + Provisioning mitinstallieren) | Ein-Befehl-Setup bleibt erhalten |
+| Phase | Inhalt | Ergebnis | Status |
+|-------|--------|----------|--------|
+| **1** | Web-Portal ohne AP (nur im Heimnetz, Port 8092) | Deckt Abschnitt 4a vollständig ab | ✅ [lumira-portal/](../lumira-portal) |
+| **2** | AP-Modus (`nmcli hotspot`, feste IP 192.168.4.1) | Pi kann eigenes WLAN aufspannen | ✅ implementiert (`lib/net.js`), ⚠️ ungetestet auf Hardware |
+| **3** | Captive Portal + WLAN-Onboarding (Scan, Connect, Test) | Deckt Abschnitt 3 (Ersteinrichtung) ab | ✅ implementiert, ⚠️ ungetestet auf Hardware |
+| **4** | Boot-/Watchdog-Logik (`lumira-provision`) | Automatischer Rückfall aus Abschnitt 4b | ✅ implementiert (`provision.js`), ⚠️ ungetestet auf Hardware |
+| **5** | `MMM-LumiraStatus`-Mini-Modul | Deckt Abschnitt 5 (Anzeige auf dem Spiegel) ab | ✅ [modules/MMM-LumiraStatus](../modules/MMM-LumiraStatus) |
+| **6** | Sicherheit & Feinschliff (PIN, individuelles AP-Passwort, Validierung) | Abschnitt 6 | ✅ umgesetzt |
+| **7** | Integration in `install.sh` (Portal + Provisioning mitinstallieren) | Ein-Befehl-Setup bleibt erhalten | ✅ umgesetzt |
 
-**Empfohlener Start: Phase 1** – bringt sofort echten Nutzen (Selbstkonfiguration
-im Heimnetz ohne SSH) und ist die Grundlage für alle weiteren Phasen.
+Details zum Testaufwand (was hier ohne echten Pi nicht verifiziert werden
+konnte) stehen in [lumira-portal/README.md](../lumira-portal/README.md).
 
 ---
 

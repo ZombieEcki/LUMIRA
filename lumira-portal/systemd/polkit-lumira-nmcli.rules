@@ -1,0 +1,10 @@
+// LUMIRA – erlaubt dem Portal-/Watchdog-Benutzer, NetworkManager (nmcli)
+// ohne Passwortabfrage zu steuern (Access Point starten/stoppen, WLAN
+// verbinden). Wird von install.sh nach /etc/polkit-1/rules.d/ kopiert.
+//
+// Nur für den einen konfigurierten Benutzer, nicht systemweit.
+polkit.addRule(function (action, subject) {
+	if (action.id.indexOf("org.freedesktop.NetworkManager.") === 0 && subject.user === "@USER@") {
+		return polkit.Result.YES;
+	}
+});

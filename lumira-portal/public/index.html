@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LUMIRA – Portal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ---------- Setup-Bildschirm (WLAN einrichten, Access-Point-Modus) ---------- -->
+<section id="setup-screen" class="center-screen" hidden>
+  <div class="card card-narrow">
+    <h2>📶 LUMIRA einrichten</h2>
+    <p class="sub">Wähle dein Heimnetz-WLAN und gib das Passwort ein. Danach
+      verbindet sich LUMIRA damit und du kannst mit deinen persönlichen
+      Angaben weitermachen.</p>
+    <div class="field first">
+      <label>Verfügbare Netzwerke</label>
+      <div class="wifi-list" id="wifi-list"><div class="save-hint">Suche läuft…</div></div>
+      <button type="button" class="btn" id="wifi-rescan" style="margin-top:8px;">🔄 Neu suchen</button>
+    </div>
+    <div class="field">
+      <label>Ausgewähltes Netzwerk</label>
+      <input type="text" id="setup-ssid" class="mono-in" placeholder="SSID" readonly>
+    </div>
+    <div class="field">
+      <label>WLAN-Passwort</label>
+      <input type="password" id="setup-psk" placeholder="Passwort">
+    </div>
+    <div class="save-row">
+      <button type="button" class="btn primary" id="setup-connect">Verbinden</button>
+      <span class="save-hint" id="setup-status"></span>
+    </div>
+    <div id="setup-msg"></div>
+    <p class="save-hint" style="margin-top:14px;">Hinweis: Sobald die Verbindung
+      steht, sendet LUMIRA das WLAN „LUMIRA-Setup" nicht mehr aus. Verbinde
+      dein Handy dann ebenfalls mit dem Heimnetz und rufe
+      <span class="mono-in" id="setup-portal-url">lumira.local:8092</span>
+      erneut auf, um die Einrichtung mit deinen persönlichen Daten
+      abzuschließen.</p>
+  </div>
+</section>
+
+<!-- ---------- Login (PIN) ---------- -->
+<section id="login-screen" class="center-screen" hidden>
+  <div class="card card-narrow">
+    <h2>🔒 LUMIRA-Portal</h2>
+    <p class="sub">Bitte PIN eingeben.</p>
+    <div class="field first">
+      <label>PIN</label>
+      <input type="password" id="login-pin" inputmode="numeric" maxlength="8" placeholder="••••">
+    </div>
+    <div class="save-row">
+      <button type="button" class="btn primary" id="login-submit">Anmelden</button>
+    </div>
+    <div id="login-msg"></div>
+  </div>
+</section>
+
+<!-- ---------- Haupt-App ---------- -->
+<div class="app" id="app" hidden>
+  <aside class="sidebar">
+    <div class="brand"><span class="bt">LUMIRA</span></div>
+
+    <div class="device-card">
+      <div class="edn"><span class="swatch"></span><span id="edn-name">–</span></div>
+      <div class="status-row" id="status-row"><span class="dot"></span><span id="status-text">–</span></div>
+    </div>
+
+    <div class="mobile-nav">
+      <span class="glabel">Seite</span>
+      <select id="page-select" aria-label="Seite wählen"></select>
+    </div>
+
+    <nav class="navgroup">
+      <span class="glabel">Übersicht</span>
+      <button class="navbtn" data-page="steuerung"><span class="ic">🎛</span>Steuerung</button>
+    </nav>
+    <nav class="navgroup" id="nav-konfig">
+      <span class="glabel">Konfiguration</span>
+      <button class="navbtn" data-page="familie" data-need="hasFamily"><span class="ic">👪</span>Familie</button>
+      <button class="navbtn" data-page="standort"><span class="ic">📍</span>Standort &amp; Wetter</button>
+      <button class="navbtn" data-page="kalender" data-need="hasCal"><span class="ic">📅</span>Kalender &amp; News</button>
+      <button class="navbtn" data-page="alarm" data-need="hasAlarm"><span class="ic">🚒</span>Alarmierung</button>
+      <button class="navbtn" data-page="wlan"><span class="ic">📶</span>WLAN</button>
+    </nav>
+    <nav class="navgroup">
+      <span class="glabel">Mehr</span>
+      <button class="navbtn" data-page="sicherheit"><span class="ic">🔒</span>Sicherheit</button>
+      <button class="navbtn" data-page="info"><span class="ic">ℹ️</span>Info</button>
+    </nav>
+    <div class="sidebar-spacer"></div>
+  </aside>
+
+  <main>
+    <!-- Steuerung -->
+    <section class="page" data-page="steuerung">
+      <div class="pagehead"><span class="eyebrow">Übersicht</span><h1>Steuerung</h1>
+        <p>Status von Pi &amp; Spiegel, Schnellzugriff auf Alarmierung und Familienassistent.</p></div>
+
+      <div class="tiles">
+        <div class="tile" id="tile-network"><span class="tl">Netzwerk</span>
+          <span class="tv"><span class="dot"></span><span id="net-state-text">–</span></span>
+          <span class="ts" id="net-sub">–</span></div>
+        <div class="tile" id="tile-alarm"><span class="tl">Alarmierung</span>
+          <span class="tv"><span class="dot"></span><span id="alarm-state-text">–</span></span>
+          <span class="ts" id="alarm-sub">–</span></div>
+      </div>
+
+      <div class="card" id="card-alarm-actions" hidden>
+        <h2>Alarmierung</h2>
+        <p class="sub">Manuelle Phasensteuerung von MMM-aPagerAlarm.</p>
+        <div class="action-grid" style="margin-top:14px;">
+          <button class="action" id="alarm-home"><span class="at">🏠 Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
+          <button class="action" id="alarm-clear"><span class="at">✅ Einsatz beenden</span><span class="ad">zurück in Danke-Nachwirkung</span></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Familienassistent</h2>
+        <p class="sub">Manueller Ein-/Ausschalter für die Kompliments-Karten.</p>
+        <div class="action-grid" style="margin-top:14px;">
+          <button class="action" id="compliments-toggle">
+            <span class="at">💬 Kompliments: <span id="compliments-state">–</span></span>
+            <span class="ad">antippen zum Umschalten</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Familie -->
+    <section class="page" data-page="familie">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Familie</h1>
+        <p id="familie-sub">Name, Geburtstage und Hochzeitstag für die Familienbotschaften.</p></div>
+      <div class="card">
+        <div class="field first">
+          <label id="lbl-personname">Name der Person</label>
+          <input type="text" id="personName">
+        </div>
+        <label style="margin-top:16px; display:block;">Geburtstage</label>
+        <div class="bdays" id="bdays"></div>
+        <button type="button" class="btn-add" id="addBday">+ Geburtstag hinzufügen</button>
+        <div class="field">
+          <label>Hochzeitstag <span class="opt">(optional, TT.MM.)</span></label>
+          <input type="text" class="mono-in" id="wedding" placeholder="13.07.">
+        </div>
+        <div class="save-row"><button class="btn primary" data-save="familie">Speichern</button>
+          <span class="save-hint" data-savehint="familie"></span></div>
+      </div>
+    </section>
+
+    <!-- Standort -->
+    <section class="page" data-page="standort">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Standort &amp; Wetter</h1>
+        <p>Für Wettervorhersage und Regenradar.</p></div>
+      <div class="card">
+        <div class="field first"><label>Ortsname <span class="opt">(nur Anzeige)</span></label><input type="text" id="loc-name"></div>
+        <div class="grid2">
+          <div class="field"><label>Breitengrad</label><input type="text" class="mono-in" id="loc-lat"></div>
+          <div class="field"><label>Längengrad</label><input type="text" class="mono-in" id="loc-lon"></div>
+        </div>
+        <div class="toggle" id="rain-row" style="margin-top:14px;">
+          <span class="tl2">DWD-Regenradar<small>zeigt Regen in den nächsten 2 Stunden</small></span>
+          <button class="sw" id="sw-rain" role="switch"></button>
+        </div>
+        <div class="save-row"><button class="btn primary" data-save="standort">Speichern</button>
+          <span class="save-hint" data-savehint="standort"></span></div>
+      </div>
+    </section>
+
+    <!-- Kalender -->
+    <section class="page" data-page="kalender">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Kalender &amp; Nachrichten</h1>
+        <p>Familienkalender und Nachrichtenticker.</p></div>
+      <div class="card">
+        <div class="field first"><label>Kalender-URL <span class="opt">(iCloud/ICS)</span></label>
+          <input type="url" class="mono-in" id="cal-url" placeholder="https://…/kalender.ics"></div>
+        <div class="field"><label>Nachrichten-Feed</label>
+          <select id="news-select">
+            <option value="tagesschau">Tagesschau</option>
+            <option value="heise">heise online</option>
+            <option value="custom">Eigener RSS-Feed …</option>
+          </select></div>
+        <div class="field" id="news-custom-row" hidden><label>Eigene RSS-URL</label>
+          <input type="url" class="mono-in" id="news-url"></div>
+        <div class="save-row"><button class="btn primary" data-save="kalender">Speichern</button>
+          <span class="save-hint" data-savehint="kalender"></span></div>
+      </div>
+    </section>
+
+    <!-- Alarm -->
+    <section class="page" data-page="alarm">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Alarmierung</h1>
+        <p>Einstellungen für MMM-aPagerAlarm.</p></div>
+      <div class="card">
+        <div class="grid2">
+          <div class="field first"><label>Überschrift</label><input type="text" id="alarmTitle"></div>
+          <div class="field first"><label>Alarm-Dauer (Min)</label><input type="number" class="mono-in" id="alarmDuration"></div>
+          <div class="field"><label>„im Einsatz" (Min)</label><input type="number" class="mono-in" id="infoDuration"></div>
+          <div class="field"><label>„war im Einsatz" (Min)</label><input type="number" class="mono-in" id="returnDuration"></div>
+        </div>
+        <div class="toggle" style="margin-top:14px;"><span class="tl2">Alarmton abspielen</span>
+          <button class="sw" id="sw-sound" role="switch"></button></div>
+        <div class="field"><label>Home-Assistant-Webhook <span class="opt">(optional)</span></label>
+          <input type="url" class="mono-in" id="haWebhookUrl" placeholder="http://<HA-IP>:8123/api/webhook/alarm"></div>
+        <div class="save-row"><button class="btn primary" data-save="alarm">Speichern</button>
+          <span class="save-hint" data-savehint="alarm"></span></div>
+      </div>
+    </section>
+
+    <!-- WLAN -->
+    <section class="page" data-page="wlan">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>WLAN</h1>
+        <p>Aktuelles Netzwerk und WLAN-Wechsel.</p></div>
+      <div class="card">
+        <div class="info-list">
+          <div class="info-row"><span class="k">Status</span><span class="v" id="wlan-status-v">–</span></div>
+          <div class="info-row"><span class="k">Netzwerk</span><span class="v" id="wlan-ssid-v">–</span></div>
+        </div>
+        <div class="save-row">
+          <button class="btn" id="wlan-change-btn">📶 WLAN ändern</button>
+        </div>
+        <p class="save-hint" style="margin-top:10px;">Startet den Einrichtungs-Access-Point
+          „LUMIRA-Setup" neu. Der Spiegel zeigt danach eine Anleitung.</p>
+      </div>
+    </section>
+
+    <!-- Sicherheit -->
+    <section class="page" data-page="sicherheit">
+      <div class="pagehead"><span class="eyebrow">Mehr</span><h1>Sicherheit</h1>
+        <p>PIN-Schutz für dieses Portal im Heimnetz.</p></div>
+      <div class="card">
+        <div class="field first"><label>Neuer PIN <span class="opt">(4-8 Ziffern)</span></label>
+          <input type="password" id="pin-new" inputmode="numeric" maxlength="8"></div>
+        <div class="save-row"><button class="btn primary" id="pin-save">PIN speichern</button>
+          <span class="save-hint" id="pin-hint"></span></div>
+      </div>
+    </section>
+
+    <!-- Info -->
+    <section class="page" data-page="info">
+      <div class="pagehead"><span class="eyebrow">Mehr</span><h1>Info</h1></div>
+      <div class="card">
+        <div class="info-list">
+          <div class="info-row"><span class="k">Edition</span><span class="v" id="info-edition">–</span></div>
+          <div class="info-row"><span class="k">Hostname</span><span class="v" id="info-hostname">–</span></div>
+          <div class="info-row"><span class="k">Portal-Adresse</span><span class="v" id="info-portal">–</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

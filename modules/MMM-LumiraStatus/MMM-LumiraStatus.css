@@ -1,0 +1,43 @@
+.lumira-status-hint {
+	font-size: 0.55em;
+	color: #666;
+	opacity: 0.75;
+	letter-spacing: 0.02em;
+}
+
+.lumira-status-card {
+	background: rgba(20, 20, 20, 0.55);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 14px;
+	padding: 22px 26px;
+	max-width: 420px;
+	text-align: left;
+}
+
+.lumira-status-title {
+	font-size: 1.3em;
+	font-weight: 600;
+	margin-bottom: 14px;
+}
+
+.lumira-status-step {
+	font-size: 0.62em;
+	line-height: 1.5;
+	margin-bottom: 10px;
+	color: #ddd;
+}
+
+.lumira-status-mono {
+	font-family: monospace;
+	font-size: 1.15em;
+	color: #fff;
+}
+
+.lumira-status-qr {
+	margin-top: 10px;
+	width: 140px;
+	height: 140px;
+	border-radius: 8px;
+	background: #fff;
+	padding: 6px;
+}
