@@ -11,6 +11,7 @@ einem Raspberry Pi: MagicMirror², alle Module, eine per Assistent erzeugte
 
 > 📋 **[CHECKLIST.md](CHECKLIST.md)** – live Übersicht, was schon erledigt ist und was als Nächstes geplant ist.
 > 🛜 **[SELFSERVICE-KONZEPT.md](SELFSERVICE-KONZEPT.md)** – Konzept für Ersteinrichtung & Konfiguration per WLAN-Access-Point, ganz ohne SSH.
+> 📦 **[PRODUKTVARIANTEN-KONZEPT.md](PRODUKTVARIANTEN-KONZEPT.md)** – Konzept für die Editionen Home/Fire/Rescue/Business/Station.
 
 ## 🚀 Installation in einem Befehl
 

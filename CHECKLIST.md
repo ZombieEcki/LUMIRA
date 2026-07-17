@@ -51,7 +51,7 @@ um den aktuellen Stand zu sehen.
 | 3 | ~~Layout: Uhr links, Regenradar unter Wetter~~ | ✅ erledigt |
 | 4 | **Alarm komplett abschaltbar** per Config (`enabled: false`) | 📋 geplant |
 | 5 | **Zielgruppen-Profile** (Feuerwehr/Rettungsdienst/Polizei/THW/Familie/Verein) | 📋 geplant |
-| 6 | **Produktvarianten**: LUMIRA Home/Fire/Rescue/Business/Station | 🟡 Konfigurator-Prototyp existiert, echte Profile in den Modulen fehlen noch |
+| 6 | **Produktvarianten**: LUMIRA Home/Fire/Rescue/Business/Station | 🟡 Konzept fertig ([PRODUKTVARIANTEN-KONZEPT.md](PRODUKTVARIANTEN-KONZEPT.md)) + Konfigurator-Prototyp, echte Profile in den Modulen fehlen noch |
 | 7 | **Mehrsprachigkeit** (Sprachdateien für Oberfläche & Botschaften) | 📋 geplant |
 | 8 | **Hintergrund-Option** (Farbe/Bild/Slideshow) | 📋 geplant |
 
