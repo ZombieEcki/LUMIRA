@@ -100,18 +100,23 @@ async function scanWifi() {
 
 async function connectWifi(ssid, psk) {
 	if (!ssid) throw new Error("SSID fehlt");
-	// nmcli legt beim ersten "connect" ein Verbindungsprofil mit dem SSID-Namen
-	// an - existiert bereits eins (z.B. von Raspberry Pi Imager beim Erststart,
-	// oder aus einem vorherigen fehlgeschlagenen Versuch), verwendet nmcli
-	// dieses stattdessen weiter. Ist es unvollständig (kein key-mgmt gesetzt),
-	// schlägt der Connect mit "802-11-wireless-security.key-mgmt: property is
-	// missing" fehl. Deshalb vor dem Verbinden ein evtl. vorhandenes Profil
-	// löschen, damit nmcli garantiert ein frisches, vollständiges Profil anlegt.
-	await run(["connection", "delete", ssid]).catch(() => {});
-	const args = ["dev", "wifi", "connect", ssid, "ifname", WIFI_IFACE];
-	if (psk) args.push("password", psk);
+	// Die Kurzform "nmcli device wifi connect <ssid> password <psk>" verlässt
+	// sich darauf, dass nmcli den Sicherheitstyp (WPA/WPA2) automatisch aus
+	// dem WLAN-Scan-Cache erkennt. Das ist unzuverlässig (z.B. bei veraltetem
+	// Scan-Cache) und führt dann zu "802-11-wireless-security.key-mgmt:
+	// property is missing". Deshalb wie schon bei ensureApProfile() unten:
+	// Profil explizit anlegen und wifi-sec.key-mgmt selbst setzen, statt
+	// nmclis Automatik zu vertrauen. Ein evtl. vorhandenes gleichnamiges
+	// Profil (z.B. von Raspberry Pi Imager) wird vorher entfernt, damit immer
+	// frisch angelegt wird.
+	const CON_NAME = ssid;
+	await run(["connection", "delete", CON_NAME]).catch(() => {});
 	try {
-		await run(args, { timeout: 30000 });
+		await run(["connection", "add", "type", "wifi", "con-name", CON_NAME, "ifname", WIFI_IFACE, "ssid", ssid], { timeout: 15000 });
+		if (psk) {
+			await run(["connection", "modify", CON_NAME, "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", psk], { timeout: 15000 });
+		}
+		await run(["connection", "up", CON_NAME], { timeout: 30000 });
 		const active = await getActiveSsid();
 		return { ok: active === ssid, ssid: active };
 	} catch (err) {
