@@ -156,7 +156,11 @@ app.get("/api/status", async (req, res) => {
 			hasAlarm: edition.hasAlarm, hasFamily: edition.hasFamily, hasCal: edition.hasCal, hasRain: edition.hasRain
 		} },
 		network: { ssid, online: connectivity.online, connectivity: connectivity.state },
-		ap: mode.mode === modeLib.MODES.SETUP ? { ssid: mode.apSsid } : undefined
+		// psk wird bewusst mitgeschickt (nur während SETUP-Modus, kein PIN-Schutz
+		// auf dieser Route) - MMM-LumiraStatus braucht es für den WLAN-QR-Code auf
+		// dem Spiegel (siehe modules/MMM-LumiraStatus/node_helper.js). War bisher
+		// vergessen, wodurch der QR-Code nie ein funktionierendes Passwort enthielt.
+		ap: mode.mode === modeLib.MODES.SETUP ? { ssid: mode.apSsid, psk: mode.apPsk } : undefined
 	});
 });
 

@@ -222,7 +222,12 @@ install_lumira_portal() {
   sudo cp "$UNIT_SRC/dnsmasq-shared-captive.conf" /etc/NetworkManager/dnsmasq-shared.d/lumira-captive.conf
 
   sudo systemctl daemon-reload
-  sudo systemctl enable --now lumira-portal.service
+  # "enable --now" startet den Dienst nur, falls er noch nicht läuft - bei
+  # einem Update (git pull + erneutes ./install.sh) lief er meist schon, und
+  # der neue server.js-Code würde sonst nie geladen. Deshalb hier immer ein
+  # echtes restart statt nur enable --now.
+  sudo systemctl enable lumira-portal.service
+  sudo systemctl restart lumira-portal.service
   sudo systemctl enable --now lumira-provision.timer
   ok "Dienste eingerichtet: lumira-portal (Port 8092), lumira-provision (Watchdog, alle 2 Min)"
 }

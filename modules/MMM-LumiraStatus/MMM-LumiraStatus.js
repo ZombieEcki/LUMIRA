@@ -58,6 +58,9 @@ Module.register("MMM-LumiraStatus", {
 		const step1 = document.createElement("div");
 		step1.className = "lumira-status-step";
 		step1.innerHTML = `1. Verbinde dich mit dem WLAN:<br><span class="lumira-status-mono">${this.state.apSsid || "LUMIRA-Setup"}</span>`;
+		if (this.state.apPsk) {
+			step1.innerHTML += `<br>Passwort: <span class="lumira-status-mono">${this.state.apPsk}</span>`;
+		}
 		card.appendChild(step1);
 
 		const step2 = document.createElement("div");

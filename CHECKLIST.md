@@ -69,6 +69,12 @@ um den aktuellen Stand zu sehen.
       Kalender/Nachrichten getrennt, Einsatzkraft-Name auf der
       Alarmierung-Seite, eigener Alarmton-Upload, Home-Assistant-Hilfe,
       PIN entfernen, Copyright-Hinweis, „Pi neu starten"
+- [x] **Zwei Bugfixes aus dem ersten echten Praxistest**: WLAN-QR-Code auf
+      dem Spiegel enthielt nie das Access-Point-Passwort (`/api/status` gab
+      `psk` nicht weiter) - jetzt behoben, Passwort zusätzlich als Klartext
+      auf dem Spiegel sichtbar; `install.sh` startete `lumira-portal.service`
+      bei einem Update nur, falls es noch nicht lief, wodurch neuer Code nach
+      `git pull` nie geladen wurde - jetzt immer echter `restart`
 
 ---
 

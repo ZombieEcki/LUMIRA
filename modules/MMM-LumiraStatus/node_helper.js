@@ -66,6 +66,7 @@ module.exports = NodeHelper.create({
 				}
 			}
 			payload.apSsid = status.ap.ssid;
+			payload.apPsk = status.ap.psk;
 			payload.qrDataUrl = this.lastQrDataUrl;
 		}
 
