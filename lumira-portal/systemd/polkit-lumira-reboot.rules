@@ -1,0 +1,11 @@
+// LUMIRA – erlaubt dem Portal-Benutzer, den Mini-PC ohne Passwortabfrage
+// über systemd-logind neu zu starten ("Pi neu starten" auf der
+// Steuerung-Seite, siehe lib/system.js). Wird von install.sh nach
+// /etc/polkit-1/rules.d/ kopiert.
+//
+// Nur für den einen konfigurierten Benutzer, nicht systemweit.
+polkit.addRule(function (action, subject) {
+	if (action.id === "org.freedesktop.login1.reboot" && subject.user === "@USER@") {
+		return polkit.Result.YES;
+	}
+});

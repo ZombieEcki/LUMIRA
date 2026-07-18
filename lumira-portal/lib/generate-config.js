@@ -61,7 +61,7 @@ function buildModules(settings) {
 				infoDuration: settings.alarm.infoDuration,
 				returnDuration: settings.alarm.returnDuration,
 				playSound: !!settings.alarm.playSound,
-				soundFile: "alarm.mp3",
+				soundFile: settings.alarm.soundFile || "alarm.mp3",
 				dimBackground: true,
 				showCountdown: true,
 				forwardTargets: settings.alarm.haWebhookUrl ? [settings.alarm.haWebhookUrl] : []
@@ -69,14 +69,19 @@ function buildModules(settings) {
 		});
 	}
 
-	if (edition.hasCal && settings.calendar.url) {
+	const calUrls = (settings.calendar.urls || []).filter(Boolean);
+	if (edition.hasCal && calUrls.length) {
 		modules.push({
 			module: "calendar",
 			header: edition.hasFamily ? "Familienkalender" : "Kalender",
 			position: "bottom_left",
 			config: {
 				maximumEntries: 5,
-				calendars: [{ symbol: "calendar-check", url: settings.calendar.url }]
+				// Mehrere Kalender werden vom calendar-Modul nativ zu einer
+				// gemeinsamen, chronologisch sortierten Agenda zusammengeführt -
+				// bewusst kein separates Modul pro Kalender (siehe concept/…-Notiz
+				// zur Portal-Änderung "Kalender/News trennen").
+				calendars: calUrls.map((url) => ({ symbol: "calendar-check", url }))
 			}
 		});
 	}

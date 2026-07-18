@@ -5,6 +5,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 ## Installation & Betrieb
 
 - [INSTALL.md](INSTALL.md) – ausführliche Installation, Optionen des Setup-Skripts, Fehlerbehebung
+- [HOME_ASSISTANT.md](HOME_ASSISTANT.md) – Home-Assistant-Webhook einrichten (Portal-Anleitung)
 - [../CHECKLIST.md](../CHECKLIST.md) – was ist fertig, was ist geplant
 - [../README.md](../README.md) – Projektüberblick & Schnellstart
 

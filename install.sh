@@ -217,6 +217,7 @@ install_lumira_portal() {
   done
   sudo mkdir -p /etc/polkit-1/rules.d
   sed "s#@USER@#$USER#g" "$UNIT_SRC/polkit-lumira-nmcli.rules" | sudo tee /etc/polkit-1/rules.d/49-lumira-nmcli.rules >/dev/null
+  sed "s#@USER@#$USER#g" "$UNIT_SRC/polkit-lumira-reboot.rules" | sudo tee /etc/polkit-1/rules.d/50-lumira-reboot.rules >/dev/null
   sudo mkdir -p /etc/NetworkManager/dnsmasq-shared.d
   sudo cp "$UNIT_SRC/dnsmasq-shared-captive.conf" /etc/NetworkManager/dnsmasq-shared.d/lumira-captive.conf
 
@@ -303,6 +304,15 @@ for mod in "${OWN_MODULES[@]}"; do
     ( cd "$DEST" && npm install --no-audit --no-fund ); ok "installiert (mit Abhängigkeiten)"
   else ok "installiert"; fi
 done
+
+# Ein per Portal hochgeladener eigener Alarmton liegt dauerhaft unter
+# ~/.lumira/sounds/ (siehe lumira-portal/lib/alarm-sound.js) und muss nach
+# obigem rsync --delete auf MMM-aPagerAlarm/ IMMER neu hineinkopiert werden -
+# unabhängig davon, ob unten write_config() läuft (die überspringt sich bei
+# vorhandener config.js ohne --reconfigure/--force-config).
+if [ -f "$SCRIPT_DIR/lumira-portal/bin/sync-alarm-sound-cli.js" ] && [ -d "$HOME/.lumira/sounds" ]; then
+  node "$SCRIPT_DIR/lumira-portal/bin/sync-alarm-sound-cli.js" --mm-root="$MM_DIR" || true
+fi
 
 install_lumira_portal
 

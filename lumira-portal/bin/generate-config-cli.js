@@ -29,6 +29,7 @@ function main() {
 
 	const settingsLib = require("../lib/settings");
 	const { generateConfig } = require("../lib/generate-config");
+	const alarmSoundLib = require("../lib/alarm-sound");
 
 	const settings = settingsLib.load();
 	try {
@@ -43,6 +44,9 @@ function main() {
 		const dest = path.resolve(args.out);
 		fs.mkdirSync(path.dirname(dest), { recursive: true });
 		fs.writeFileSync(dest, output, "utf8");
+		// dest liegt unter <mmRoot>/config/config.js -> mmRoot ist zwei Ebenen höher.
+		const mmRoot = path.dirname(path.dirname(dest));
+		alarmSoundLib.syncAlarmSound(mmRoot, settings);
 		process.stderr.write(`[generate-config] geschrieben: ${dest}\n`);
 	} else {
 		process.stdout.write(output);

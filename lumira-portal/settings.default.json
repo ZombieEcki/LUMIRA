@@ -17,7 +17,7 @@
     "enabled": true
   },
   "calendar": {
-    "url": ""
+    "urls": []
   },
   "news": {
     "title": "Tagesschau",
@@ -29,6 +29,7 @@
     "infoDuration": 240,
     "returnDuration": 30,
     "playSound": true,
+    "soundFile": "",
     "haWebhookUrl": ""
   },
   "network": {

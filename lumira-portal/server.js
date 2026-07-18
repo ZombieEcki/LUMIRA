@@ -13,11 +13,15 @@ const https = require("https");
 const express = require("express");
 const bodyParser = require("body-parser");
 const crypto = require("crypto");
+const fs = require("fs");
+const multer = require("multer");
 
 const settingsLib = require("./lib/settings");
 const modeLib = require("./lib/mode");
 const netLib = require("./lib/net");
 const authLib = require("./lib/auth");
+const systemLib = require("./lib/system");
+const alarmSoundLib = require("./lib/alarm-sound");
 const { generateConfig } = require("./lib/generate-config");
 const { getEdition } = require("./lib/editions");
 
@@ -120,6 +124,14 @@ app.post("/api/auth/logout", (req, res) => {
 	res.json({ ok: true });
 });
 
+app.post("/api/auth/remove-pin", requireAuth, (req, res) => {
+	settingsLib.patch({ portal: { pinHash: "", pinSalt: "" } });
+	const token = parseCookies(req)[SESSION_COOKIE];
+	if (token) sessions.delete(token);
+	res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
+	res.json({ ok: true });
+});
+
 // ---------------------------------------------------------------------------
 // Status (immer ohne Login lesbar – wird u.a. von MMM-LumiraStatus gepollt)
 // ---------------------------------------------------------------------------
@@ -189,12 +201,7 @@ app.get("/api/geocode", requireAuth, (req, res) => {
 app.post("/api/settings", requireAuth, async (req, res) => {
 	try {
 		const saved = settingsLib.patch(req.body || {});
-		const rendered = generateConfig(saved);
-		const fs = require("fs");
-		fs.mkdirSync(path.dirname(MM_CONFIG_PATH), { recursive: true });
-		fs.writeFileSync(MM_CONFIG_PATH, rendered, "utf8");
-
-		restartMagicMirror();
+		regenerateAndRestart(saved);
 
 		const { portal, ...safe } = saved;
 		res.json(Object.assign({}, safe, { portal: { pinSet: !!(portal && portal.pinHash) }, restarted: true }));
@@ -204,12 +211,67 @@ app.post("/api/settings", requireAuth, async (req, res) => {
 	}
 });
 
+// Schreibt config.js aus dem aktuellen settings.json neu, synchronisiert einen
+// evtl. hochgeladenen eigenen Alarmton in den Modulordner (der Ton lebt
+// dauerhaft in ~/.lumira/sounds/, siehe lib/alarm-sound.js) und startet
+// MagicMirror neu. Wird sowohl von POST /api/settings als auch von den
+// Alarmton-Upload-/Reset-Routen genutzt.
+function regenerateAndRestart(saved) {
+	const rendered = generateConfig(saved);
+	fs.mkdirSync(path.dirname(MM_CONFIG_PATH), { recursive: true });
+	fs.writeFileSync(MM_CONFIG_PATH, rendered, "utf8");
+	const mmRoot = path.dirname(path.dirname(MM_CONFIG_PATH));
+	alarmSoundLib.syncAlarmSound(mmRoot, saved);
+	restartMagicMirror();
+}
+
 function restartMagicMirror() {
 	const { execFile } = require("child_process");
 	execFile("pm2", ["restart", "MagicMirror"], (err) => {
 		if (err) console.warn("[lumira-portal] pm2 restart MagicMirror fehlgeschlagen (läuft pm2?):", err.message);
 	});
 }
+
+// ---------------------------------------------------------------------------
+// Eigener Alarmton (Upload/Zurücksetzen) – siehe lib/alarm-sound.js.
+// ---------------------------------------------------------------------------
+const soundUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+app.post("/api/alarm/sound", requireAuth, soundUpload.single("sound"), (req, res) => {
+	const ext = req.file && alarmSoundLib.ALLOWED_MIME[req.file.mimetype];
+	if (!req.file || !ext) {
+		return res.status(400).json({ error: "Nur mp3/wav/ogg-Dateien bis 5MB erlaubt" });
+	}
+	try {
+		const filename = alarmSoundLib.saveUpload(req.file.buffer, req.file.mimetype);
+		const saved = settingsLib.patch({ alarm: { soundFile: filename } });
+		regenerateAndRestart(saved);
+		res.json({ ok: true, soundFile: filename });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+app.delete("/api/alarm/sound", requireAuth, (req, res) => {
+	try {
+		alarmSoundLib.removeCustom();
+		const saved = settingsLib.patch({ alarm: { soundFile: "" } });
+		regenerateAndRestart(saved);
+		res.json({ ok: true });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+// ---------------------------------------------------------------------------
+// Systemsteuerung (Punkt "Pi neu starten" auf der Steuerung-Seite).
+// ---------------------------------------------------------------------------
+app.post("/api/system/reboot", requireAuth, (req, res) => {
+	res.json({ ok: true });
+	systemLib.reboot().catch((err) => {
+		console.warn("[lumira-portal] Neustart fehlgeschlagen:", err.message);
+	});
+});
 
 // ---------------------------------------------------------------------------
 // WLAN (Phase 2/3)
@@ -278,6 +340,7 @@ app.post("/api/setup-mode/exit", async (req, res) => {
 const PROXY_ROUTES = {
 	"alarm/home": { port: 8090, path: "/home" },
 	"alarm/clear": { port: 8090, path: "/clear" },
+	"alarm/test": { port: 8090, path: "/alarm?keyword=Testalarm&unit=Portal-Test" },
 	"alarm/health": { port: 8090, path: "/apager/health" },
 	"compliments/on": { port: 8091, path: "/compliments/on" },
 	"compliments/off": { port: 8091, path: "/compliments/off" },

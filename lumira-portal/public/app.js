@@ -161,7 +161,15 @@
       wireWlan();
       wireSicherheit();
       wireStandortSearch();
+      wireAlarmSound();
       $("#addBday").addEventListener("click", function () { $("#bdays").appendChild(bdayRow({ name: "", date: "" })); });
+      $("#addCalUrl").addEventListener("click", function () {
+        if ($all("#cal-urls .calrow").length >= 3) return;
+        $("#cal-urls").appendChild(calUrlRow(""));
+        updateAddCalUrlState();
+      });
+      renderModuleList();
+      renderModulePreview();
       refreshStatus();
       setInterval(refreshStatus, 5000);
     });
@@ -184,16 +192,14 @@
 
   function populateForm() {
     var s = SETTINGS;
-    $("#personName").value = s.person.name || "";
     renderBdays(s.family.birthdays || []);
-    $("#wedding").value = s.family.weddingDate || "";
 
     $("#loc-name").value = s.location.name || "";
     $("#loc-lat").value = s.location.lat;
     $("#loc-lon").value = s.location.lon;
     setSwitch($("#sw-rain"), !!s.rainRadar.enabled);
 
-    $("#cal-url").value = s.calendar.url || "";
+    renderCalUrls(s.calendar.urls || []);
     var newsSel = $("#news-select");
     if (s.news.url === "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml") {
       newsSel.value = "tagesschau";
@@ -205,12 +211,15 @@
       $("#news-url").value = s.news.url || "";
     }
 
+    $("#personName").value = s.person.name || "";
     $("#alarmTitle").value = s.alarm.title || "";
     $("#alarmDuration").value = s.alarm.alarmDuration;
     $("#infoDuration").value = s.alarm.infoDuration;
     $("#returnDuration").value = s.alarm.returnDuration;
     setSwitch($("#sw-sound"), !!s.alarm.playSound);
     $("#haWebhookUrl").value = s.alarm.haWebhookUrl || "";
+    $("#alarm-sound-hint").textContent = s.alarm.soundFile ? "Eigener Ton: " + s.alarm.soundFile : "Standardton";
+    $("#alarm-sound-reset").hidden = !s.alarm.soundFile;
   }
 
   function setSwitch(el, on) {
@@ -240,6 +249,29 @@
       var inputs = $all("input", row);
       return { name: inputs[0].value.trim(), date: inputs[1].value.trim() };
     }).filter(function (b) { return b.name || b.date; });
+  }
+
+  function renderCalUrls(list) {
+    var wrap = $("#cal-urls");
+    wrap.innerHTML = "";
+    list.forEach(function (url) { wrap.appendChild(calUrlRow(url)); });
+    updateAddCalUrlState();
+  }
+  function calUrlRow(url) {
+    var row = document.createElement("div");
+    row.className = "calrow";
+    row.innerHTML = '<input type="url" class="mono-in" placeholder="https://…/kalender.ics">' +
+      '<button type="button" class="btn-x" title="entfernen">✕</button>';
+    $("input", row).value = url || "";
+    $("button", row).addEventListener("click", function () { row.remove(); updateAddCalUrlState(); });
+    return row;
+  }
+  function collectCalUrls() {
+    return $all("#cal-urls .calrow input").map(function (input) { return input.value.trim(); })
+      .filter(function (url) { return url; });
+  }
+  function updateAddCalUrlState() {
+    $("#addCalUrl").disabled = $all("#cal-urls .calrow").length >= 3;
   }
 
   // ---------------------------------------------------------------------
@@ -294,7 +326,7 @@
 
   function patchFor(section) {
     if (section === "familie") {
-      return { person: { name: $("#personName").value.trim() }, family: { birthdays: collectBdays(), weddingDate: $("#wedding").value.trim() } };
+      return { family: { birthdays: collectBdays() } };
     }
     if (section === "standort") {
       return {
@@ -303,12 +335,16 @@
       };
     }
     if (section === "kalender") {
+      return { calendar: { urls: collectCalUrls() } };
+    }
+    if (section === "news") {
       var sel = $("#news-select").value;
       var news = sel === "custom" ? { title: "Nachrichten", url: $("#news-url").value.trim() } : NEWS_PRESETS[sel];
-      return { calendar: { url: $("#cal-url").value.trim() }, news: news };
+      return { news: news };
     }
     if (section === "alarm") {
       return {
+        person: { name: $("#personName").value.trim() },
         alarm: {
           title: $("#alarmTitle").value.trim(),
           alarmDuration: Number($("#alarmDuration").value),
@@ -347,9 +383,62 @@
     $("#alarm-clear").addEventListener("click", function () {
       api("/api/proxy/alarm/clear", { method: "POST" }).then(function () { toast("Einsatz beendet"); refreshStatus(); }).catch(function (err) { toast(err.message); });
     });
+    $("#alarm-test").addEventListener("click", function () {
+      if (!confirm("Löst einen echten Testalarm auf dem Spiegel aus (Ton, Vollbild-Overlay). Fortfahren?")) return;
+      api("/api/proxy/alarm/test", { method: "POST" }).then(function () { toast("Testalarm ausgelöst"); refreshStatus(); }).catch(function (err) { toast(err.message); });
+    });
     $("#compliments-toggle").addEventListener("click", function () {
       api("/api/proxy/compliments/toggle", { method: "POST" }).then(function () { refreshStatus(); }).catch(function (err) { toast(err.message); });
     });
+    $("#pi-reboot").addEventListener("click", function () {
+      if (!confirm("Der Mini-PC startet jetzt neu, die Anzeige ist für ca. 1-2 Minuten nicht erreichbar. Fortfahren?")) return;
+      toast("Neustart wird ausgelöst …");
+      api("/api/system/reboot", { method: "POST" }).catch(function () {});
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Steuerung der Module: Platzhalter-Liste + rein visuelle Vorschau
+  // ---------------------------------------------------------------------
+  var MODULE_LIST = [
+    { need: "hasAlarm", label: "🚒 Alarmierung" },
+    { need: "hasCal", label: "📅 Kalender" },
+    { need: null, label: "📰 Nachrichten" },
+    { need: null, label: "🌤 Wetter" },
+    { need: "hasRain", label: "🌧 Regenradar" },
+    { need: null, label: "🕐 Uhr" }
+  ];
+  function renderModuleList() {
+    var wrap = $("#module-list-extra");
+    wrap.innerHTML = "";
+    var flags = STATUS.edition.flags;
+    MODULE_LIST.forEach(function (m) {
+      if (m.need && !flags[m.need]) return;
+      var row = document.createElement("div");
+      row.className = "toggle";
+      row.innerHTML = '<span class="tl2">' + m.label + '<small>bald verfügbar</small></span>' +
+        '<button class="sw" aria-checked="false" aria-disabled="true" tabindex="-1"></button>';
+      wrap.appendChild(row);
+    });
+  }
+
+  function renderModulePreview() {
+    var flags = STATUS.edition.flags;
+    setPreviewCell("top_left", "🕐 Uhr");
+    setPreviewCell("top_center", flags.hasFamily ? "💬 Kompliments" : "");
+    var right = ["🌤 Wetter"];
+    if (flags.hasRain) right.push("🌧 Regenradar");
+    setPreviewCell("top_right", right.join(" / "));
+    setPreviewCell("bottom_left", flags.hasCal ? "📅 Kalender" : "");
+    setPreviewCell("bottom_right", "ℹ️ Status");
+    $("#mp-bottombar").textContent = "📰 Nachrichten";
+    var overlay = $("#mp-overlay");
+    overlay.textContent = "🚒 Alarmierung (Vollbild bei Alarm)";
+    overlay.hidden = !flags.hasAlarm;
+  }
+  function setPreviewCell(region, text) {
+    var cell = $('.mp-cell[data-region="' + region + '"]');
+    if (cell) cell.textContent = text;
   }
 
   function refreshStatus() {
@@ -443,7 +532,53 @@
       api("/api/auth/set-pin", { method: "POST", body: { pin: pin } }).then(function () {
         hint.textContent = "PIN gespeichert.";
         $("#pin-new").value = "";
+        $("#pin-remove").hidden = false;
       }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
+    });
+    $("#pin-remove").hidden = !(SETTINGS.portal && SETTINGS.portal.pinSet);
+    $("#pin-remove").addEventListener("click", function () {
+      if (!confirm("PIN wirklich entfernen? Das Portal ist danach ohne Anmeldung im Heimnetz erreichbar.")) return;
+      var hint = $("#pin-remove-hint");
+      api("/api/auth/remove-pin", { method: "POST" }).then(function () {
+        hint.textContent = "PIN entfernt.";
+        $("#pin-remove").hidden = true;
+        SETTINGS.portal.pinSet = false;
+      }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Eigener Alarmton (Upload/Zurücksetzen)
+  // ---------------------------------------------------------------------
+  function wireAlarmSound() {
+    $("#alarm-sound-upload").addEventListener("click", function () {
+      var input = $("#alarm-sound-file");
+      var file = input.files && input.files[0];
+      var hint = $("#alarm-sound-hint");
+      if (!file) { hint.textContent = "Bitte zuerst eine Datei auswählen."; return; }
+      var form = new FormData();
+      form.append("sound", file);
+      hint.textContent = "Lade hoch …";
+      fetch("/api/alarm/sound", { method: "POST", body: form, credentials: "same-origin" })
+        .then(function (res) { return res.json().then(function (data) { if (!res.ok) throw new Error(data.error || "Fehler"); return data; }); })
+        .then(function (data) {
+          SETTINGS.alarm.soundFile = data.soundFile;
+          hint.textContent = "Eigener Ton: " + data.soundFile;
+          $("#alarm-sound-reset").hidden = false;
+          input.value = "";
+          toast("Alarmton hochgeladen");
+        }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
+    });
+    $("#alarm-sound-reset").addEventListener("click", function () {
+      var hint = $("#alarm-sound-hint");
+      fetch("/api/alarm/sound", { method: "DELETE", credentials: "same-origin" })
+        .then(function (res) { if (!res.ok) throw new Error("Fehler beim Zurücksetzen"); return res.json(); })
+        .then(function () {
+          SETTINGS.alarm.soundFile = "";
+          hint.textContent = "Standardton";
+          $("#alarm-sound-reset").hidden = true;
+          toast("Alarmton zurückgesetzt");
+        }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
     });
   }
 

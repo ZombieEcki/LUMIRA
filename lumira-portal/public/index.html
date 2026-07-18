@@ -79,9 +79,10 @@
     </nav>
     <nav class="navgroup" id="nav-konfig">
       <span class="glabel">Konfiguration</span>
-      <button class="navbtn" data-page="familie" data-need="hasFamily"><span class="ic">👪</span>Familie</button>
+      <button class="navbtn" data-page="familie" data-need="hasFamily"><span class="ic">👪</span>Personen</button>
       <button class="navbtn" data-page="standort"><span class="ic">📍</span>Standort &amp; Wetter</button>
-      <button class="navbtn" data-page="kalender" data-need="hasCal"><span class="ic">📅</span>Kalender &amp; News</button>
+      <button class="navbtn" data-page="kalender" data-need="hasCal"><span class="ic">📅</span>Kalender</button>
+      <button class="navbtn" data-page="news"><span class="ic">📰</span>Nachrichten</button>
       <button class="navbtn" data-page="alarm" data-need="hasAlarm"><span class="ic">🚒</span>Alarmierung</button>
       <button class="navbtn" data-page="wlan"><span class="ic">📶</span>WLAN</button>
     </nav>
@@ -114,36 +115,57 @@
         <div class="action-grid" style="margin-top:14px;">
           <button class="action" id="alarm-home"><span class="at">🏠 Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
           <button class="action" id="alarm-clear"><span class="at">✅ Einsatz beenden</span><span class="ad">zurück in Danke-Nachwirkung</span></button>
+          <button class="action" id="alarm-test"><span class="at">🔔 Alarm testen</span><span class="ad">löst einen echten Testalarm auf dem Spiegel aus</span></button>
         </div>
       </div>
 
       <div class="card">
-        <h2>Familienassistent</h2>
-        <p class="sub">Manueller Ein-/Ausschalter für die Kompliments-Karten.</p>
-        <div class="action-grid" style="margin-top:14px;">
-          <button class="action" id="compliments-toggle">
-            <span class="at">💬 Kompliments: <span id="compliments-state">–</span></span>
-            <span class="ad">antippen zum Umschalten</span></button>
+        <h2>Steuerung der Module</h2>
+        <p class="sub">Module einzeln ein-/ausblenden. Nur „Kompliments" ist aktuell schaltbar, der Rest folgt.</p>
+        <div class="toggle" style="margin-top:8px;">
+          <span class="tl2">💬 Familienbotschaften (Kompliments)</span>
+          <button class="action" id="compliments-toggle" style="flex:none; text-align:center;">
+            <span class="at" id="compliments-state">–</span></button>
+        </div>
+        <div id="module-list-extra"></div>
+
+        <div class="module-preview" id="module-preview">
+          <p class="save-hint" style="margin-bottom:8px;">Vorschau – Anordnung folgt später</p>
+          <div class="mp-grid">
+            <div class="mp-cell" data-region="top_left"></div>
+            <div class="mp-cell" data-region="top_center"></div>
+            <div class="mp-cell" data-region="top_right"></div>
+            <div class="mp-cell mp-empty"></div>
+            <div class="mp-cell mp-empty"></div>
+            <div class="mp-cell mp-empty"></div>
+            <div class="mp-cell" data-region="bottom_left"></div>
+            <div class="mp-cell mp-empty"></div>
+            <div class="mp-cell" data-region="bottom_right"></div>
+          </div>
+          <div class="mp-row mp-bar" id="mp-bottombar"></div>
+          <div class="mp-row mp-overlay" id="mp-overlay"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>System</h2>
+        <p class="sub">Neustart des Mini-PCs, falls der Spiegel sich einmal aufhängt.</p>
+        <div class="save-row">
+          <button class="btn" id="pi-reboot">🔄 Pi neu starten</button>
         </div>
       </div>
     </section>
 
-    <!-- Familie -->
+    <!-- Familie / Personen -->
     <section class="page" data-page="familie">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Familie</h1>
-        <p id="familie-sub">Name, Geburtstage und Hochzeitstag für die Familienbotschaften.</p></div>
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Personen</h1>
+        <p id="familie-sub">Namen und Geburtstage für die Familienbotschaften.</p></div>
       <div class="card">
-        <div class="field first">
-          <label id="lbl-personname">Name der Person</label>
-          <input type="text" id="personName">
-        </div>
-        <label style="margin-top:16px; display:block;">Geburtstage</label>
+        <!-- Namen hier sind zugleich die künftige Quelle für Familienmitglieder-Namen
+             eines späteren To-Do-Moduls (noch nicht gebaut). -->
+        <div class="bday-head"><span>Name</span><span>Geburtstag <span class="opt">(optional)</span></span></div>
         <div class="bdays" id="bdays"></div>
-        <button type="button" class="btn-add" id="addBday">+ Geburtstag hinzufügen</button>
-        <div class="field">
-          <label>Hochzeitstag <span class="opt">(optional, TT.MM.)</span></label>
-          <input type="text" class="mono-in" id="wedding" placeholder="13.07.">
-        </div>
+        <button type="button" class="btn-add" id="addBday">+ Person hinzufügen</button>
         <div class="save-row"><button class="btn primary" data-save="familie">Speichern</button>
           <span class="save-hint" data-savehint="familie"></span></div>
       </div>
@@ -177,12 +199,22 @@
 
     <!-- Kalender -->
     <section class="page" data-page="kalender">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Kalender &amp; Nachrichten</h1>
-        <p>Familienkalender und Nachrichtenticker.</p></div>
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Kalender</h1>
+        <p>Bis zu 3 Kalender (iCloud/ICS) – werden zu einer gemeinsamen, sortierten Übersicht zusammengeführt.</p></div>
       <div class="card">
-        <div class="field first"><label>Kalender-URL <span class="opt">(iCloud/ICS)</span></label>
-          <input type="url" class="mono-in" id="cal-url" placeholder="https://…/kalender.ics"></div>
-        <div class="field"><label>Nachrichten-Feed</label>
+        <div class="bdays" id="cal-urls"></div>
+        <button type="button" class="btn-add" id="addCalUrl">+ Kalender hinzufügen</button>
+        <div class="save-row"><button class="btn primary" data-save="kalender">Speichern</button>
+          <span class="save-hint" data-savehint="kalender"></span></div>
+      </div>
+    </section>
+
+    <!-- Nachrichten -->
+    <section class="page" data-page="news">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Nachrichten</h1>
+        <p>Nachrichtenticker am unteren Bildschirmrand.</p></div>
+      <div class="card">
+        <div class="field first"><label>Nachrichten-Feed</label>
           <select id="news-select">
             <option value="tagesschau">Tagesschau</option>
             <option value="heise">heise online</option>
@@ -190,8 +222,8 @@
           </select></div>
         <div class="field" id="news-custom-row" hidden><label>Eigene RSS-URL</label>
           <input type="url" class="mono-in" id="news-url"></div>
-        <div class="save-row"><button class="btn primary" data-save="kalender">Speichern</button>
-          <span class="save-hint" data-savehint="kalender"></span></div>
+        <div class="save-row"><button class="btn primary" data-save="news">Speichern</button>
+          <span class="save-hint" data-savehint="news"></span></div>
       </div>
     </section>
 
@@ -200,16 +232,37 @@
       <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Alarmierung</h1>
         <p>Einstellungen für MMM-aPagerAlarm.</p></div>
       <div class="card">
+        <div class="field first">
+          <label id="lbl-personname">Name der Person</label>
+          <input type="text" id="personName">
+        </div>
         <div class="grid2">
-          <div class="field first"><label>Überschrift</label><input type="text" id="alarmTitle"></div>
-          <div class="field first"><label>Alarm-Dauer (Min)</label><input type="number" class="mono-in" id="alarmDuration"></div>
+          <div class="field"><label>Überschrift</label><input type="text" id="alarmTitle"></div>
+          <div class="field"><label>Alarm-Dauer (Min)</label><input type="number" class="mono-in" id="alarmDuration"></div>
           <div class="field"><label>„im Einsatz" (Min)</label><input type="number" class="mono-in" id="infoDuration"></div>
           <div class="field"><label>„war im Einsatz" (Min)</label><input type="number" class="mono-in" id="returnDuration"></div>
         </div>
         <div class="toggle" style="margin-top:14px;"><span class="tl2">Alarmton abspielen</span>
           <button class="sw" id="sw-sound" role="switch"></button></div>
+        <div class="field"><label>Alarmton-Datei <span class="opt">(mp3/wav/ogg, max. 5MB)</span></label>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input type="file" id="alarm-sound-file" accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg">
+            <button type="button" class="btn" id="alarm-sound-upload">Hochladen</button>
+            <button type="button" class="btn" id="alarm-sound-reset" hidden>Zurücksetzen</button>
+          </div>
+          <span class="save-hint" id="alarm-sound-hint">Standardton</span>
+        </div>
         <div class="field"><label>Home-Assistant-Webhook <span class="opt">(optional)</span></label>
           <input type="url" class="mono-in" id="haWebhookUrl" placeholder="http://<HA-IP>:8123/api/webhook/alarm"></div>
+        <details style="margin-top:6px;">
+          <summary class="save-hint" style="cursor:pointer;">ℹ️ Wie richte ich das in Home Assistant ein?</summary>
+          <p class="save-hint" style="margin-top:8px;">
+            In Home Assistant unter <em>Einstellungen → Automatisierungen → Neue Automatisierung</em>
+            einen Auslöser „Webhook" anlegen und die dort erzeugte URL hier eintragen.
+            LUMIRA sendet dann bei jedem Alarmphasenwechsel <code>{state, keyword, unit, time}</code> per POST.
+            Ausführliche Anleitung: <code>docs/HOME_ASSISTANT.md</code> im Projekt.
+          </p>
+        </details>
         <div class="save-row"><button class="btn primary" data-save="alarm">Speichern</button>
           <span class="save-hint" data-savehint="alarm"></span></div>
       </div>
@@ -241,6 +294,8 @@
           <input type="password" id="pin-new" inputmode="numeric" maxlength="8"></div>
         <div class="save-row"><button class="btn primary" id="pin-save">PIN speichern</button>
           <span class="save-hint" id="pin-hint"></span></div>
+        <div class="save-row"><button class="btn" id="pin-remove" hidden>PIN entfernen</button>
+          <span class="save-hint" id="pin-remove-hint"></span></div>
       </div>
     </section>
 
@@ -252,6 +307,7 @@
           <div class="info-row"><span class="k">Edition</span><span class="v" id="info-edition">–</span></div>
           <div class="info-row"><span class="k">Hostname</span><span class="v" id="info-hostname">–</span></div>
           <div class="info-row"><span class="k">Portal-Adresse</span><span class="v" id="info-portal">–</span></div>
+          <div class="info-row"><span class="k">Idee &amp; Umsetzung</span><span class="v">Marcel Weiße, Liam Eckhof</span></div>
         </div>
       </div>
     </section>

@@ -102,8 +102,16 @@ function validate(settings) {
 	if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
 		throw new ValidationError("location.lon", "Längengrad muss zwischen -180 und 180 liegen");
 	}
-	if (!isValidUrlOrEmpty(settings.calendar && settings.calendar.url)) {
-		throw new ValidationError("calendar.url", "Kalender-URL ist ungültig");
+	if (!settings.calendar || !Array.isArray(settings.calendar.urls)) {
+		throw new ValidationError("calendar.urls", "urls muss eine Liste sein");
+	}
+	if (settings.calendar.urls.length > 3) {
+		throw new ValidationError("calendar.urls", "Höchstens 3 Kalender-URLs erlaubt");
+	}
+	for (const u of settings.calendar.urls) {
+		if (typeof u !== "string" || !u || !isValidUrlOrEmpty(u)) {
+			throw new ValidationError("calendar.urls", `Kalender-URL ungültig: "${u}"`);
+		}
 	}
 	if (!isValidUrlOrEmpty(settings.news && settings.news.url)) {
 		throw new ValidationError("news.url", "News-URL ist ungültig");

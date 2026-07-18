@@ -63,6 +63,12 @@ um den aktuellen Stand zu sehen.
       echter Pi-Hardware getestet** (Details:
       [lumira-portal/README.md](lumira-portal/README.md) Abschnitt
       „Ehrlicher Hinweis zum Umsetzungsstand")
+- [x] **Portal-Feedback-Runde**: Alarm-Testbutton, „Steuerung der Module"
+      (Platzhalter-Liste + rein visuelle Anordnungs-Vorschau), Seite
+      „Personen" (nur Name + Geburtstag), bis zu 3 kombinierte Kalender,
+      Kalender/Nachrichten getrennt, Einsatzkraft-Name auf der
+      Alarmierung-Seite, eigener Alarmton-Upload, Home-Assistant-Hilfe,
+      PIN entfernen, Copyright-Hinweis, „Pi neu starten"
 
 ---
 
