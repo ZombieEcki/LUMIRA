@@ -100,6 +100,14 @@ async function scanWifi() {
 
 async function connectWifi(ssid, psk) {
 	if (!ssid) throw new Error("SSID fehlt");
+	// nmcli legt beim ersten "connect" ein Verbindungsprofil mit dem SSID-Namen
+	// an - existiert bereits eins (z.B. von Raspberry Pi Imager beim Erststart,
+	// oder aus einem vorherigen fehlgeschlagenen Versuch), verwendet nmcli
+	// dieses stattdessen weiter. Ist es unvollständig (kein key-mgmt gesetzt),
+	// schlägt der Connect mit "802-11-wireless-security.key-mgmt: property is
+	// missing" fehl. Deshalb vor dem Verbinden ein evtl. vorhandenes Profil
+	// löschen, damit nmcli garantiert ein frisches, vollständiges Profil anlegt.
+	await run(["connection", "delete", ssid]).catch(() => {});
 	const args = ["dev", "wifi", "connect", ssid, "ifname", WIFI_IFACE];
 	if (psk) args.push("password", psk);
 	try {

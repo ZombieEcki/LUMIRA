@@ -6,6 +6,14 @@
 }
 
 .lumira-status-card {
+	/* Fest in der Bildschirmmitte, unabhängig von der zugewiesenen Modul-
+	   Region (bottom_right) - im SETUP-Modus soll die Einrichtungsanleitung
+	   gut sichtbar sein, nicht in einer Ecke versteckt. */
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 1000;
 	background: rgba(20, 20, 20, 0.55);
 	border: 1px solid rgba(255, 255, 255, 0.12);
 	border-radius: 14px;
