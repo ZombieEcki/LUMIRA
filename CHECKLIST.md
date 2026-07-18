@@ -79,6 +79,7 @@ um den aktuellen Stand zu sehen.
 | 7 | **Mehrsprachigkeit** (Sprachdateien für Oberfläche & Botschaften) | 📋 geplant |
 | 8 | **Hintergrund-Option** (Farbe/Bild/Slideshow) | 📋 geplant |
 | 9 | **Alexa-Integration** (Ansagen bei Alarm, Sprachsteuerung für Kompliments-Schalter) | 📋 geplant |
+| 10 | **Sprüche von MMM-SmartCompliments in `compliments.json`** – vom Portal bearbeitbar statt in `config.js` fest codiert | 🟡 Konzept fertig ([concept/smartcompliments-json.md](concept/smartcompliments-json.md)), Umsetzung offen |
 
 **Legende:** ✅ erledigt · 🟡 in Arbeit / teilweise · 📋 geplant, noch nicht begonnen
 
