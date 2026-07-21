@@ -78,7 +78,7 @@ wie beim `settings.default.json`-Vorfall (siehe CHECKLIST.md-Historie): Nur
 | Gehört zu | Beispiel | Warum |
 |-----------|----------|-------|
 | **`settings.json`** (bestehend) | `birthdays`, `weddingDate`, `person.name` | strukturierte, editionsabhängige Kundendaten – hat schon ein Zuhause (siehe [selfservice.md](selfservice.md)) |
-| **`config.js`** (generiert) | `updateInterval`, `firefighterIntegration`, `hideOnAlarmPhases`, `afterDutyDurationMinutes`, `heatTemp`/`frostTemp`/`stormWindKmh`, `rememberLastMessages` | *Verhalten*, keine Textinhalte – ändert sich selten, gehört konzeptionell zur Edition/Konfiguration |
+| **`config.js`** (generiert) | `updateInterval`, `firefighterIntegration`, `hideOnAlarmPhases`, `afterDutyDurationMinutes`, `heatTemp`/`frostTemp`/`stormWindKmh`, `rememberLastMessages`, `compliments.moods` (siehe 5.1) | *Verhalten*, keine Textinhalte – ändert sich selten, gehört konzeptionell zur Edition/Konfiguration |
 | **`compliments.json`** (NEU) | alle Textlisten: `morningMessages` … `humorMessages`, `weekdayMessages`, `seasonMessages`, `holidayMessages`, `afterDutyMessages`, `weatherHints`, `weatherWarnings`, `birthdayText`, `weddingText` | *Inhalte* – das, was sich der Kunde individuell „anhört" und oft anpassen will |
 
 Diese Trennung ist bewusst schmal gehalten: Nur Text-Listen wandern, keine
@@ -195,6 +195,50 @@ Datumsfeld:
   zuständig (Personendaten, siehe Abschnitt 2) – „Sprüche" ist rein für die
   Textbausteine.
 
+### 5.1 Stimmungs-Auswahl (welche Kategorien überhaupt vorkommen)
+
+Zusätzlich zum reinen Text-Bearbeiten: eine kleine Auswahl am Kopf der
+„Sprüche"-Seite, mit der die Familie festlegt, welche **Stimmung** die
+Kompliments insgesamt haben sollen – unabhängig davon, was in den einzelnen
+Textkategorien steht.
+
+```
+Stimmung der Kompliments
+☑ Herzlich       (familyMessages)
+☑ Motivierend    (motivationMessages)
+☑ Humorvoll      (humorMessages)
+```
+
+**Wichtig – das ist ein *Verhaltens*-Schalter, keine Textänderung**, gehört
+nach der Tabelle in Abschnitt 2 also **nicht** in `compliments.json`, sondern
+in `settings.json`/`config.js` (genau wie `firefighterIntegration` oder
+`updateInterval`):
+
+- **`settings.json`** neues Feld `compliments.moods`:
+  ```json
+  "compliments": { "moods": { "herzlich": true, "motivierend": true, "humorvoll": true } }
+  ```
+- **`generate-config.js`** reicht das 1:1 als neue `MMM-SmartCompliments`-
+  Config-Flags durch, z. B. `moodHerzlich`/`moodMotivierend`/`moodHumorvoll`.
+- **`MMM-SmartCompliments.js`**, `buildAmbient()` (aktuell hängt jede der drei
+  Kategorien bedingungslos an den Auswahl-Pool an):
+  ```js
+  if (this.config.moodHerzlich)    pool = pool.concat(this.config.familyMessages);
+  if (this.config.moodMotivierend) pool = pool.concat(this.config.motivationMessages);
+  if (this.config.moodHumorvoll)   pool = pool.concat(this.config.humorMessages);
+  ```
+  Alle anderen Pool-Bestandteile (Tageszeit, Wochentag, Jahreszeit, Wetter,
+  Kalender, Aufgaben, Erinnerungen, Countdowns) bleiben unabhängig davon
+  immer aktiv – die Stimmungs-Auswahl betrifft nur die drei „reinen
+  Charakter"-Kategorien.
+- **Validierung**: mindestens eine Stimmung muss aktiv bleiben (sonst bricht
+  `buildAmbient()` bei abgeschalteter Feuerwehr-Integration u.U. komplett
+  leer zusammen, wenn gerade auch kein Tier-A-Ereignis vorliegt).
+- Vorteil gegenüber „Kategorie einfach leeren": die Texte in
+  `compliments.json` bleiben dabei vollständig erhalten – man blendet die
+  Stimmung nur vorübergehend aus, verliert aber keine selbst geschriebenen
+  Sprüche, falls man sie später wieder anschaltet.
+
 ## 6. Eigene Ideen
 
 Ein paar Ergänzungen über die reine „JSON statt config.js"-Anfrage hinaus,
@@ -290,7 +334,7 @@ Beispiel, das diesem Konzept zugrunde liegt), verlieren dabei nichts:
 |-------|--------|----------|
 | **1** | `compliments.json` + `lib/compliments.js` (Backup/Atomic-Write) + `node_helper.js` liest beim Start | Grundfunktion: Sprüche kommen aus der JSON statt aus `config.js` |
 | **2** | Live-Reload per `fs.watch` + `SC_COMPLIMENTS`-Notification | Änderungen wirken ohne MagicMirror-Neustart |
-| **3** | Portal-Seite „Sprüche" (Abschnitt 5) + API-Endpunkte | Kunde kann selbst bearbeiten, ganz ohne SSH |
+| **3** | Portal-Seite „Sprüche" (Abschnitt 5) + API-Endpunkte + Stimmungs-Auswahl (5.1) | Kunde kann selbst bearbeiten, ganz ohne SSH, plus Herzlich/Motivierend/Humorvoll ein-/ausblenden |
 | **4** | Migration bestehender `config.js`-Listen (Abschnitt 8) | keine verlorenen Sprüche bei Umstieg |
 | **5** | Objekt-Einträge (`enabled`/`pinned`, Abschnitt 6.3) + Import/Export (6.4) | Feinschliff, kein Breaking Change |
 | **6** | `personMessages` (6.5) | tiefere Familien-Personalisierung |

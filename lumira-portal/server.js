@@ -17,6 +17,7 @@ const fs = require("fs");
 const multer = require("multer");
 
 const settingsLib = require("./lib/settings");
+const complimentsLib = require("./lib/compliments");
 const modeLib = require("./lib/mode");
 const netLib = require("./lib/net");
 const authLib = require("./lib/auth");
@@ -275,6 +276,24 @@ app.post("/api/system/reboot", requireAuth, (req, res) => {
 	systemLib.reboot().catch((err) => {
 		console.warn("[lumira-portal] Neustart fehlgeschlagen:", err.message);
 	});
+});
+
+// ---------------------------------------------------------------------------
+// Sprüche (compliments.json) – MMM-SmartCompliments-Textbausteine.
+// Bewusst KEIN pm2-Neustart: das Modul lädt compliments.json selbst per
+// fs.watch live nach (siehe modules/MMM-SmartCompliments/node_helper.js).
+// ---------------------------------------------------------------------------
+app.get("/api/compliments", requireAuth, (req, res) => {
+	res.json(complimentsLib.load());
+});
+
+app.post("/api/compliments", requireAuth, (req, res) => {
+	try {
+		res.json(complimentsLib.patch(req.body || {}));
+	} catch (err) {
+		const status = err instanceof complimentsLib.ValidationError ? 400 : 500;
+		res.status(status).json({ error: err.message, field: err.field });
+	}
 });
 
 // ---------------------------------------------------------------------------

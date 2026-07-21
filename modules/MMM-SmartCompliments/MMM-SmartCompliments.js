@@ -59,6 +59,14 @@ Module.register("MMM-SmartCompliments", {
 
 		rememberLastMessages: 10,    // wie viele Nachrichten nicht wiederholen
 
+		// Stimmungen: welche der "reinen Charakter"-Kategorien im Zufallsmix
+		// vorkommen (vom LUMIRA-Portal steuerbar, siehe compliments-Konzept).
+		// Alle anderen Pool-Bestandteile (Tageszeit, Wochentag, Wetter …)
+		// bleiben davon unberührt.
+		moodHerzlich: true,          // familyMessages
+		moodMotivierend: true,       // motivationMessages
+		moodHumorvoll: true,         // humorMessages
+
 		// Persönliche Ereignisse
 		birthdays: [                 // { name, date: "MM-TT" }
 			// { name: "Max", date: "01-01" }
@@ -251,18 +259,18 @@ Module.register("MMM-SmartCompliments", {
 		this.history = [];
 		this.manuallyHidden = !!this.config.startHidden;
 
-		// Webhook-Server für den manuellen Schalter starten
-		if (this.config.manualControlEnabled) {
-			this.sendSocketNotification("SC_CONFIG", {
-				port: this.config.manualControlPort
-			});
-		}
+		// node_helper starten: lädt die Sprüche aus compliments.json (immer)
+		// und – falls aktiviert – den manuellen Schalter-Server.
+		this.sendSocketNotification("SC_CONFIG", {
+			manualControlEnabled: !!this.config.manualControlEnabled,
+			port: this.config.manualControlPort
+		});
 
 		this.updateMessage();
 		this.updateTimer = setInterval(() => this.updateMessage(), this.config.updateInterval);
 	},
 
-	// Manuelle Befehle vom node_helper (URL-Schalter)
+	// Nachrichten vom node_helper
 	socketNotificationReceived: function (notification, payload) {
 		if (notification === "SC_CONTROL") {
 			const action = payload && payload.action;
@@ -271,7 +279,47 @@ Module.register("MMM-SmartCompliments", {
 			else if (action === "toggle") { this.manuallyHidden = !this.manuallyHidden; }
 			Log.info(this.name + ": manueller Schalter -> " + (this.manuallyHidden ? "AUS" : "AN"));
 			this.updateDom(this.config.fadeSpeed);
+			return;
 		}
+		// Vom Portal gepflegte Sprüche (compliments.json), live nachgeladen
+		if (notification === "SC_COMPLIMENTS") {
+			this.applyComplimentsOverrides(payload);
+			return;
+		}
+	},
+
+	// Übernimmt vom Portal gepflegte Texte in this.config. Nur nicht-leere
+	// Listen überschreiben – leer/fehlend heißt "eingebauten Default behalten".
+	applyComplimentsOverrides: function (payload) {
+		if (!payload || typeof payload !== "object") { return; }
+		const listKeys = [
+			"morningMessages", "forenoonMessages", "afternoonMessages",
+			"eveningMessages", "nightMessages",
+			"familyMessages", "motivationMessages", "humorMessages",
+			"afterDutyMessages"
+		];
+		listKeys.forEach((key) => {
+			if (Array.isArray(payload[key]) && payload[key].length) {
+				this.config[key] = payload[key].slice();
+			}
+		});
+		if (payload.weekdayMessages && typeof payload.weekdayMessages === "object") {
+			Object.keys(payload.weekdayMessages).forEach((d) => {
+				const list = payload.weekdayMessages[d];
+				if (Array.isArray(list) && list.length) { this.config.weekdayMessages[d] = list.slice(); }
+			});
+		}
+		if (payload.holidayMessages && typeof payload.holidayMessages === "object") {
+			Object.keys(payload.holidayMessages).forEach((k) => {
+				const list = payload.holidayMessages[k];
+				if (Array.isArray(list) && list.length) { this.config.holidayMessages[k] = list.slice(); }
+			});
+		}
+		if (payload.templates && typeof payload.templates === "object") {
+			if (payload.templates.birthdayText) { this.config.birthdayText = payload.templates.birthdayText; }
+			if (payload.templates.weddingText) { this.config.weddingText = payload.templates.weddingText; }
+		}
+		this.updateMessage();
 	},
 
 	// ------------------------------------------------------------------
@@ -459,10 +507,10 @@ Module.register("MMM-SmartCompliments", {
 		pool = pool.concat(this.reminderMessages());
 		// Countdowns
 		pool = pool.concat(this.countdownMessages());
-		// Immer verfügbare Kategorien
-		pool = pool.concat(this.config.familyMessages);
-		pool = pool.concat(this.config.motivationMessages);
-		pool = pool.concat(this.config.humorMessages);
+		// Stimmungs-Kategorien (im Portal ein-/abschaltbar)
+		if (this.config.moodHerzlich)    { pool = pool.concat(this.config.familyMessages); }
+		if (this.config.moodMotivierend) { pool = pool.concat(this.config.motivationMessages); }
+		if (this.config.moodHumorvoll)   { pool = pool.concat(this.config.humorMessages); }
 
 		return pool;
 	},
@@ -659,8 +707,14 @@ Module.register("MMM-SmartCompliments", {
 		if (!this.config.emojis) {
 			text = this.stripEmojis(text);
 		}
-		// Zeilenumbrüche unterstützen
-		wrapper.innerHTML = text.replace(/\n/g, "<br>");
+		// Zeilenumbrüche unterstützen – bewusst per DOM-Knoten statt innerHTML,
+		// da der Text seit der compliments.json-Anbindung aus einem Web-Formular
+		// stammen kann und nicht als HTML interpretiert werden darf.
+		const lines = String(text).split("\n");
+		lines.forEach((line, i) => {
+			if (i > 0) { wrapper.appendChild(document.createElement("br")); }
+			wrapper.appendChild(document.createTextNode(line));
+		});
 		return wrapper;
 	},
 

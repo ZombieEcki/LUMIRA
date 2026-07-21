@@ -8,6 +8,13 @@
     "birthdays": [],
     "weddingDate": ""
   },
+  "compliments": {
+    "moods": {
+      "herzlich": true,
+      "motivierend": true,
+      "humorvoll": true
+    }
+  },
   "location": {
     "name": "Berlin",
     "lat": 52.52,

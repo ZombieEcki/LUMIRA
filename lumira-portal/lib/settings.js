@@ -129,6 +129,12 @@ function validate(settings) {
 	if (settings.family && !Array.isArray(settings.family.birthdays)) {
 		throw new ValidationError("family.birthdays", "birthdays muss eine Liste sein");
 	}
+	if (settings.compliments && settings.compliments.moods) {
+		const m = settings.compliments.moods;
+		if (!m.herzlich && !m.motivierend && !m.humorvoll) {
+			throw new ValidationError("compliments.moods", "Mindestens eine Stimmung muss aktiv bleiben");
+		}
+	}
 	return true;
 }
 

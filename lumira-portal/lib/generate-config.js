@@ -24,12 +24,16 @@ function buildModules(settings) {
 	];
 
 	if (edition.hasFamily) {
+		const moods = (settings.compliments && settings.compliments.moods) || {};
 		modules.push({
 			module: "MMM-SmartCompliments",
 			position: "top_center",
 			config: {
 				updateInterval: 30000,
 				fadeSpeed: 4000,
+				moodHerzlich: moods.herzlich !== false,
+				moodMotivierend: moods.motivierend !== false,
+				moodHumorvoll: moods.humorvoll !== false,
 				birthdays: (settings.family.birthdays || []).map((b) => ({ name: b.name, date: b.date })),
 				birthdayText: "🥳 Happy Birthday, {name}!",
 				birthdayReminderDays: 3,

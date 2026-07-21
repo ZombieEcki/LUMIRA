@@ -80,6 +80,7 @@
     <nav class="navgroup" id="nav-konfig">
       <span class="glabel">Konfiguration</span>
       <button class="navbtn" data-page="familie" data-need="hasFamily"><span class="ic">👪</span>Personen</button>
+      <button class="navbtn" data-page="spruche" data-need="hasFamily"><span class="ic">🗨</span>Sprüche</button>
       <button class="navbtn" data-page="standort"><span class="ic">📍</span>Standort &amp; Wetter</button>
       <button class="navbtn" data-page="kalender" data-need="hasCal"><span class="ic">📅</span>Kalender</button>
       <button class="navbtn" data-page="news"><span class="ic">📰</span>Nachrichten</button>
@@ -169,6 +170,28 @@
         <div class="save-row"><button class="btn primary" data-save="familie">Speichern</button>
           <span class="save-hint" data-savehint="familie"></span></div>
       </div>
+    </section>
+
+    <!-- Sprüche -->
+    <section class="page" data-page="spruche">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Sprüche</h1>
+        <p>Textbausteine und Stimmung der Familienbotschaften. Änderungen wirken sofort, ohne Neustart.</p></div>
+
+      <div class="card">
+        <h2>Stimmung</h2>
+        <p class="sub">Welche Art Sprüche soll vorkommen? Mindestens eine muss aktiv bleiben.</p>
+        <div class="toggle" style="margin-top:10px;"><span class="tl2">💛 Herzlich</span>
+          <button class="sw" id="mood-herzlich" role="switch"></button></div>
+        <div class="toggle"><span class="tl2">💪 Motivierend</span>
+          <button class="sw" id="mood-motivierend" role="switch"></button></div>
+        <div class="toggle"><span class="tl2">😄 Humorvoll</span>
+          <button class="sw" id="mood-humorvoll" role="switch"></button></div>
+      </div>
+
+      <div id="spruch-cards"></div>
+
+      <div class="save-row"><button class="btn primary" id="save-spruche">Speichern</button>
+        <span class="save-hint" id="spruche-hint"></span></div>
     </section>
 
     <!-- Standort -->

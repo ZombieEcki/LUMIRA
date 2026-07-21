@@ -58,6 +58,19 @@ Alle Optionen sind optional. Unten ein umfangreiches Beispiel, danach die Detail
 | `manualControlEnabled` | bool | `true` | Manuellen Ein-/Aus-Schalter per URL aktivieren. |
 | `manualControlPort` | Zahl | `8091` | Port des Schalter-Servers (nicht 8080/8090). |
 | `startHidden` | bool | `false` | Beim Start ausgeblendet beginnen. |
+| `moodHerzlich` | bool | `true` | Stimmung „Herzlich" (`familyMessages`) im Zufallsmix zeigen. |
+| `moodMotivierend` | bool | `true` | Stimmung „Motivierend" (`motivationMessages`) im Zufallsmix zeigen. |
+| `moodHumorvoll` | bool | `true` | Stimmung „Humorvoll" (`humorMessages`) im Zufallsmix zeigen. |
+
+### Sprüche aus dem LUMIRA-Portal (`compliments.json`)
+
+Läuft das Modul im LUMIRA-Setup, werden die Textlisten zusätzlich aus
+`~/.lumira/compliments.json` gelesen (vom Portal gepflegt, siehe
+[concept/smartcompliments-json.md](../../concept/smartcompliments-json.md)).
+Nur nicht-leere Kategorien überschreiben die eingebauten Standardtexte; das
+Modul lädt Änderungen live nach (kein MagicMirror-Neustart nötig). Die
+`moodHerzlich`/`moodMotivierend`/`moodHumorvoll`-Schalter erzeugt das Portal
+aus der „Stimmung"-Auswahl auf der Sprüche-Seite.
 
 ### Manueller Ein-/Aus-Schalter
 
