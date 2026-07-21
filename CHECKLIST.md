@@ -78,6 +78,54 @@ um den aktuellen Stand zu sehen.
 
 ---
 
+## 🐛 Bekannte Bugs (offen)
+
+Gefunden beim echten Praxistest der WLAN-Ersteinrichtung auf dem Pi.
+
+### 1. Nach erfolgreicher WLAN-Verbindung im Setup kein automatischer Rücksprung
+**Was passiert:** Handy ist mit dem Setup-Access-Point „LUMIRA-Setup" verbunden,
+Heimnetz-Zugangsdaten werden im Portal eingegeben und die Verbindung klappt.
+Die Seite zeigt danach nur einen Text („Bitte verbinde dein Handy jetzt
+ebenfalls mit dem Heimnetz und rufe die Portal-Adresse erneut auf") -
+kein automatischer Reload.
+
+**Ursache:** `lumira-portal/public/app.js` (`connectWifi()`, Setup-Screen)
+zeigt nach Erfolg nur eine statische Meldung, es gibt keine Polling-/
+Redirect-Logik.
+
+**Gewünschtes Verhalten:** Sobald die Pi-seitige Verbindung steht, soll die
+Seite selbstständig versuchen, die Portal-Adresse im Heimnetz zu erreichen
+(z.B. per wiederholtem `fetch()` auf die neue Adresse alle paar Sekunden) und
+bei Erfolg per `location.href` dorthin weiterleiten. Das Handy muss sich dafür
+selbst wieder mit dem bekannten Heimnetz verbinden (Auto-Join) - das kann das
+Portal nicht erzwingen, nur per Polling erkennen. Nach einem Timeout (z.B.
+60s) auf die bisherige manuelle Anleitung zurückfallen.
+
+**Status:** offen, noch nicht umgesetzt.
+
+### 2. Falsches WLAN-Passwort reißt den Setup-Access-Point ab
+**Was passiert:** Wird im Setup ein falsches Passwort fürs Heimnetz
+eingegeben, verliert das Handy die Verbindung zum Portal komplett - keine
+Fehlermeldung, keine Möglichkeit, die Zugangsdaten erneut einzugeben.
+
+**Ursache (Hypothese):** `POST /api/wifi/connect` → `netLib.connectWifi()`
+ruft `nmcli connection up <neues Profil>` auf demselben WLAN-Funkadapter auf,
+auf dem gerade der Access Point läuft. Das bringt die aktive AP-Verbindung
+zwangsläufig herunter - unabhängig davon, ob die neue Verbindung danach
+erfolgreich ist oder (bei falschem Passwort) fehlschlägt. Schlägt sie fehl,
+bleibt der Access Point unten, weil `stopHotspot()`/`startHotspot()` an
+dieser Stelle nicht erneut aufgerufen wird.
+
+**Gewünschtes Verhalten:** Bei fehlgeschlagener Verbindung (falsches
+Passwort) soll der Access Point automatisch wieder aktiviert werden, damit
+das Handy erneut Zugriff aufs Portal bekommt, und die Fehlermeldung soll
+klar sagen "WLAN-Passwort falsch" statt eines generischen nmcli-Fehlers -
+mit Aufforderung, es erneut einzugeben.
+
+**Status:** offen, noch nicht umgesetzt.
+
+---
+
 ## 🔜 Ideen / Roadmap
 
 | # | Idee | Status |
@@ -91,7 +139,7 @@ um den aktuellen Stand zu sehen.
 | 7 | **Mehrsprachigkeit** (Sprachdateien für Oberfläche & Botschaften) | 📋 geplant |
 | 8 | **Hintergrund-Option** (Farbe/Bild/Slideshow) | 📋 geplant |
 | 9 | **Alexa-Integration** (Ansagen bei Alarm, Sprachsteuerung für Kompliments-Schalter) | 📋 geplant |
-| 10 | **Sprüche von MMM-SmartCompliments in `compliments.json`** – vom Portal bearbeitbar statt in `config.js` fest codiert | 🟡 Konzept fertig ([concept/smartcompliments-json.md](concept/smartcompliments-json.md)), Umsetzung offen |
+| 10 | **Sprüche von MMM-SmartCompliments in `compliments.json`** – vom Portal bearbeitbar statt in `config.js` fest codiert | 🟡 Phase 1-3 umgesetzt (Portal-Seite „Sprüche" + Stimmungs-Auswahl + Live-Reload, [concept/smartcompliments-json.md](concept/smartcompliments-json.md)); Live-Reload noch auf echter Pi-Hardware zu verifizieren; Phasen 4-7 (Migration, enabled/pinned, Import/Export, personMessages, Mehrsprachigkeit) offen |
 
 **Legende:** ✅ erledigt · 🟡 in Arbeit / teilweise · 📋 geplant, noch nicht begonnen
 
