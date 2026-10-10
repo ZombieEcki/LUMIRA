@@ -26,5 +26,7 @@ Preset-Avatare für den Familienplan (siehe
 Die Preset-ID im Familienplan ist der Dateiname ohne Endung (z. B.
 `"avatar": { "type": "preset", "value": "child-03" }`).
 
-> **Lizenz/Quelle:** noch nachzutragen (Quelle und Lizenz je Bild bzw. für
-> das ganze Set), bevor die Avatare mit dem Modul ausgeliefert werden.
+**Quelle/Lizenz:** Eigene Erstellung des LUMIRA-Teams. Alle Rechte liegen bei
+uns, die Avatare dürfen mit LUMIRA ausgeliefert werden. Verkleinerte Kopien
+für den Spiegel liegen in
+[`modules/MMM-FamilyPlan/avatars/`](../modules/MMM-FamilyPlan/avatars).

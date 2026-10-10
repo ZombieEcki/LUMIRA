@@ -93,7 +93,7 @@
     <nav class="navgroup">
       <span class="glabel">Mehr</span>
       <button class="navbtn" data-page="sicherheit"><span class="ic">🔒</span>Sicherheit</button>
-      <button class="navbtn" data-page="info"><span class="ic">ℹ️</span>Info</button>
+      <button class="navbtn" data-page="info"><span class="ic">ℹ️</span>Info<span class="nav-badge" id="upd-badge" hidden></span></button>
     </nav>
     <div class="sidebar-spacer"></div>
   </aside>
@@ -103,6 +103,11 @@
     <section class="page" data-page="steuerung">
       <div class="pagehead"><span class="eyebrow">Übersicht</span><h1>Steuerung</h1>
         <p>Status von Pi &amp; Spiegel, Schnellzugriff auf Alarmierung und Familienassistent.</p></div>
+
+      <div class="setup-banner upd-banner" id="upd-banner" hidden>
+        <span>⬆️ <span id="upd-banner-text">Updates verfügbar</span></span>
+        <button type="button" class="btn" id="upd-banner-btn">Anzeigen</button>
+      </div>
 
       <div class="tiles">
         <div class="tile" id="tile-network"><span class="tl">Netzwerk</span>
@@ -362,8 +367,26 @@
           <div class="info-row"><span class="k">Edition</span><span class="v" id="info-edition">–</span></div>
           <div class="info-row"><span class="k">Hostname</span><span class="v" id="info-hostname">–</span></div>
           <div class="info-row"><span class="k">Portal-Adresse</span><span class="v" id="info-portal">–</span></div>
+          <div class="info-row"><span class="k">IP-Adresse (IPv4)</span><span class="v" id="info-ipv4">–</span></div>
+          <div class="info-row"><span class="k">Portal per IP</span><span class="v" id="info-portal-ip">–</span></div>
           <div class="info-row"><span class="k">Idee &amp; Umsetzung</span><span class="v">Marcel Weiße, Liam Eckhof</span></div>
         </div>
+        <p class="save-hint" style="margin-top:10px;">Falls <span class="mono-in" id="info-portal-host">lumira.local</span> auf einem Handy
+          nicht klappt (häufig bei Android), funktioniert die Adresse per IP immer.</p>
+      </div>
+
+      <!-- Updates für MagicMirror² und externe Module (updates.js) -->
+      <div class="card" id="updates-card">
+        <div class="upd-head">
+          <div><h2>Updates</h2>
+            <p class="sub">MagicMirror² und zusätzlich installierte Module. Geprüft wird automatisch alle 12 Stunden, aktualisiert wird nur, wenn du es hier startest.</p></div>
+          <button type="button" class="btn" id="upd-check">🔄 Jetzt prüfen</button>
+        </div>
+        <p class="save-hint" id="upd-checked">–</p>
+        <div id="upd-list"></div>
+        <div id="upd-job"></div>
+        <p class="save-hint" style="margin-top:12px;">Die eigenen LUMIRA-Module und das Portal kommen mit dem LUMIRA-Update
+          (per SSH: <span class="mono-in">cd ~/LUMIRA &amp;&amp; git pull &amp;&amp; ./install.sh</span>).</p>
       </div>
     </section>
   </main>
@@ -371,6 +394,7 @@
 
 <div class="toast" id="toast"></div>
 <script src="familyplan.js"></script>
+<script src="updates.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ automatisch und fair. Gepflegt wird alles im LUMIRA-Portal unter
 **Familienplan** (`http://lumira.local:8092`), ohne SSH und ohne `config.js`
 von Hand anzufassen.
 
+Bedienungsanleitung: [docs/FAMILIENPLAN.md](../../docs/FAMILIENPLAN.md) ·
 Konzept und Hintergründe: [concept/familienplan.md](../../concept/familienplan.md).
 
 ## So funktioniert es
@@ -57,7 +58,7 @@ ihr steht):
 
 ## Avatare
 
-- **Mitgelieferte Avatare** liegen in `avatars/` (`adult-01` … `adult-09`,
+- **Mitgelieferte Avatare** (eigene Erstellung des LUMIRA-Teams) liegen in `avatars/` (`adult-01` … `adult-09`,
   `child-01` … `child-09`, je 256 × 256 px JPG, zusammen etwa 225 KB). Sie
   sind aus den Originalen in [`media/avatars/`](../../media/avatars)
   verkleinert, damit der Pi 3 nicht unnötig große Bilder lädt. Das Portal

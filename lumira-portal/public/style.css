@@ -246,3 +246,55 @@ input:focus, select:focus { border-color:var(--accent); outline:none; }
 .term-who .term-name { flex:1 1 160px; width:auto; min-width:0; }
 .term-row .btn-x { height:36px; }
 @media (max-width:480px){ .term-head, .term-row { grid-template-columns:1fr 96px 34px; } }
+
+/* ---------- Familienplan: Wochenplan bearbeiten, Begründungen, Fairness, Datensicherung ---------- */
+.fp-week.changed { border-style:dashed; }
+.fp-week-r.editing { grid-template-columns:22px 64px minmax(0,1fr); }
+.fp-week-r.editing .fp-week-p { flex-direction:column; align-items:stretch; }
+.fp-week-r.editing .fp-psel { min-width:0; font-size:.76rem; padding:5px 8px; }
+.fp-week-a { display:flex; gap:6px; flex-wrap:wrap; margin-top:2px; }
+.btn-x.fp-txt { width:auto; padding:4px 9px; font-size:.75rem; }
+.fp-why { display:flex; flex-direction:column; gap:4px; font-size:.76rem; color:var(--muted); border-top:1px solid var(--border); padding-top:7px; }
+.fp-why b { color:var(--ink); font-weight:600; }
+.fp-matrix { min-width:520px; }
+.fp-matrix th { text-align:center; }
+.fp-matrix th:first-child { text-align:left; }
+.fp-matrix th i { font-size:.9rem; }
+.fp-mx-h { font-size:.66rem; font-weight:500; margin-top:2px; }
+.fp-mx-n { text-align:center; font-family:var(--font-mono); border-radius:4px; }
+.fp-subhead { margin-top:20px; }
+.fp-backups { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+.fp-backup { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:var(--field); flex-wrap:wrap; }
+.fp-backup-i { display:flex; flex-direction:column; gap:2px; min-width:0; font-size:.85rem; }
+.fp-backup .btn { padding:6px 12px; font-size:.8rem; }
+a.btn { text-decoration:none; display:inline-block; }
+
+/* ---------- Updates (Info) ---------- */
+.nav-badge { margin-left:auto; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--accent); color:#fff;
+  font-size:.68rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
+.upd-banner { justify-content:space-between; flex-wrap:wrap; }
+.upd-banner .btn { padding:6px 12px; font-size:.8rem; }
+.upd-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+.upd-head .btn { flex:none; }
+#upd-checked { margin-top:8px; }
+#upd-list { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.upd-row { border:1px solid var(--border); border-radius:11px; padding:10px 12px; background:var(--field); display:flex; flex-direction:column; gap:6px; }
+.upd-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+.upd-info { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.upd-ver { font-size:.84rem; color:var(--muted); font-family:var(--font-mono); }
+.upd-remote { font-size:.7rem; color:var(--faint); overflow-wrap:anywhere; }
+.upd-state { font-size:.74rem; font-weight:700; padding:3px 9px; border-radius:999px; border:1px solid var(--border-2); white-space:nowrap; }
+.upd-state.ok { color:var(--green); border-color:color-mix(in srgb, var(--green) 45%, var(--border)); }
+.upd-state.new { color:var(--amber); border-color:color-mix(in srgb, var(--amber) 55%, var(--border)); }
+.upd-state.err { color:var(--accent-ink); border-color:color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.upd-note { font-size:.8rem; color:var(--amber); }
+.upd-changes summary { cursor:pointer; font-size:.8rem; color:var(--muted); }
+.upd-changes ul { margin:6px 0 0; padding-left:18px; font-size:.8rem; display:flex; flex-direction:column; gap:3px; }
+.upd-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.upd-actions .btn { padding:7px 13px; font-size:.82rem; }
+.upd-job { margin-top:12px; border-radius:11px; padding:10px 12px; border:1px solid var(--border-2); background:var(--surface-2); font-size:.85rem; }
+.upd-job.running { border-color:color-mix(in srgb, var(--amber) 50%, var(--border)); }
+.upd-job.success { border-color:color-mix(in srgb, var(--green) 50%, var(--border)); }
+.upd-job.failed { border-color:color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.upd-log { margin:6px 0 0; max-height:220px; overflow:auto; font-family:var(--font-mono); font-size:.72rem; white-space:pre-wrap;
+  background:var(--field); border:1px solid var(--border); border-radius:8px; padding:8px; color:var(--muted); }

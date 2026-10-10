@@ -186,6 +186,9 @@
           onPlanChange: function (plan) { setFamilyMembers(plan.members || []); }
         });
       }
+      if (window.LumiraUpdates) {
+        window.LumiraUpdates.init({ toast: toast, goPage: goPage });
+      }
       renderModuleList();
       renderModulePreview();
       refreshStatus();
@@ -206,6 +209,16 @@
     $("#info-edition").textContent = STATUS.edition.name;
     $("#info-hostname").textContent = STATUS.hostname;
     $("#info-portal").textContent = (STATUS.portalUrl || "").replace(/^https?:\/\//, "");
+    $("#info-portal-host").textContent = (STATUS.portalUrl || "").replace(/^https?:\/\//, "").replace(/:\d+$/, "");
+    renderIpInfo();
+  }
+
+  // IPv4-Adresse(n) unter Info, plus Portal-Adresse per IP
+  function renderIpInfo() {
+    var list = (STATUS.network && STATUS.network.ipv4) || [];
+    var port = ((STATUS.portalUrl || "").match(/:(\d+)$/) || [])[1] || "8092";
+    $("#info-ipv4").textContent = list.length ? list.map(function (a) { return a.address + " (" + a.iface + ")"; }).join(", ") : "keine Verbindung";
+    $("#info-portal-ip").textContent = list.length ? list[0].address + ":" + port : "–";
   }
 
   function populateForm() {
@@ -568,6 +581,7 @@
       netTile.classList.toggle("warn", !status.network.online);
       $("#wlan-status-v").textContent = status.network.online ? "verbunden" : "getrennt";
       $("#wlan-ssid-v").textContent = status.network.ssid || "–";
+      renderIpInfo();
     }).catch(function () {});
 
     if (STATUS.edition.flags.hasAlarm) {

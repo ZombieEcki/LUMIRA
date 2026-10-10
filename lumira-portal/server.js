@@ -26,6 +26,7 @@ const systemLib = require("./lib/system");
 const alarmSoundLib = require("./lib/alarm-sound");
 const { generateConfig } = require("./lib/generate-config");
 const { getEdition } = require("./lib/editions");
+const { createUpdater } = require("./lib/updates");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -33,7 +34,11 @@ const SESSION_COOKIE = "lumira_session";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
 
 const app = express();
-app.use(bodyParser.json({ limit: "256kb" }));
+// 256 KB reichen überall – außer beim Import einer Familienplan-Sicherung
+// (Fotos als Data-URL), die hat unten einen eigenen, größeren Parser.
+const IMPORT_PATH = "/api/familyplan/import";
+const jsonParser = bodyParser.json({ limit: "256kb" });
+app.use((req, res, next) => (req.path === IMPORT_PATH ? next() : jsonParser(req, res, next)));
 app.disable("x-powered-by");
 
 // ---------------------------------------------------------------------------
@@ -134,6 +139,24 @@ app.post("/api/auth/remove-pin", requireAuth, (req, res) => {
 	res.json({ ok: true });
 });
 
+// IPv4-Adressen des Geräts (ohne Loopback), WLAN/LAN zuerst. Für die
+// Info-Seite – viele Android-Handys lösen <name>.local nicht auf, die
+// Portal-Adresse per IP funktioniert immer.
+function localIpv4() {
+	const out = [];
+	const ifaces = os.networkInterfaces();
+	for (const name of Object.keys(ifaces)) {
+		for (const addr of ifaces[name] || []) {
+			const v4 = addr.family === "IPv4" || addr.family === 4;
+			// Virtuelle Adapter (Docker, VPN-Brücken, WSL …) interessieren hier nicht
+			const virtual = /^(docker|veth|br-|virbr|vEthernet|vmnet|tailscale|zt)/i.test(name);
+			if (v4 && !addr.internal && !virtual) out.push({ iface: name, address: addr.address });
+		}
+	}
+	const rank = (n) => (/^wlan|^wl/i.test(n) ? 0 : /^eth|^en/i.test(n) ? 1 : 2);
+	return out.sort((a, b) => rank(a.iface) - rank(b.iface));
+}
+
 // ---------------------------------------------------------------------------
 // Status (immer ohne Login lesbar – wird u.a. von MMM-LumiraStatus gepollt)
 // ---------------------------------------------------------------------------
@@ -157,7 +180,7 @@ app.get("/api/status", async (req, res) => {
 		edition: { id: settings.edition, name: edition.name, personLabel: edition.personLabel, flags: {
 			hasAlarm: edition.hasAlarm, hasFamily: edition.hasFamily, hasCal: edition.hasCal, hasRain: edition.hasRain
 		} },
-		network: { ssid, online: connectivity.online, connectivity: connectivity.state },
+		network: { ssid, online: connectivity.online, connectivity: connectivity.state, ipv4: localIpv4() },
 		// psk wird bewusst mitgeschickt (nur während SETUP-Modus, kein PIN-Schutz
 		// auf dieser Route) - MMM-LumiraStatus braucht es für den WLAN-QR-Code auf
 		// dem Spiegel (siehe modules/MMM-LumiraStatus/node_helper.js). War bisher
@@ -400,12 +423,43 @@ app.post("/api/familyplan/weeks/:start/reset", requireAuth, (req, res) => {
 	familyplanAction(res, (now) => familyplanLib.resetWeek(body.revision, req.params.start, now));
 });
 
+// scope "future": alle geplanten Änderungen an kommenden Wochen verwerfen.
+// scope "current": laufende Woche neu berechnen (nur mit confirm: true).
 app.post("/api/familyplan/regenerate", requireAuth, (req, res) => {
 	const body = req.body || {};
+	if (body.scope === "future") {
+		return familyplanAction(res, (now) => familyplanLib.regenerateFuture(body.revision, now));
+	}
 	if (body.scope !== "current" || body.confirm !== true) {
-		return res.status(400).json({ error: "Nur „aktuelle Woche neu verteilen“ mit Bestätigung möglich" });
+		return res.status(400).json({ error: "„Aktuelle Woche neu verteilen“ braucht eine Bestätigung" });
 	}
 	familyplanAction(res, (now) => familyplanLib.regenerateCurrent(body.revision, now));
+});
+
+// Datensicherung: eine JSON-Datei mit Plan + Fotos zum Herunterladen.
+app.get("/api/familyplan/export", requireAuth, (req, res) => {
+	try {
+		const now = new Date();
+		const payload = familyplanLib.exportData(now);
+		const day = now.toISOString().slice(0, 10);
+		res.setHeader("Content-Disposition", `attachment; filename="familienplan-${day}.json"`);
+		res.type("application/json").send(JSON.stringify(payload, null, 2));
+	} catch (err) {
+		familyplanError(res, err);
+	}
+});
+
+app.post(IMPORT_PATH, requireAuth, bodyParser.json({ limit: "8mb" }), (req, res) => {
+	familyplanAction(res, (now) => familyplanLib.importData(req.body, now), syncBirthdayNames);
+});
+
+app.get("/api/familyplan/backups", requireAuth, (req, res) => {
+	res.json({ backups: familyplanLib.listBackups() });
+});
+
+app.post("/api/familyplan/backups/restore", requireAuth, (req, res) => {
+	const body = req.body || {};
+	familyplanAction(res, (now) => familyplanLib.restoreBackup(body.name, now), syncBirthdayNames);
 });
 
 app.get("/api/familyplan/presets", requireAuth, (req, res) => {
@@ -418,20 +472,13 @@ app.get("/api/familyplan/presets", requireAuth, (req, res) => {
 // noch Typ/Größe/Signatur prüfen und unter der Mitglieds-ID ablegen.
 const avatarUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
 
-function looksLikeImage(buf, ext) {
-	if (ext === "png") return buf.length > 8 && buf.readUInt32BE(0) === 0x89504e47;
-	if (ext === "jpg") return buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
-	if (ext === "webp") return buf.length > 12 && buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP";
-	return false;
-}
-
 app.post("/api/familyplan/avatar/:memberId", requireAuth, avatarUpload.single("avatar"), (req, res) => {
 	const memberId = req.params.memberId;
 	const ext = req.file && AVATAR_MIME[req.file.mimetype];
 	if (!MEMBER_ID_RE.test(memberId) || !familyplanLib.memberExists(memberId)) {
 		return res.status(404).json({ error: "Mitglied nicht gefunden" });
 	}
-	if (!ext || !looksLikeImage(req.file.buffer, ext)) {
+	if (!ext || !familyplanLib.looksLikeImage(req.file.buffer, ext)) {
 		return res.status(400).json({ error: "Nur PNG-, JPG- oder WebP-Bilder bis 2 MB erlaubt" });
 	}
 	try {
@@ -460,6 +507,56 @@ app.use("/avatar-uploads", requireAuth, express.static(familyplanLib.AVATAR_UPLO
 // Font Awesome lokal aus der MagicMirror-Installation (Symbol-Auswahl, auch ohne Internet)
 const FA_DIR = path.join(MM_ROOT, "node_modules", "@fortawesome", "fontawesome-free");
 if (fs.existsSync(FA_DIR)) app.use("/vendor/fa", express.static(FA_DIR, { maxAge: "7d" }));
+
+// ---------------------------------------------------------------------------
+// Updates für MagicMirror² und externe Module (Portal → Info), siehe
+// lib/updates.js. Prüfen automatisch alle 12 h, aktualisieren nur manuell.
+// ---------------------------------------------------------------------------
+const OWN_MODULES = ["MMM-aPagerAlarm", "MMM-SmartCompliments", "MMM-LumiraStatus", "MMM-FamilyPlan"];
+const updater = createUpdater({
+	mmRoot: MM_ROOT,
+	statePath: path.join(settingsLib.LUMIRA_HOME, "updates.json"),
+	ownModules: OWN_MODULES,
+	restart: () => new Promise((resolve) => {
+		const { execFile } = require("child_process");
+		execFile("pm2", ["restart", "MagicMirror"], (err) => {
+			if (err) console.warn("[lumira-portal] pm2 restart MagicMirror fehlgeschlagen (läuft pm2?):", err.message);
+			resolve(); // Update ist trotzdem durch – Neustart notfalls per "Pi neu starten"
+		});
+	})
+});
+
+function updateError(res, err) {
+	const status = err.code === "BUSY" ? 409 : err.code === "NOT_FOUND" ? 404 : 500;
+	res.status(status).json({ error: err.message });
+}
+
+app.get("/api/updates", requireAuth, (req, res) => {
+	res.json(updater.status());
+});
+
+// Prüfen dauert (git fetch für jede Komponente) – läuft im Hintergrund,
+// das Portal fragt GET /api/updates ab, bis "checking" wieder false ist.
+app.post("/api/updates/check", requireAuth, (req, res) => {
+	updater.check().catch((err) => console.error("[lumira-portal] Update-Prüfung:", err.message));
+	res.status(202).json(Object.assign(updater.status(), { checking: true }));
+});
+
+app.post("/api/updates/:id/apply", requireAuth, (req, res) => {
+	try {
+		res.status(202).json(updater.apply(req.params.id));
+	} catch (err) {
+		updateError(res, err);
+	}
+});
+
+app.post("/api/updates/:id/rollback", requireAuth, (req, res) => {
+	try {
+		res.status(202).json(updater.rollback(req.params.id));
+	} catch (err) {
+		updateError(res, err);
+	}
+});
 
 // ---------------------------------------------------------------------------
 // WLAN (Phase 2/3)
@@ -577,6 +674,12 @@ app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+	if (err && err.type === "entity.too.large") {
+		return res.status(413).json({ error: "Die Datei ist zu groß" });
+	}
+	if (err && err.type === "entity.parse.failed") {
+		return res.status(400).json({ error: "Die Datei ist kein gültiges JSON" });
+	}
 	console.error("[lumira-portal]", err);
 	res.status(500).json({ error: "Interner Fehler" });
 });
@@ -588,6 +691,8 @@ if (require.main === module) {
 	// Wochenwechsel Familienplan: beim Start und dann jede Minute prüfen.
 	ensureWeekSafe();
 	setInterval(ensureWeekSafe, 60 * 1000);
+	// Update-Prüfung: erstmals 3 Minuten nach dem Start, dann alle 12 Stunden.
+	updater.startSchedule();
 }
 
 module.exports = app;

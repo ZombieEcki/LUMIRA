@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lumira-portal",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--env-file=.claude/portal-dev.env", "lumira-portal/server.js"],
+      "port": 8092
+    }
+  ]
+}

@@ -6,10 +6,9 @@ rotiert jede Woche automatisch, fair und nachvollziehbar. Gepflegt wird alles
 im Self-Service-Portal, ganz ohne SSH und ohne die `config.js` von Hand
 anzufassen.
 
-> Status: **Phase 0–3 umgesetzt** (10.10.2026), dazu eine Wochenplan-Vorschau
-> (nur lesend). Noch offen: Änderungen an Zukunftswochen, Begründungen,
-> Fairness-Matrix im Portal (Phase 4), Export/Import/Backup-Wiederherstellung
-> im Portal (Phase 5), Einbau beim Kunden (Phase 6). Code:
+> Status: **Phase 0–5 umgesetzt** (10.10.2026). Noch offen: Einbau beim
+> Kunden (Phase 6) und die Ideen aus Abschnitt 12. Bedienungsanleitung:
+> [docs/FAMILIENPLAN.md](../docs/FAMILIENPLAN.md). Code:
 > [modules/MMM-FamilyPlan](../modules/MMM-FamilyPlan),
 > [lumira-portal/lib/familyplan.js](../lumira-portal/lib/familyplan.js),
 > [lumira-portal/lib/familyplan-rotation.js](../lumira-portal/lib/familyplan-rotation.js).
@@ -269,9 +268,8 @@ der Dateiname ohne Endung (`"child-03"`).
 - **Galerie nach Rolle:** Das Portal zeigt beim Anlegen eines Kindes zuerst
   die `child-*`-Avatare, bei Erwachsenen die `adult-*`-Avatare. Alle 18 bleiben
   aber für jede Person wählbar.
-- **Lizenz:** Quelle und Lizenz des Sets werden in
-  [`media/README.md`](../media/README.md) nachgetragen, bevor die Avatare mit
-  dem Modul ausgeliefert werden.
+- **Herkunft:** eigene Erstellung des LUMIRA-Teams, darf mit LUMIRA
+  ausgeliefert werden (siehe [`media/README.md`](../media/README.md)).
 
 ### 5.2 node_helper.js
 
@@ -796,15 +794,12 @@ Dienste diese Woche: …“.
 | 1 | Läuft der Familien-Spiegel schon mit LUMIRA? | **Noch nicht.** | Umstellung auf LUMIRA ist Teil des Einbaus (11). Der eingeschränkte Portal-Modus ist nur noch Rückfalloption. |
 | 2 | Wer verwaltet die Namen? | **Der Familienplan selbst**, mit eigener Mitgliederverwaltung zum Anlegen und Verwalten, z. B. für die Kinder. | Rolle Erwachsener/Kind (4), „Für wen“ pro Dienst (6.5 ③), Formular „+ Mitglied hinzufügen“ (6.5 ②). Die frühere Seite „Personen“ heißt jetzt „Wichtige Termine“, Geburtstage verknüpfen sich mit den Mitgliedern (6.6). |
 | 3 | Feste Paare oder wechselnde Kombinationen? | **Anpassbar.** | `pairMode` + `fixedPairs` (4), Rotation über Einheiten (6.2), Umschalter in den Einstellungen (6.5 ⑤). |
-| 4 | Avatare | **Lizenzfreies Set** (liegt in `media/avatars/`: 9 Erwachsene, 9 Kinder), dazu eigene Fotos per Upload in der Verwaltung. | Preset-IDs `adult-NN`/`child-NN`, Verkleinern und Verteilen per `install.sh`, Galerie nach Rolle (5.1). Initialen bleiben der Fallback. |
+| 4 | Avatare | **Eigenes Set** des LUMIRA-Teams (liegt in `media/avatars/`: 9 Erwachsene, 9 Kinder), dazu eigene Fotos per Upload in der Verwaltung. | Preset-IDs `adult-NN`/`child-NN`, Verkleinern und Verteilen per `install.sh`, Galerie nach Rolle (5.1). Initialen bleiben der Fallback. |
 | 5 | Pillen untereinander oder nebeneinander? | **Beides als Option**, Breite wird vor dem Einbau gemessen. | `layout` + `maxWidth` (5.3), Messung in 11.1. |
 | 6 | „Erledigt“ schon in Version 1? | **Später.** | Bleibt Idee 12.1 (plus 12.8 Kinder-Logins). |
 
 **Noch offen:**
 
-- **Quelle und Lizenz der Avatare** in `media/README.md` eintragen (wo
-  kommen die Bilder her, unter welcher Lizenz dürfen sie mit LUMIRA
-  ausgeliefert werden).
 - **Bestandsaufnahme des Familien-Spiegels** (11.1). Erst danach steht
   fest, ob LUMIRA dort etwas fehlt, das vor der Umstellung noch gebaut
   werden muss.

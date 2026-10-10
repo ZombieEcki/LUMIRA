@@ -27,6 +27,7 @@ automatisch mit installiert (siehe README.md im Projekt-Root), Port **8092**.
 | `lib/settings.js` | `settings.json` laden/speichern/validieren |
 | `lib/compliments.js` | `compliments.json` (Sprüche für MMM-SmartCompliments) |
 | `lib/familyplan.js` | `familyplan.json` (Familienplan): Mitglieder, Dienste, Wochen, Wochenwechsel, Schutzregeln |
+| `lib/updates.js` | Updates für MagicMirror² und externe Module: prüfen (git fetch), aktualisieren, zurücksetzen |
 | `lib/familyplan-rotation.js` | faire Rotation als reine Funktion + Kalender-Helfer (siehe [concept/familienplan.md](../concept/familienplan.md) 6.2) |
 | `lib/generate-config.js` | `settings.json` → `config.js` (auch von `install.sh` genutzt) |
 | `lib/editions.js` | Editions-Flags (Home/Fire/Rescue/Business/Station), einzige Quelle |
@@ -76,6 +77,26 @@ die Schutzregeln des Familienplans (laufende Woche bleibt fest, Uhr springt
 zurück, Revisionskonflikt, beschädigte Datei). Die Tests laufen gegen ein
 temporäres `LUMIRA_HOME`, nie gegen `~/.lumira`.
 
+## Update-API (Portal → Info)
+
+Überwacht `~/MagicMirror` und alle per git installierten Module in
+`~/MagicMirror/modules` (die eigenen LUMIRA-Module kommen mit dem
+LUMIRA-Update und werden übersprungen). Geprüft wird automatisch 3 Minuten
+nach dem Start und dann alle 12 Stunden, aktualisiert wird nur manuell.
+Zustand in `~/.lumira/updates.json`.
+
+| Endpunkt | Wirkung |
+|----------|---------|
+| `GET /api/updates` | Stand je Komponente: Version alt/neu, Anzahl neuer Änderungen, „Was ist neu“, Hinweise (lokale Änderungen), laufender/letzter Job |
+| `POST /api/updates/check` | jetzt prüfen (läuft im Hintergrund, `checking: true`) |
+| `POST /api/updates/:id/apply` | aktualisieren: `git pull --ff-only`, Abhängigkeiten (`npm run install-mm` bzw. `npm install --omit=dev`), `pm2 restart MagicMirror` |
+| `POST /api/updates/:id/rollback` | zurück auf den Stand vor dem letzten Update (`git reset --hard <vorher>`, Abhängigkeiten, Neustart) |
+
+`:id` ist `magicmirror` oder der Modulordner-Name. Bei lokalen Änderungen im
+Ordner bietet das Portal kein Update an (nur per SSH), es läuft immer nur ein
+Update gleichzeitig. `GET /api/status` liefert zusätzlich
+`network.ipv4` (IPv4-Adressen ohne virtuelle Adapter) für die Info-Seite.
+
 ## Familienplan-API
 
 Alle Routen PIN-geschützt, keine löst einen MagicMirror-Neustart aus
@@ -86,13 +107,17 @@ wie bei `GET /api/familyplan`.
 
 | Endpunkt | Wirkung |
 |----------|---------|
-| `GET /api/familyplan` | Ansicht: Einstellungen, Mitglieder, Dienste, laufende Woche, Vorschau, Hinweise |
+| `GET /api/familyplan` | Ansicht: Einstellungen, Mitglieder, Dienste, laufende Woche, Vorschau (je mit `reasons` = Begründung pro Zuordnung), Fairness-Zählung der letzten 12 Wochen, Hinweise |
 | `PUT /api/familyplan/members` | `{ revision, members }` – Liste ersetzen (Reihenfolge = Array), Fehlende werden soft-gelöscht. Verknüpfte Geburtstage („Wichtige Termine“) ziehen bei Umbenennung mit (dann `restarted: true`, MagicMirror startet neu) |
 | `PUT /api/familyplan/duties` | `{ revision, duties }` – Liste ersetzen |
 | `PUT /api/familyplan/settings` | `{ revision, settings }` – Titel, Rotationstag, Auto-Rotation, Vorschau, Paar-Modus, feste Paare |
-| `POST /api/familyplan/weeks/:start/assign` | `{ revision, memberId, slot, dutyId }` – laufende Woche manuell ändern (tauscht automatisch) |
-| `POST /api/familyplan/weeks/:start/reset` | `{ revision }` – automatische Verteilung wiederherstellen |
-| `POST /api/familyplan/regenerate` | `{ revision, scope: "current", confirm: true }` – laufende Woche neu verteilen |
+| `POST /api/familyplan/weeks/:start/assign` | `{ revision, memberId, slot, dutyId }` – laufende oder kommende Woche (Vorschau, bis 8 Wochen) manuell ändern, tauscht automatisch. Kommende Wochen landen in `plannedOverrides` und gelten ab Wochenbeginn |
+| `POST /api/familyplan/weeks/:start/reset` | `{ revision }` – automatische Verteilung wiederherstellen (laufende oder geplante Woche) |
+| `POST /api/familyplan/regenerate` | `{ revision, scope: "future" }` – alle geplanten Änderungen verwerfen; `{ revision, scope: "current", confirm: true }` – laufende Woche neu verteilen |
+| `GET /api/familyplan/export` | Sicherung als Download (`familienplan-JJJJ-MM-TT.json`, Plan + Fotos als Data-URL) |
+| `POST /api/familyplan/import` | Sicherung einspielen (bis 8 MB, eigener Body-Parser), vorher automatisches Backup |
+| `GET /api/familyplan/backups` | automatische Backups, neueste zuerst (`name`, `savedAt`, `members`, `weeks`) |
+| `POST /api/familyplan/backups/restore` | `{ name }` – Backup wiederherstellen, funktioniert auch bei beschädigter Datei |
 | `GET /api/familyplan/presets` | Liste der mitgelieferten Avatare (`adult-01` …, `child-01` …) |
 | `POST /api/familyplan/avatar/:memberId` | Foto-Upload (Feld `avatar`, PNG/JPG/WebP bis 2 MB, Browser schneidet vorher auf 256 px zu) |
 | `DELETE /api/familyplan/avatar/:memberId` | Foto entfernen (zurück zu Initialen) |

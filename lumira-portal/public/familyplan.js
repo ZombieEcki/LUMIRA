@@ -470,37 +470,151 @@
   }
 
   // ----- Wochenplan -----
-  function weekCard(title, sub, assign, current) {
-    var c = el("div", "fp-week" + (current ? " current" : ""));
-    var h = el("div", "fp-week-h", title); if (sub) h.appendChild(el("span", null, sub)); c.appendChild(h);
+  var editWeek = null;   // Startdatum der Woche, die gerade bearbeitet wird
+  var whyWeek = null;    // Startdatum der Woche mit aufgeklappter Begründung
+
+  function sortedIds(assign) {
     var order = (PLAN.allMembers || []).map(function (m) { return m.id; });
-    Object.keys(assign).sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); }).forEach(function (id) {
+    return Object.keys(assign).sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
+  }
+
+  // w: { start, kw, assign, auto?, manual?, reasons? }; mode: "current" | "preview" | "past"
+  function weekCard(w, mode) {
+    var c = el("div", "fp-week" + (mode === "current" ? " current" : "") + (w.manual ? " changed" : ""));
+    var h = el("div", "fp-week-h", "KW " + w.kw);
+    var sub = mode === "current" ? " · läuft · " + rangeText(w) : mode === "preview" ? " · Vorschau ab " + dm(w.start) : " · " + rangeText(w);
+    h.appendChild(el("span", null, sub));
+    if (w.manual) h.appendChild(el("span", "fp-manual", " ✎ geändert"));
+    c.appendChild(h);
+
+    var editing = editWeek === w.start && mode !== "past";
+    var ids = sortedIds(w.assign);
+    var used = (PLAN.allDuties || []).filter(function (d) {
+      return ids.some(function (id) { return w.assign[id].indexOf(d.id) !== -1; });
+    });
+    ids.forEach(function (id) {
       var m = memberById(id); if (!m) return;
-      var r = el("div", "fp-week-r");
+      var r = el("div", "fp-week-r" + (editing ? " editing" : ""));
       r.appendChild(avatarEl(m, 22)); r.appendChild(el("span", "fp-week-n", m.name));
       var ps = el("span", "fp-week-p");
-      assign[id].forEach(function (did) { var d = dutyById(did); if (d) ps.appendChild(pill(d)); });
-      if (!assign[id].length) ps.appendChild(el("span", "save-hint", "frei"));
+      w.assign[id].forEach(function (did, slot) {
+        if (editing) { ps.appendChild(slotSelect(w, id, slot, did, used)); return; }
+        var d = dutyById(did); if (!d) return;
+        var p = pill(d);
+        if (w.reasons && w.reasons[id] && w.reasons[id][did]) p.title = w.reasons[id][did];
+        ps.appendChild(p);
+      });
+      if (!w.assign[id].length) ps.appendChild(el("span", "save-hint", "frei"));
       r.appendChild(ps); c.appendChild(r);
     });
+
+    if (whyWeek === w.start && w.reasons) {
+      var why = el("div", "fp-why");
+      ids.forEach(function (id) {
+        var m = memberById(id); if (!m) return;
+        w.assign[id].forEach(function (did) {
+          var d = dutyById(did); if (!d) return;
+          var line = el("div");
+          line.appendChild(el("b", null, m.name + " · " + d.name + ": "));
+          line.appendChild(document.createTextNode((w.reasons[id] || {})[did] || ""));
+          why.appendChild(line);
+        });
+      });
+      c.appendChild(why);
+    }
+
+    if (mode !== "past") {
+      var actions = el("div", "fp-week-a");
+      var eb = el("button", "btn-x fp-txt", editing ? "Fertig" : "Bearbeiten"); eb.type = "button";
+      eb.addEventListener("click", function () { editWeek = editing ? null : w.start; renderTab(); });
+      actions.appendChild(eb);
+      if (w.reasons) {
+        var wb = el("button", "btn-x fp-txt", whyWeek === w.start ? "Begründung ausblenden" : "Warum so?"); wb.type = "button";
+        wb.addEventListener("click", function () { whyWeek = whyWeek === w.start ? null : w.start; renderTab(); });
+        actions.appendChild(wb);
+      }
+      if (w.manual) {
+        var rb = el("button", "btn-x fp-txt", "↺ automatisch"); rb.type = "button";
+        rb.addEventListener("click", function () {
+          api("/api/familyplan/weeks/" + w.start + "/reset", { method: "POST", body: { revision: PLAN.revision } })
+            .then(function (p) { apply(p); ctx.toast("Automatische Verteilung wiederhergestellt"); }).catch(fail);
+        });
+        actions.appendChild(rb);
+      }
+      c.appendChild(actions);
+    }
     return c;
   }
 
   function renderWeeks(panel) {
-    var c = card("Wochenplan", "Die laufende Woche und die Vorschau. Zukünftige Wochen werden erst zu Wochenbeginn festgelegt und können sich bis dahin noch ändern, z. B. wenn jemand pausiert.");
+    var c = card("Wochenplan", "Die laufende Woche und die nächsten Wochen. Auch kommende Wochen lassen sich schon tauschen – die Änderung gilt dann ab Wochenbeginn. Fährt jemand die Maus über einen Dienst (oder tippt auf „Warum so?“), steht dort die Begründung.");
     var grid = el("div", "fp-weeks");
-    if (PLAN.currentWeek) grid.appendChild(weekCard("KW " + PLAN.currentWeek.kw, " · läuft · " + rangeText(PLAN.currentWeek), PLAN.currentWeek.assign, true));
-    (PLAN.preview || []).forEach(function (p) { grid.appendChild(weekCard("KW " + p.kw, " · Vorschau ab " + dm(p.start), p.assign, false)); });
+    if (PLAN.currentWeek) grid.appendChild(weekCard(PLAN.currentWeek, "current"));
+    (PLAN.preview || []).forEach(function (p) { grid.appendChild(weekCard(p, "preview")); });
     if (!grid.children.length) grid.appendChild(el("p", "save-hint", "Noch keine Wochen – erst Mitglieder anlegen."));
     c.appendChild(grid);
+    var planned = (PLAN.preview || []).filter(function (p) { return p.manual; }).length;
+    if (planned) {
+      var row = el("div", "save-row");
+      var rg = el("button", "btn", "Rotationsplan neu generieren"); rg.type = "button";
+      rg.addEventListener("click", function () {
+        if (!confirm("Alle geplanten Änderungen an kommenden Wochen werden verworfen, die Automatik gilt wieder. Die laufende Woche bleibt. Fortfahren?")) return;
+        api("/api/familyplan/regenerate", { method: "POST", body: { revision: PLAN.revision, scope: "future" } })
+          .then(function (p) { apply(p); ctx.toast("Kommende Wochen neu berechnet"); }).catch(fail);
+      });
+      row.appendChild(rg);
+      row.appendChild(el("span", "save-hint", planned + (planned === 1 ? " kommende Woche ist" : " kommende Wochen sind") + " von Hand geändert."));
+      c.appendChild(row);
+    }
     panel.appendChild(c);
+    panel.appendChild(fairnessCard());
     if ((PLAN.history || []).length) {
       var h = card("Vergangene Wochen", null);
       var det = el("details"); det.appendChild(el("summary", "save-hint", "Letzte " + PLAN.history.length + " Wochen anzeigen"));
       var g2 = el("div", "fp-weeks");
-      PLAN.history.forEach(function (w) { g2.appendChild(weekCard("KW " + w.kw, " · " + rangeText(w), w.assign, false)); });
+      PLAN.history.forEach(function (w) { g2.appendChild(weekCard(w, "past")); });
       det.appendChild(g2); h.appendChild(det); panel.appendChild(h);
     }
+  }
+
+  // Wer hatte welchen Dienst wie oft? Damit sieht die Familie selbst, dass es fair zugeht.
+  function fairnessCard() {
+    var f = PLAN.fairness || { weeks: 0, counts: {} };
+    var c = card("Wie oft hatte wer was?", f.weeks
+      ? (f.weeks === 1 ? "Bisher nur die laufende Woche." : "Die letzten " + f.weeks + " Wochen inklusive der laufenden.") + " Je kräftiger die Farbe, desto öfter."
+      : "Sobald die erste Woche gelaufen ist, steht hier, wer welchen Dienst wie oft hatte.");
+    if (!f.weeks || !PLAN.members.length) return c;
+    var duties = PLAN.duties;
+    var max = 1;
+    PLAN.members.forEach(function (m) { duties.forEach(function (d) { max = Math.max(max, (f.counts[m.id] || {})[d.id] || 0); }); });
+    var wrap = el("div", "fp-scroll");
+    var t = el("table", "fp-table fp-matrix");
+    var hr = el("tr"); hr.appendChild(el("th", null, ""));
+    duties.forEach(function (d) {
+      var th = el("th"); th.title = d.name;
+      var ic = icon(d.icon); ic.style.color = d.color; th.appendChild(ic);
+      th.appendChild(el("div", "fp-mx-h", d.name.replace(/dienst$/i, "")));
+      hr.appendChild(th);
+    });
+    hr.appendChild(el("th", null, "Summe"));
+    var thead = el("thead"); thead.appendChild(hr); t.appendChild(thead);
+    var tb = el("tbody");
+    PLAN.members.forEach(function (m) {
+      var tr = el("tr");
+      var c0 = el("td"); var who = el("span", "fp-who"); who.appendChild(avatarEl(m, 24)); who.appendChild(el("span", null, m.name));
+      c0.appendChild(who); tr.appendChild(c0);
+      var sum = 0;
+      duties.forEach(function (d) {
+        var n = (f.counts[m.id] || {})[d.id] || 0; sum += n;
+        var td = el("td", "fp-mx-n", String(n));
+        if (n) td.style.background = "color-mix(in srgb, " + d.color + " " + Math.round(15 + 55 * n / max) + "%, transparent)";
+        tr.appendChild(td);
+      });
+      tr.appendChild(el("td", "fp-mx-n", String(sum)));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); wrap.appendChild(t); c.appendChild(wrap);
+    return c;
   }
 
   // ----- Einstellungen -----
@@ -549,8 +663,62 @@
     }, "Rotationstag und Paar-Modus gelten ab der nächsten Woche, die laufende bleibt."));
     panel.appendChild(c);
 
-    var b = card("Datensicherung", "Vor jedem Speichern legt LUMIRA automatisch ein Backup an (die letzten 15 Stände in ~/.lumira/backups/). Export, Import und Wiederherstellen im Portal folgen.");
-    panel.appendChild(b);
+    panel.appendChild(backupCard());
+  }
+
+  // ----- Datensicherung (Export, Import, automatische Backups) -----
+  function backupCard() {
+    var c = card("Datensicherung", "Eine Sicherung enthält den kompletten Familienplan samt hochgeladenen Fotos in einer Datei – für den Umzug auf ein anderes Gerät oder nach einer Neuinstallation.");
+    var row = el("div", "save-row");
+    var ex = el("a", "btn", "⬇ Exportieren"); ex.href = "/api/familyplan/export"; ex.setAttribute("download", "");
+    row.appendChild(ex);
+    var lab = el("label", "btn fp-file", "⬆ Importieren …");
+    var inp = el("input"); inp.type = "file"; inp.accept = "application/json,.json"; inp.id = "fp-import";
+    lab.appendChild(inp);
+    inp.addEventListener("change", function () {
+      var file = inp.files && inp.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var payload;
+        try { payload = JSON.parse(reader.result); } catch (e) { ctx.toast("Die Datei ist keine gültige Sicherung"); inp.value = ""; return; }
+        if (!confirm("Der aktuelle Familienplan wird durch die Sicherung ersetzt. Vorher legt LUMIRA automatisch ein Backup an. Fortfahren?")) { inp.value = ""; return; }
+        api("/api/familyplan/import", { method: "POST", body: payload })
+          .then(function (p) { apply(p); ctx.toast("Sicherung eingespielt"); })
+          .catch(function (err) { inp.value = ""; fail(err); });
+      };
+      reader.readAsText(file);
+    });
+    row.appendChild(lab);
+    c.appendChild(row);
+
+    c.appendChild(el("h2", "fp-subhead", "Automatische Backups"));
+    c.appendChild(el("p", "sub", "Vor jedem Speichern sichert LUMIRA den vorherigen Stand (die letzten 15). Damit lässt sich ein Versehen rückgängig machen. Hochgeladene Fotos bleiben dabei, wie sie sind."));
+    var list = el("div", "fp-backups");
+    list.appendChild(el("p", "save-hint", "Lädt …"));
+    c.appendChild(list);
+    api("/api/familyplan/backups").then(function (r) {
+      list.replaceChildren();
+      var items = r.backups || [];
+      if (!items.length) { list.appendChild(el("p", "save-hint", "Noch keine Backups – die entstehen beim ersten Speichern.")); return; }
+      items.forEach(function (b) {
+        var line = el("div", "fp-backup");
+        var info = el("div", "fp-backup-i");
+        var when = b.savedAt ? new Date(b.savedAt).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : b.name;
+        info.appendChild(el("b", null, when));
+        info.appendChild(el("span", "save-hint", b.broken ? "beschädigt" : (b.members.length ? b.members.join(", ") : "keine Mitglieder") + " · " + b.weeks + (b.weeks === 1 ? " Woche" : " Wochen")));
+        line.appendChild(info);
+        var btn = el("button", "btn", "Wiederherstellen"); btn.type = "button"; btn.disabled = !!b.broken;
+        btn.addEventListener("click", function () {
+          if (!confirm("Den Stand vom " + when + " wiederherstellen? Der aktuelle Stand wird vorher selbst als Backup gesichert.")) return;
+          api("/api/familyplan/backups/restore", { method: "POST", body: { name: b.name } })
+            .then(function (p) { apply(p); ctx.toast("Stand vom " + when + " wiederhergestellt"); }).catch(fail);
+        });
+        line.appendChild(btn);
+        list.appendChild(line);
+      });
+    }).catch(function (err) { list.replaceChildren(el("p", "save-hint", "Backups konnten nicht geladen werden: " + err.message)); });
+    return c;
   }
 
   function pairsEditor(s) {

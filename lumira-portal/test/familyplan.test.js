@@ -168,3 +168,135 @@ test("beschädigte Datei: Ansicht mit Hinweis, Schreiben gesperrt", () => {
 	assert.equal(fp.ensureCurrentWeek(WED), null);
 	assert.throws(() => fp.setSettings(undefined, { title: "x" }, WED), fp.ValidationError);
 });
+
+// ---------------------------------------------------------------------------
+// Phase 4: kommende Wochen, Begründungen, Fairness
+// ---------------------------------------------------------------------------
+test("Vorschau-Woche ändern: wird als geplante Änderung gespeichert und beim Wochenwechsel übernommen", () => {
+	reset();
+	family(0);
+	fp.ensureCurrentWeek(WED);
+	let v = fp.view(WED);
+	const next = v.preview[0];
+	const [a, b] = v.members;
+	const target = next.assign[b.id][0];
+	fp.assign(v.revision, next.start, a.id, 0, target, WED);
+	v = fp.view(WED);
+	assert.equal(v.preview[0].assign[a.id][0], target);
+	assert.ok(v.preview[0].manual, "als manuell markiert");
+	assert.ok(v.preview[0].reasons[a.id][target].includes("Manuell"));
+	const planned = v.preview[0].assign;
+	fp.ensureCurrentWeek(NEXT_MON);
+	v = fp.view(NEXT_MON);
+	assert.deepEqual(v.currentWeek.assign, planned);
+	assert.ok(v.currentWeek.manual);
+	assert.deepEqual(fp.load().plannedOverrides, {}, "erledigte Planung ist entfernt");
+});
+
+test("Vorschau-Woche zurücksetzen und „Zukunft neu generieren“", () => {
+	reset();
+	family(0);
+	fp.ensureCurrentWeek(WED);
+	let v = fp.view(WED);
+	const [a, b] = v.members;
+	fp.assign(v.revision, v.preview[0].start, a.id, 0, v.preview[0].assign[b.id][0], WED);
+	v = fp.view(WED);
+	fp.resetWeek(v.revision, v.preview[0].start, WED);
+	v = fp.view(WED);
+	assert.equal(v.preview[0].manual, null);
+	fp.assign(v.revision, v.preview[1].start, a.id, 0, v.preview[1].assign[b.id][0], WED);
+	v = fp.view(WED);
+	assert.ok(v.preview[1].manual);
+	fp.regenerateFuture(v.revision, WED);
+	v = fp.view(WED);
+	assert.ok(v.preview.every((p) => !p.manual));
+});
+
+test("geplante Änderung verfällt, wenn sich die Familie ändert", () => {
+	reset();
+	family(0);
+	fp.ensureCurrentWeek(WED);
+	let v = fp.view(WED);
+	const [a, b] = v.members;
+	fp.assign(v.revision, v.preview[0].start, a.id, 0, v.preview[0].assign[b.id][0], WED);
+	v = fp.view(WED);
+	fp.setMembers(v.revision, v.members.map((m) => (m.name === "Marie" ? Object.assign({}, m, { active: false }) : m)), WED);
+	v = fp.view(WED);
+	assert.equal(v.preview[0].manual, null, "Automatik gilt wieder");
+});
+
+test("vergangene Wochen sind gesperrt", () => {
+	reset();
+	family(0);
+	fp.ensureCurrentWeek(WED);
+	fp.ensureCurrentWeek(NEXT_MON);
+	const v = fp.view(NEXT_MON);
+	const [a, b] = v.members;
+	assert.throws(() => fp.assign(v.revision, "2026-07-06", a.id, 0, "d_garten", NEXT_MON), /Vergangene Wochen/);
+	assert.ok(b);
+});
+
+test("Begründungen und Fairness-Zählung", () => {
+	reset();
+	family(0);
+	fp.ensureCurrentWeek(WED);
+	fp.ensureCurrentWeek(NEXT_MON);
+	const v = fp.view(NEXT_MON);
+	const pid = v.members[0].id;
+	const did = v.currentWeek.assign[pid][0];
+	assert.match(v.currentWeek.reasons[pid][did], /noch nicht gehabt|Zuletzt vor/);
+	assert.equal(v.fairness.weeks, 2);
+	const total = Object.values(v.fairness.counts).reduce((s, c) => s + Object.values(c).reduce((x, y) => x + y, 0), 0);
+	assert.equal(total, 16, "2 Wochen × 8 Dienste");
+});
+
+// ---------------------------------------------------------------------------
+// Phase 5: Export, Import, Backups
+// ---------------------------------------------------------------------------
+test("Export → Import auf leerem Gerät stellt alles wieder her (inkl. Foto)", () => {
+	reset();
+	family(0);
+	fp.ensureCurrentWeek(WED);
+	const marcel = fp.view(WED).members[0];
+	fs.mkdirSync(fp.AVATAR_UPLOAD_DIR, { recursive: true });
+	const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+	fs.writeFileSync(path.join(fp.AVATAR_UPLOAD_DIR, `${marcel.id}.jpg`), jpg);
+	fp.setUploadedAvatar(marcel.id, `${marcel.id}.jpg`);
+	const exported = JSON.parse(JSON.stringify(fp.exportData(WED)));
+	assert.equal(exported.type, "lumira-familyplan-export");
+	assert.ok(exported.avatars[`${marcel.id}.jpg`].startsWith("data:image/jpeg;base64,"));
+
+	reset();
+	fp.importData(exported, WED);
+	const v = fp.view(WED);
+	assert.deepEqual(v.members.map((m) => m.name), ["Marcel", "Franzi", "Maja", "Marie"]);
+	assert.equal(v.currentWeek.start, "2026-07-06");
+	assert.deepEqual(fs.readFileSync(path.join(fp.AVATAR_UPLOAD_DIR, `${marcel.id}.jpg`)), jpg);
+});
+
+test("Import lehnt fremde Dateien ab und ersetzt kaputte Fotos durch Initialen", () => {
+	reset();
+	family(0);
+	assert.throws(() => fp.importData({ hallo: "welt" }, WED), /keine Familienplan-Sicherung/);
+	const exported = JSON.parse(JSON.stringify(fp.exportData(WED)));
+	exported.data.members[0].avatar = { type: "upload", file: `${exported.data.members[0].id}.png`, v: 1 };
+	exported.avatars = { [`${exported.data.members[0].id}.png`]: "data:image/png;base64,AAAA" };
+	fp.importData(exported, WED);
+	assert.equal(fp.view(WED).members[0].avatar.type, "initials");
+});
+
+test("Backups auflisten und wiederherstellen, auch bei beschädigter Datei", () => {
+	reset();
+	const s1 = family(0);
+	fp.setSettings(s1.revision, { title: "Version A" }, WED);
+	const s2 = fp.load();
+	fp.setSettings(s2.revision, { title: "Version B" }, WED);
+	const backups = fp.listBackups();
+	assert.ok(backups.length >= 2);
+	const withA = backups.find((b) => fp.load() && JSON.parse(fs.readFileSync(path.join(HOME, "backups", b.name), "utf8")).settings.title === "Version A");
+	assert.ok(withA, "Backup mit Version A vorhanden");
+	fs.writeFileSync(fp.FAMILYPLAN_PATH, "{ kaputt", "utf8");
+	fp.restoreBackup(withA.name, WED);
+	assert.equal(fp.view(WED).settings.title, "Version A");
+	assert.throws(() => fp.restoreBackup("../settings.json", WED), /nicht gefunden/);
+});
