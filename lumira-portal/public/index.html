@@ -140,10 +140,11 @@
           <svg class="ic"><use href="#i-bell"/></svg>
           <span class="nav-badge" id="upd-badge" hidden></span>
         </button>
-        <div class="device-chip" title="Edition">
-          <span class="dot" id="device-dot"></span>
-          <span id="edn-name">–</span>
-        </div>
+        <!-- Familienmitglieder (aus dem Familienplan), Klick → Mitglieder verwalten -->
+        <button type="button" class="member-chip" id="member-chip" data-need="hasFamily" title="Familienmitglieder verwalten" aria-label="Familienmitglieder verwalten">
+          <span class="member-stack" id="member-stack"></span>
+          <span class="member-label" id="member-label">–</span>
+        </button>
       </div>
     </header>
 
@@ -194,9 +195,21 @@
         <div class="bento">
           <!-- Spiegel -->
           <section class="card span7">
-            <div class="card-head"><h2>Spiegel</h2><a href="#module" class="more-link">Module →</a></div>
+            <div class="card-head"><h2>Spiegel</h2>
+              <div class="seg mini" id="mirror-view" role="tablist" aria-label="Ansicht">
+                <button type="button" role="tab" data-view="live">Live</button>
+                <button type="button" role="tab" data-view="layout">Aufbau</button>
+              </div>
+              <a href="#module" class="more-link">Module →</a></div>
             <div class="mirror-split">
               <div class="module-preview" id="module-preview">
+                <!-- Live-Bild (MMM-LumiraStatus → /api/mirror/screenshot), alle 5 s -->
+                <div class="mp-live" id="mp-live" hidden>
+                  <img id="mirror-img" alt="Live-Bild: was der Spiegel gerade zeigt">
+                  <div class="mp-live-bar"><span class="dot" id="mirror-dot"></span><span id="mirror-age">verbinde …</span></div>
+                </div>
+                <p class="mp-note" id="mp-note" hidden></p>
+                <div class="mp-layout" id="mp-layout">
                 <div class="mp-grid">
                   <div class="mp-cell" data-region="top_left"></div>
                   <div class="mp-cell" data-region="top_center"></div>
@@ -210,6 +223,7 @@
                 </div>
                 <div class="mp-row mp-bar" id="mp-bottombar"></div>
                 <div class="mp-row mp-overlay" id="mp-overlay"></div>
+                </div>
               </div>
               <div class="mirror-side">
                 <span class="tl">Familienbotschaften</span>

@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 53 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 58 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -122,6 +122,16 @@ um den aktuellen Stand zu sehen.
       PIN meldet alle anderen Geräte ab; erster PIN lässt das aktuelle Gerät
       angemeldet (vorher 401 bis zum Neuladen)
 - [ ] Auf echtem iPhone und Android-Handy testen
+
+### Portal: Spiegel live & Kopfzeile
+- [x] **Live-Bild des Spiegels** auf der Startseite (Karte „Spiegel“,
+      Umschalter Live/Aufbau): alle 5 s, nur solange Start offen und der Tab
+      sichtbar ist; Aufnahme in `MMM-LumiraStatus` (Electron, Ersatz `grim`),
+      nur von localhost abrufbar, im Portal hinter dem PIN; bei nicht
+      erreichbarem Spiegel automatisch „Aufbau“; Bild wird auch bei Alarm gezeigt
+- [x] Kopfzeile zeigt die **Familienmitglieder** (Avatare + Anzahl, Klick →
+      Familienplan → Mitglieder) statt der Edition; Edition nur noch unter Info
+- [ ] Live-Bild auf echter Pi-Hardware prüfen (Electron-Aufnahme, Last auf dem Pi 3)
 
 ---
 

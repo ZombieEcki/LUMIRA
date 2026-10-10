@@ -1,10 +1,12 @@
 // LUMIRA – node_helper für MMM-LumiraStatus.
 // Pollt lumira-portal (server.js) über /api/status und erzeugt bei Bedarf
 // den WLAN-QR-Code für den Setup-Access-Point (siehe
-// concept/selfservice.md Abschnitt 5 + 9).
+// concept/selfservice.md Abschnitt 5 + 9). Liefert außerdem das Live-Bild
+// des Spiegels für das Portal (GET /lumira/screenshot, siehe screenshot.js).
 const NodeHelper = require("node_helper");
 const http = require("http");
 const QRCode = require("qrcode");
+const { createCapturer, isLoopback } = require("./screenshot");
 
 module.exports = NodeHelper.create({
 	start() {
@@ -12,6 +14,27 @@ module.exports = NodeHelper.create({
 		this.timer = null;
 		this.lastQrKey = null;
 		this.lastQrDataUrl = null;
+		this.capturer = createCapturer();
+		if (this.expressApp) {
+			this.expressApp.get("/lumira/screenshot", (req, res) => this.sendScreenshot(req, res));
+		}
+	},
+
+	sendScreenshot(req, res) {
+		if (!isLoopback(req.socket.remoteAddress)) {
+			return res.status(403).json({ error: "Nur über das LUMIRA-Portal" });
+		}
+		this.capturer.capture().then((shot) => {
+			res.set({
+				"Content-Type": "image/jpeg",
+				"Cache-Control": "no-store",
+				"X-Lumira-Captured-At": new Date(shot.at).toISOString(),
+				"X-Lumira-Capture-Method": shot.method
+			});
+			res.send(shot.buffer);
+		}).catch((err) => {
+			res.status(503).json({ error: "Kein Bild vom Spiegel: " + err.message });
+		});
 	},
 
 	socketNotificationReceived(notification, payload) {

@@ -774,6 +774,7 @@
       });
       load();
     },
-    reload: load
+    reload: load,
+    showTab: function (tab) { TAB = tab; openPicker = null; render(); }
   };
 })();

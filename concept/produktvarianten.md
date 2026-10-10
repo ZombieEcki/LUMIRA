@@ -4,6 +4,12 @@ Wie die fünf LUMIRA-Editionen zustande kommen, und warum ein Gerät immer nur
 **eine** davon ist.
 
 > Status: Konzept fertig, Umsetzung offen. Siehe [CHECKLIST.md](../CHECKLIST.md).
+>
+> **Stand Oktober 2026:** Die Editionen sind in den Hintergrund gerückt. Das
+> Portal zeigt sie nicht mehr in der Kopfzeile (dort stehen jetzt die
+> Familienmitglieder), nur noch unter „Info“. Technisch steuern die
+> Editions-Flags weiterhin, welche Funktionen sichtbar sind. Idee für später:
+> einzelne Funktionen hinter einer Bezahlschranke statt fester Editionen.
 > Verwandt: [konfigurator.html](../konfigurator.html) (zeigt die Editions-Auswahl
 > bereits im Prototyp), [selfservice.md](selfservice.md) (Kunden-Konfiguration
 > **innerhalb** einer bereits feststehenden Edition), [`version/`](../version/)

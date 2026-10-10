@@ -31,6 +31,7 @@ const { createSessionStore } = require("./lib/sessions");
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
 const SESSION_COOKIE = "lumira_session";
+const MM_PORT = Number(process.env.LUMIRA_MM_PORT) || 8080;
 
 const app = express();
 // 256 KB reichen überall – außer beim Import einer Familienplan-Sicherung
@@ -620,6 +621,36 @@ app.post("/api/setup-mode/exit", async (req, res) => {
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}
+});
+
+// ---------------------------------------------------------------------------
+// Live-Bild des Spiegels (Karte „Spiegel“ auf Start). MMM-LumiraStatus nimmt
+// das Bild auf und gibt es nur an Anfragen von diesem Gerät heraus – hier
+// kommt der PIN-Schutz dazu.
+// ---------------------------------------------------------------------------
+app.get("/api/mirror/screenshot", requireAuth, (req, res) => {
+	const upstream = http.get({ host: "127.0.0.1", port: MM_PORT, path: "/lumira/screenshot", timeout: 8000 }, (up) => {
+		if (up.statusCode !== 200) {
+			let body = "";
+			up.on("data", (chunk) => (body += chunk));
+			up.on("end", () => {
+				let msg = "Kein Bild vom Spiegel";
+				try { msg = JSON.parse(body).error || msg; } catch (e) { /* MagicMirror ohne LUMIRA-Modul */ }
+				res.status(up.statusCode === 404 ? 503 : up.statusCode || 502).json({ error: msg });
+			});
+			return;
+		}
+		res.set({
+			"Content-Type": "image/jpeg",
+			"Cache-Control": "no-store",
+			"X-Lumira-Captured-At": up.headers["x-lumira-captured-at"] || new Date().toISOString()
+		});
+		up.pipe(res);
+	});
+	upstream.on("timeout", () => upstream.destroy(new Error("Zeitüberschreitung")));
+	upstream.on("error", (err) => {
+		if (!res.headersSent) res.status(502).json({ error: `MagicMirror nicht erreichbar: ${err.message}` });
+	});
 });
 
 // ---------------------------------------------------------------------------

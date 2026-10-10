@@ -185,7 +185,7 @@
           toast: toast,
           getSettings: function () { return SETTINGS; },
           setSettings: function (s) { SETTINGS = s; renderModulePreview(); },
-          onPlanChange: function (plan) { setFamilyMembers(plan.members || []); renderStartFamily(plan); }
+          onPlanChange: function (plan) { setFamilyMembers(plan.members || []); renderStartFamily(plan); renderMemberChip(plan.members || []); }
         });
       }
       if (window.LumiraUpdates) {
@@ -193,11 +193,16 @@
       }
       wireTheme();
       wireLogout();
+      $("#member-chip").addEventListener("click", function () {
+        goPage("familienplan");
+        if (window.LumiraFamilyPlan && window.LumiraFamilyPlan.showTab) window.LumiraFamilyPlan.showTab("mitglieder");
+      });
       renderGreeting();
       renderStartNext();
       loadWeather();
       renderModuleList();
       renderModulePreview();
+      wireMirrorLive();
       refreshStatus();
       setInterval(refreshStatus, 5000);
       setInterval(renderGreeting, 60 * 1000);
@@ -206,7 +211,6 @@
 
   function applyEdition() {
     var flags = STATUS.edition.flags;
-    $("#edn-name").textContent = STATUS.edition.name;
     $("#lbl-personname").textContent = STATUS.edition.personLabel;
     // Alles mit data-need (Kacheln, Karten, Links) nur in passenden Editionen
     $all("[data-need]").forEach(function (el) {
@@ -485,6 +489,7 @@
       try { history.replaceState(null, "", "#" + name); } catch (e) { location.hash = name; }
     }
     window.scrollTo(0, 0);
+    mirrorKick();
   }
 
   function wireNav() {
@@ -663,6 +668,103 @@
     });
   }
 
+  // ---------------------------------------------------------------------
+  // Spiegel live: alle 5 s ein Bild vom Spiegel (MMM-LumiraStatus), aber nur
+  // solange Start offen und der Tab sichtbar ist – sonst ruht der Pi.
+  // ---------------------------------------------------------------------
+  var MIRROR = { view: "live", timer: null, url: null, at: 0, busy: false, failing: false, error: "", wired: false };
+  var MIRROR_EVERY_MS = 5000;
+  var MIRROR_RETRY_MS = 15000;
+
+  function wireMirrorLive() {
+    try {
+      var v = localStorage.getItem("lumira-mirror-view");
+      if (v === "live" || v === "layout") MIRROR.view = v;
+    } catch (e) {}
+    $all("#mirror-view [data-view]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        MIRROR.view = b.getAttribute("data-view");
+        try { localStorage.setItem("lumira-mirror-view", MIRROR.view); } catch (e) {}
+        applyMirrorView();
+        mirrorKick();
+      });
+    });
+    document.addEventListener("visibilitychange", mirrorKick);
+    setInterval(renderMirrorAge, 1000);
+    MIRROR.wired = true;
+    applyMirrorView();
+    mirrorKick();
+  }
+
+  function mirrorActive() {
+    return MIRROR.view === "live" && currentPage === "start" && !document.hidden;
+  }
+
+  function mirrorKick() {
+    if (!MIRROR.wired) return;
+    clearTimeout(MIRROR.timer);
+    if (mirrorActive()) mirrorFetch();
+  }
+
+  function applyMirrorView() {
+    var live = MIRROR.view === "live";
+    $all("#mirror-view [data-view]").forEach(function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-view") === MIRROR.view ? "true" : "false");
+    });
+    var showImg = live && !!MIRROR.url;
+    $("#mp-live").hidden = !showImg;
+    $("#mp-layout").hidden = showImg;
+    var note = $("#mp-note");
+    note.hidden = !live || showImg;
+    note.textContent = MIRROR.failing ? MIRROR.error + " Hier der Aufbau:" : "Live-Bild wird geladen …";
+    renderMirrorAge();
+  }
+
+  function mirrorFetch() {
+    if (MIRROR.busy) return;
+    MIRROR.busy = true;
+    fetch("/api/mirror/screenshot", { credentials: "same-origin", cache: "no-store" }).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (d) {
+          var err = new Error(res.status === 503 ? "Der Spiegel liefert gerade kein Bild."
+            : res.status === 401 ? "Bitte neu anmelden."
+            : "Der Spiegel ist nicht erreichbar – aus oder startet gerade.");
+          err.detail = d.error || ("HTTP " + res.status);
+          throw err;
+        });
+      }
+      return res.blob().then(function (blob) {
+        var old = MIRROR.url;
+        MIRROR.url = URL.createObjectURL(blob);
+        $("#mirror-img").src = MIRROR.url;
+        if (old) setTimeout(function () { URL.revokeObjectURL(old); }, 1000);
+        // Empfangszeit statt Aufnahmezeit: die Uhr des Pi kann ohne RTC abweichen
+        MIRROR.at = Date.now();
+        MIRROR.failing = false;
+        MIRROR.error = "";
+      });
+    }).catch(function (err) {
+      MIRROR.failing = true;
+      MIRROR.error = err.detail ? err.message : "Der Spiegel ist nicht erreichbar – aus oder startet gerade.";
+      $("#mp-note").title = err.detail || err.message;
+    }).then(function () {
+      MIRROR.busy = false;
+      applyMirrorView();
+      clearTimeout(MIRROR.timer);
+      if (mirrorActive()) MIRROR.timer = setTimeout(mirrorFetch, MIRROR.failing ? MIRROR_RETRY_MS : MIRROR_EVERY_MS);
+    });
+  }
+
+  function renderMirrorAge() {
+    if (!MIRROR.url) return;
+    var s = Math.max(0, Math.round((Date.now() - MIRROR.at) / 1000));
+    var age = s <= 2 ? "gerade eben" : s < 60 ? "vor " + s + " s" : "vor " + Math.round(s / 60) + " min";
+    var fresh = !MIRROR.failing && s < 15;
+    $("#mirror-age").textContent = MIRROR.failing ? "Verbindung unterbrochen · Stand " + age
+      : mirrorActive() ? "Live · " + age : "Pausiert · Stand " + age;
+    $("#mirror-dot").className = "dot" + (fresh ? " live" : "");
+  }
+
   function renderModulePreview() {
     var flags = STATUS.edition.flags;
     var fpOn = flags.hasFamily && SETTINGS && SETTINGS.familyPlan && SETTINGS.familyPlan.enabled;
@@ -729,11 +831,10 @@
       return false;
     }));
     Promise.all(checks).then(function (results) {
-      var up = results.some(Boolean);
+      // Ein frisches Live-Bild ist auch ein Lebenszeichen des Spiegels
+      var up = results.some(Boolean) || (!!MIRROR.url && !MIRROR.failing && Date.now() - MIRROR.at < 20000);
       $("#mirror-state-text").textContent = up ? "läuft" : "nicht erreichbar";
       setTile("#tile-mirror", up ? "" : "err");
-      var dot = $("#device-dot");
-      dot.className = "dot " + (up ? "ok" : "err");
     });
   }
 
@@ -781,6 +882,32 @@
     return e;
   }
 
+  // Rundes Mitglieder-Bild (eigenes Avatar, Foto oder Anfangsbuchstabe)
+  function memberAvatar(m) {
+    var av = el("span", "mini-av", (m.name || "?").charAt(0).toUpperCase());
+    av.style.background = m.color; av.style.color = textOnColor(m.color);
+    var src = m.avatar && m.avatar.type === "preset" ? "/avatars/" + m.avatar.value + ".jpg"
+      : m.avatar && m.avatar.type === "upload" ? "/avatar-uploads/" + m.avatar.file + "?v=" + (m.avatar.v || 0) : null;
+    if (src) { var img = el("img"); img.alt = ""; img.src = src; img.onerror = function () { img.remove(); }; av.appendChild(img); }
+    return av;
+  }
+
+  // Kopfzeile: Familienmitglieder statt Edition (die Editionen sind im
+  // Hintergrund, siehe concept/produktvarianten.md)
+  function renderMemberChip(members) {
+    var stack = $("#member-stack");
+    stack.replaceChildren();
+    var list = (members || []).filter(function (m) { return !m.deleted; });
+    list.slice(0, 4).forEach(function (m) {
+      var av = memberAvatar(m);
+      av.title = m.name;
+      stack.appendChild(av);
+    });
+    if (list.length > 4) stack.appendChild(el("span", "mini-av more", "+" + (list.length - 4)));
+    $("#member-label").textContent = !list.length ? "Familie anlegen" : list.length === 1 ? "1 Mitglied" : list.length + " Mitglieder";
+    $("#member-chip").title = list.length ? list.map(function (m) { return m.name; }).join(", ") + " – verwalten" : "Familienmitglieder anlegen";
+  }
+
   function renderStartFamily(plan) {
     START_PLAN = plan;
     var wrap = $("#start-fp-rows");
@@ -800,12 +927,7 @@
       var m = (plan.allMembers || []).filter(function (x) { return x.id === id; })[0];
       if (!m) return;
       var row = el("div", "mini-row");
-      var av = el("span", "mini-av", (m.name || "?").charAt(0).toUpperCase());
-      av.style.background = m.color; av.style.color = textOnColor(m.color);
-      var src = m.avatar && m.avatar.type === "preset" ? "/avatars/" + m.avatar.value + ".jpg"
-        : m.avatar && m.avatar.type === "upload" ? "/avatar-uploads/" + m.avatar.file + "?v=" + (m.avatar.v || 0) : null;
-      if (src) { var img = el("img"); img.alt = ""; img.src = src; img.onerror = function () { img.remove(); }; av.appendChild(img); }
-      row.appendChild(av);
+      row.appendChild(memberAvatar(m));
       var nm = el("span", "mini-name");
       nm.appendChild(el("b", null, m.name));
       nm.appendChild(el("span", null, m.role === "child" ? "Kind" : "Erwachsener"));

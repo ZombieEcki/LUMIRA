@@ -22,6 +22,21 @@ cd ~/MagicMirror/modules/MMM-LumiraStatus
 npm install
 ```
 
+## Live-Bild für das Portal
+
+Das Portal zeigt auf der Startseite (Karte „Spiegel“, Umschalter
+**Live / Aufbau**) alle 5 Sekunden ein Bild davon, was der Spiegel gerade
+zeigt. Dafür stellt dieses Modul `GET /lumira/screenshot` auf dem
+MagicMirror-Server (Port 8080) bereit, siehe [screenshot.js](screenshot.js):
+
+- Aufnahme über Electron (`webContents.capturePage`), unabhängig von
+  X11/Wayland. Ohne Fenster (`serveronly`) ersatzweise per `grim`.
+- JPEG, lange Seite max. 800 px. Höchstens alle 1,5 s eine neue Aufnahme,
+  gleichzeitige Anfragen teilen sich eine.
+- Nur Anfragen vom eigenen Gerät (`127.0.0.1`). Im Heimnetz geht das Bild nur
+  über das PIN-geschützte Portal raus (`GET /api/mirror/screenshot`).
+- Aufnahmen gibt es nur, solange jemand die Startseite offen hat.
+
 ## Konfiguration
 
 ```js

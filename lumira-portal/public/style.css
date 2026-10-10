@@ -93,8 +93,15 @@ button, input, select, textarea { font-family:inherit; }
 .topbar-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .icon-btn { position:relative; width:48px; height:48px; border-radius:50%; border:0; background:var(--card); color:var(--ink);
   box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-.device-chip { display:flex; align-items:center; gap:8px; height:48px; padding:0 16px; border-radius:999px; background:var(--card);
-  box-shadow:var(--shadow); font-size:.85rem; font-weight:700; white-space:nowrap; }
+.member-chip { display:flex; align-items:center; gap:10px; height:48px; padding:0 18px 0 7px; border:0; border-radius:999px; background:var(--card);
+  color:var(--ink); box-shadow:var(--shadow); font-size:.88rem; font-weight:700; white-space:nowrap; cursor:pointer; }
+.member-chip:hover { box-shadow:var(--shadow-lg); }
+.member-stack { display:flex; }
+.member-stack:empty { display:none; }
+.member-chip:has(.member-stack:empty) { padding-left:18px; }
+.member-stack .mini-av { width:34px; height:34px; font-size:.8rem; box-shadow:0 0 0 2px var(--card); }
+.member-stack .mini-av + .mini-av { margin-left:-9px; }
+.member-stack .more { background:var(--soft); color:var(--muted); font-size:.72rem; }
 .dot { width:8px; height:8px; border-radius:50%; background:var(--faint); flex:none; display:inline-block; }
 .dot.ok { background:var(--ok); } .dot.warn { background:var(--accent); } .dot.err { background:var(--danger); }
 .nav-badge { min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--accent); color:#121214;
@@ -159,6 +166,17 @@ main { padding:14px var(--gut) 48px; width:100%; }
 .mp-cell:not(:empty) { background:#111214; border-style:solid; border-color:#1F2024; }
 .mp-row { border-radius:8px; font-size:.7rem; color:#C9CACF; padding:6px 8px; text-align:center; background:#111214; }
 .mp-row.mp-overlay { background:rgba(229,50,44,.18); color:#FFB3AD; }
+.mp-layout { display:flex; flex-direction:column; gap:6px; }
+.mp-live { position:relative; display:flex; justify-content:center; }
+.mp-live img { display:block; max-width:100%; max-height:440px; min-height:120px; object-fit:contain; border-radius:10px; background:#000; }
+.mp-live-bar { position:absolute; left:8px; bottom:8px; display:flex; align-items:center; gap:7px; padding:5px 10px; border-radius:999px;
+  background:rgba(0,0,0,.66); color:#E9E9EA; font-size:.72rem; font-weight:600; backdrop-filter:blur(6px); }
+.mp-live-bar .dot.live { background:#E5322C; animation:livepulse 2s ease-in-out infinite; }
+@keyframes livepulse { 50% { opacity:.35; } }
+@media (prefers-reduced-motion: reduce) { .mp-live-bar .dot.live { animation:none; } }
+.mp-note { font-size:.75rem; color:#B9BAC0; text-align:center; padding:2px 6px 4px; }
+.seg.mini { padding:3px; box-shadow:none; background:var(--soft); }
+.seg.mini button { padding:6px 12px; font-size:.78rem; }
 .mirror-side { flex:1 1 220px; display:flex; flex-direction:column; gap:10px; min-width:0; }
 .mirror-side .tl { font-size:.78rem; color:var(--muted); }
 .mirror-text { font-size:1.05rem; font-weight:600; line-height:1.35; }
@@ -446,8 +464,15 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
   .rail { display:none; }
   .topbar { padding:calc(18px + env(safe-area-inset-top, 0px)) 16px 8px; gap:10px; }
   .topbar h1 { font-size:1.55rem; }
-  .topbar-title { flex-basis:60%; }
-  #theme-seg, .device-chip { display:none; }
+  .topbar-title { flex:1 1 0; }
+  .topbar-actions { flex-wrap:nowrap; gap:8px; }
+  .topbar-actions .icon-btn { width:44px; height:44px; }
+  #theme-seg { display:none; }
+  .member-chip { padding:0 6px; height:44px; }
+  .member-stack .mini-av { width:30px; height:30px; font-size:.72rem; }
+  .member-stack .mini-av + .mini-av { margin-left:-11px; }
+  .member-label { display:none; }
+  .member-chip:has(.member-stack:empty) .member-label { display:inline; }
   .subnav { margin:6px 16px 4px; max-width:calc(100% - 32px); }
   main { padding:12px 16px calc(112px + env(safe-area-inset-bottom, 0px)); }
   .card { padding:16px; border-radius:20px; }
