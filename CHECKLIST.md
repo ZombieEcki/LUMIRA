@@ -140,6 +140,7 @@ mit Aufforderung, es erneut einzugeben.
 | 8 | **Hintergrund-Option** (Farbe/Bild/Slideshow) | 📋 geplant |
 | 9 | **Alexa-Integration** (Ansagen bei Alarm, Sprachsteuerung für Kompliments-Schalter) | 📋 geplant |
 | 10 | **Sprüche von MMM-SmartCompliments in `compliments.json`** – vom Portal bearbeitbar statt in `config.js` fest codiert | 🟡 Phase 1-3 umgesetzt (Portal-Seite „Sprüche" + Stimmungs-Auswahl + Live-Reload, [concept/smartcompliments-json.md](concept/smartcompliments-json.md)); Live-Reload noch auf echter Pi-Hardware zu verifizieren; Phasen 4-7 (Migration, enabled/pinned, Import/Export, personMessages, Mehrsprachigkeit) offen |
+| 11 | **Familienplan** – Wochendienste (4 Personen × 2 Dienste) mit fairer automatischer Rotation, neues Modul `MMM-FamilyPlan` oben links, Verwaltung im Portal | 📋 Konzept fertig ([concept/familienplan.md](concept/familienplan.md)), Umsetzung offen; Einbau auf dem Familien-Spiegel erst nach dem Pi-3-Fix |
 
 **Legende:** ✅ erledigt · 🟡 in Arbeit / teilweise · 📋 geplant, noch nicht begonnen
 

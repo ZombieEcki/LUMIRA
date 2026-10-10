@@ -1,4 +1,4 @@
-<p align="center"><img src="logo/lumira-logo-website.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="640"></p>
+<p align="center"><img src="media/logos/lumira-logo-website.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="640"></p>
 <p align="center"><b>MagicMirror² – Feuerwehr- &amp; Familien-Informationssystem</b></p>
 <p align="center"><i>Der Spiegel gehört der Familie. Bis der Melder geht.</i></p>
 
@@ -24,7 +24,7 @@ Self-Service-Portal ein – nicht mehr interaktiv im Terminal.
 | [`version/`](version) | Basis-`config.js`-Vorlage je Edition, für die manuelle Grundinstallation |
 | [`docs/`](docs) | Geräte-/Installationsdokumentation |
 | [`concept/`](concept) | Ausformulierte Konzepte & Ideen für kommende Features |
-| [`logo/`](logo) | Markenmaterial |
+| [`media/`](media) | Markenmaterial (Logos) und Avatare für den Familienplan |
 
 **Zwei getrennte Rollen:** Wir richten ein Gerät **manuell** mit der passenden
 Edition aus `version/<edition>/` ein (Grundinstallation, per
