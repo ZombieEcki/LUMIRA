@@ -72,6 +72,7 @@ function buildModules(settings) {
 				birthdayText: "🥳 Happy Birthday, {name}!",
 				birthdayReminderDays: 3,
 				weddingDate: familyDates.toFullDate(settings.family.weddingDate) || "",
+				anniversaries: familyDates.anniversariesOf(settings.family),
 				countdowns: countdownsFor(settings.family),
 				weddingText: "❤️ Alles Gute zum Hochzeitstag!",
 				anniversaryReminderDays: 7,

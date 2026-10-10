@@ -22,10 +22,10 @@ Dafür muss in `MMM-aPagerAlarm` `broadcastNotifications: true` gesetzt sein (St
 
 ## Auswahl-Logik
 
-- **Tier A (exklusiv, wenn zutreffend):** Geburtstag heute, Hochzeitstag heute,
+- **Tier A (exklusiv, wenn zutreffend):** Geburtstag heute, Jahrestag heute (Hochzeitstag u. a.),
   aktive Wetterwarnung (Hitze/Frost/Sturm), Feiertag heute.
 - **Tier B (Familienmix):** Tageszeit-Gruß, Wochentag, Jahreszeit, Wetterhinweis,
-  Kalender, Aufgaben, Erinnerungen (Geburtstag/Hochzeitstag bald), Countdowns,
+  Kalender, Aufgaben, Erinnerungen (Geburtstag/Jahrestag bald), Countdowns,
   Familie, Motivation, Humor.
 - Die letzten `rememberLastMessages` Nachrichten werden **nicht wiederholt**.
 

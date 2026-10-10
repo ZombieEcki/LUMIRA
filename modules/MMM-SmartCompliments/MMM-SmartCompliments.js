@@ -73,8 +73,11 @@ Module.register("MMM-SmartCompliments", {
 		],
 		birthdayReminderDays: 3,     // Vorlauf für Geburtstagserinnerung
 		birthdayText: "🎂 Heute hat {name} Geburtstag.",   // {name} wird ersetzt
-		weddingDate: "",             // "JJJJ-MM-TT" (z. B. "2010-06-20")
-		anniversaryReminderDays: 7,  // Vorlauf für Hochzeitstag-Erinnerung
+		weddingDate: "",             // "JJJJ-MM-TT" (z. B. "2010-06-20"), Rückfall ohne anniversaries
+		anniversaries: [             // gemeinsame Jahrestage { type, label, date: "JJJJ-MM-TT" }
+			// { type: "wedding", label: "Hochzeitstag", date: "2010-06-20" }
+		],
+		anniversaryReminderDays: 7,  // Vorlauf für Jahrestag-Erinnerungen
 		weddingText: "❤️ Alles Liebe zum Hochzeitstag.",  // Text am Hochzeitstag
 		countdowns: [                // optionale Countdowns { label, date }
 			// { label: "Weihnachten", date: "12-24" }
@@ -467,9 +470,10 @@ Module.register("MMM-SmartCompliments", {
 		if (bdayToday.length) {
 			return bdayToday.map((n) => this.applyName(this.config.birthdayText, n));
 		}
-		// Hochzeitstag heute
-		if (this.isWeddingToday()) {
-			return [this.config.weddingText];
+		// Jahrestag heute (Hochzeitstag, Kennenlerntag …)
+		const annToday = this.anniversariesToday();
+		if (annToday.length) {
+			return annToday.map((a) => this.anniversaryText(a));
 		}
 		// Wetterwarnung
 		const warn = this.activeWeatherWarnings();
@@ -616,13 +620,14 @@ Module.register("MMM-SmartCompliments", {
 				out.push("In " + days + (days === 1 ? " Tag" : " Tagen") + " hat " + b.name + " Geburtstag.");
 			}
 		});
-		// Hochzeitstag in Kürze
-		if (this.config.weddingDate) {
-			const days = this.daysUntilMMDD(this.config.weddingDate.slice(5));
+		// Jahrestage in Kürze
+		this.anniversaryList().forEach((a) => {
+			const days = this.daysUntilMMDD(a.date.slice(5));
 			if (days > 0 && days <= this.config.anniversaryReminderDays) {
-				out.push("❤️ Noch " + days + (days === 1 ? " Tag" : " Tage") + " bis zum Hochzeitstag.");
+				const what = a.type === "other" ? "„" + a.label + "“" : "zum " + a.label;
+				out.push("❤️ Noch " + days + (days === 1 ? " Tag" : " Tage") + " bis " + what + ".");
 			}
-		}
+		});
 		return out;
 	},
 
@@ -659,9 +664,29 @@ Module.register("MMM-SmartCompliments", {
 			.map((b) => b.name);
 	},
 
+	// Jahrestage; ältere Konfigurationen haben nur weddingDate
+	anniversaryList: function () {
+		const list = this.config.anniversaries || [];
+		if (list.length) { return list.filter((a) => a && a.label && /^\d{4}-\d{2}-\d{2}$/.test(a.date)); }
+		return this.config.weddingDate ? [{ type: "wedding", label: "Hochzeitstag", date: this.config.weddingDate }] : [];
+	},
+
+	anniversariesToday: function () {
+		const today = this.todayMMDD();
+		return this.anniversaryList().filter((a) => a.date.slice(5) === today);
+	},
+
+	// "❤️ Alles Gute zum Hochzeitstag! (16 Jahre)"
+	anniversaryText: function (a) {
+		const years = new Date().getFullYear() - Number(a.date.slice(0, 4));
+		const base = a.type === "wedding" ? this.config.weddingText
+			: a.type === "other" ? "❤️ Heute: " + a.label + "!"
+			: "❤️ Alles Gute zum " + a.label + "!";
+		return years > 0 ? base + " (" + years + (years === 1 ? " Jahr" : " Jahre") + ")" : base;
+	},
+
 	isWeddingToday: function () {
-		if (!this.config.weddingDate) { return false; }
-		return this.config.weddingDate.slice(5) === this.todayMMDD();
+		return this.anniversariesToday().some((a) => a.type === "wedding");
 	},
 
 	// Tage bis zum nächsten Auftreten von "MM-TT"

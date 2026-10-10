@@ -49,4 +49,27 @@ function toFullDate(input) {
 	return null;
 }
 
-module.exports = { toMMDD, toFullDate };
+// Gemeinsame Jahrestage (Karte „Jahrestage“ im Portal). "other" = eigener Name.
+const ANNIVERSARY_TYPES = {
+	wedding: "Hochzeitstag",
+	together: "Jahrestag",
+	engaged: "Verlobungstag",
+	met: "Kennenlerntag",
+	moved: "Einzugstag",
+	other: ""
+};
+
+// Jahrestage aus settings.family im Format { type, label, date: "JJJJ-MM-TT" }.
+// Ältere Einstellungen kennen nur weddingDate – das zählt dann als Hochzeitstag.
+function anniversariesOf(family) {
+	const f = family || {};
+	const list = Array.isArray(f.anniversaries) && f.anniversaries.length ? f.anniversaries
+		: f.weddingDate ? [{ type: "wedding", date: f.weddingDate }] : [];
+	return list.map((a) => {
+		const type = Object.prototype.hasOwnProperty.call(ANNIVERSARY_TYPES, a && a.type) ? a.type : "other";
+		const label = type === "other" ? String((a && a.label) || "").trim() : ANNIVERSARY_TYPES[type];
+		return { type, label, date: toFullDate(a && a.date) };
+	}).filter((a) => a.label && a.date);
+}
+
+module.exports = { toMMDD, toFullDate, ANNIVERSARY_TYPES, anniversariesOf };

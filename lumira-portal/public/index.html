@@ -19,8 +19,9 @@
 <!-- Gewähltes Farbschema vor dem ersten Zeichnen setzen (kein Aufblitzen) -->
 <script>try { var t = localStorage.getItem("lumira-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
 <link rel="stylesheet" href="style.css">
-<!-- Font Awesome lokal aus der MagicMirror-Installation (Dienst-Symbole im Familienplan) -->
-<link rel="stylesheet" href="/vendor/fa/css/all.min.css">
+<!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
+<link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
+<link rel="stylesheet" href="vendor/fa/css/solid.min.css">
 </head>
 <body>
 
@@ -38,6 +39,8 @@
   <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M20 20l-3.5-3.5"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM3 10h18M8 3v4M16 3v4"/></symbol>
   <symbol id="i-cake" viewBox="0 0 24 24"><path d="M4 21h16M5 21v-8h14v8M12 13V9M12 6.5a1.5 1.5 0 0 0 1.5-1.5C13.5 4 12 2.5 12 2.5S10.5 4 10.5 5A1.5 1.5 0 0 0 12 6.5M5 16c2 1.5 3.5 1.5 5 0s3-1.5 4.5 0 3 1.5 4.5 0"/></symbol>
   <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.4-9.2-9A4.8 4.8 0 0 1 12 6.3a4.8 4.8 0 0 1 9.2 4.7C19.5 15.6 12 20 12 20z"/></symbol>
   <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/></symbol>
@@ -192,75 +195,79 @@
           </a>
         </div>
 
+        <!-- Zwei unabhängige Spalten, damit unterschiedlich hohe Karten
+             (z. B. Spiegel mit Live-Bild) keine Lücken reißen -->
         <div class="bento">
-          <!-- Spiegel -->
-          <section class="card span7">
-            <div class="card-head"><h2>Spiegel</h2>
-              <div class="seg mini" id="mirror-view" role="tablist" aria-label="Ansicht">
-                <button type="button" role="tab" data-view="live">Live</button>
-                <button type="button" role="tab" data-view="layout">Aufbau</button>
+          <div class="span7 stack">
+            <!-- Spiegel -->
+            <section class="card bento-mirror">
+              <div class="card-head"><h2>Spiegel</h2>
+                <div class="seg mini" id="mirror-view" role="tablist" aria-label="Ansicht">
+                  <button type="button" role="tab" data-view="live">Live</button>
+                  <button type="button" role="tab" data-view="layout">Aufbau</button>
+                </div>
+                <a href="#module" class="more-link">Module →</a></div>
+              <div class="mirror-split">
+                <div class="module-preview" id="module-preview">
+                  <!-- Live-Bild (MMM-LumiraStatus → /api/mirror/screenshot), alle 5 s -->
+                  <div class="mp-live" id="mp-live" hidden>
+                    <img id="mirror-img" alt="Live-Bild: was der Spiegel gerade zeigt">
+                    <div class="mp-live-bar"><span class="dot" id="mirror-dot"></span><span id="mirror-age">verbinde …</span></div>
+                  </div>
+                  <p class="mp-note" id="mp-note" hidden></p>
+                  <div class="mp-layout" id="mp-layout">
+                  <div class="mp-grid">
+                    <div class="mp-cell" data-region="top_left"></div>
+                    <div class="mp-cell" data-region="top_center"></div>
+                    <div class="mp-cell" data-region="top_right"></div>
+                    <div class="mp-cell mp-empty"></div>
+                    <div class="mp-cell mp-empty"></div>
+                    <div class="mp-cell mp-empty"></div>
+                    <div class="mp-cell" data-region="bottom_left"></div>
+                    <div class="mp-cell mp-empty"></div>
+                    <div class="mp-cell" data-region="bottom_right"></div>
+                  </div>
+                  <div class="mp-row mp-bar" id="mp-bottombar"></div>
+                  <div class="mp-row mp-overlay" id="mp-overlay"></div>
+                  </div>
+                </div>
+                <div class="mirror-side">
+                  <span class="tl">Familienbotschaften</span>
+                  <p class="mirror-text">Sprüche, Geburtstage und Hinweise wechseln automatisch auf dem Spiegel.</p>
+                  <div class="toggle">
+                    <span class="tl2">Sprüche anzeigen</span>
+                    <button class="btn small" id="compliments-toggle" type="button"><span id="compliments-state">–</span></button>
+                  </div>
+                  <a href="#spruche" class="btn ghost small" data-need="hasFamily">Sprüche bearbeiten</a>
+                </div>
               </div>
-              <a href="#module" class="more-link">Module →</a></div>
-            <div class="mirror-split">
-              <div class="module-preview" id="module-preview">
-                <!-- Live-Bild (MMM-LumiraStatus → /api/mirror/screenshot), alle 5 s -->
-                <div class="mp-live" id="mp-live" hidden>
-                  <img id="mirror-img" alt="Live-Bild: was der Spiegel gerade zeigt">
-                  <div class="mp-live-bar"><span class="dot" id="mirror-dot"></span><span id="mirror-age">verbinde …</span></div>
-                </div>
-                <p class="mp-note" id="mp-note" hidden></p>
-                <div class="mp-layout" id="mp-layout">
-                <div class="mp-grid">
-                  <div class="mp-cell" data-region="top_left"></div>
-                  <div class="mp-cell" data-region="top_center"></div>
-                  <div class="mp-cell" data-region="top_right"></div>
-                  <div class="mp-cell mp-empty"></div>
-                  <div class="mp-cell mp-empty"></div>
-                  <div class="mp-cell mp-empty"></div>
-                  <div class="mp-cell" data-region="bottom_left"></div>
-                  <div class="mp-cell mp-empty"></div>
-                  <div class="mp-cell" data-region="bottom_right"></div>
-                </div>
-                <div class="mp-row mp-bar" id="mp-bottombar"></div>
-                <div class="mp-row mp-overlay" id="mp-overlay"></div>
-                </div>
-              </div>
-              <div class="mirror-side">
-                <span class="tl">Familienbotschaften</span>
-                <p class="mirror-text">Sprüche, Geburtstage und Hinweise wechseln automatisch auf dem Spiegel.</p>
-                <div class="toggle">
-                  <span class="tl2">Sprüche anzeigen</span>
-                  <button class="btn small" id="compliments-toggle" type="button"><span id="compliments-state">–</span></button>
-                </div>
-                <a href="#spruche" class="btn ghost small" data-need="hasFamily">Sprüche bearbeiten</a>
-              </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- Alarmierung -->
-          <section class="card span5" id="card-alarm-actions" hidden>
-            <div class="card-head"><h2>Alarmierung</h2><a href="#alarm" class="more-link">Einstellungen →</a></div>
-            <p class="sub">Manuelle Phasensteuerung von MMM-aPagerAlarm.</p>
-            <div class="action-list">
-              <button class="action" id="alarm-home" type="button"><span class="at">Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
-              <button class="action" id="alarm-clear" type="button"><span class="at">Einsatz beenden</span><span class="ad">zurück in die Danke-Nachwirkung</span></button>
-              <button class="action danger" id="alarm-test" type="button"><span class="at">Alarm testen</span><span class="ad">löst einen echten Testalarm auf dem Spiegel aus</span></button>
-            </div>
-          </section>
+            <!-- Familienplan -->
+            <section class="card bento-fp" id="start-fp" data-need="hasFamily">
+              <div class="card-head"><h2>Familienplan</h2><span class="card-meta" id="start-fp-week"></span><a href="#familienplan" class="more-link">Öffnen →</a></div>
+              <div id="start-fp-rows"><p class="save-hint">Lädt …</p></div>
+            </section>
+          </div>
 
-          <!-- Familienplan -->
-          <section class="card span7" id="start-fp" data-need="hasFamily">
-            <div class="card-head"><h2>Familienplan</h2><span class="card-meta" id="start-fp-week"></span><a href="#familienplan" class="more-link">Öffnen →</a></div>
-            <div id="start-fp-rows"><p class="save-hint">Lädt …</p></div>
-          </section>
-
-          <!-- Wetter + Als Nächstes -->
           <div class="span5 stack">
-            <section class="card" id="start-weather" hidden>
+            <!-- Alarmierung -->
+            <section class="card bento-alarm" id="card-alarm-actions" hidden>
+              <div class="card-head"><h2>Alarmierung</h2><a href="#alarm" class="more-link">Einstellungen →</a></div>
+              <p class="sub">Manuelle Phasensteuerung von MMM-aPagerAlarm.</p>
+              <div class="action-list">
+                <button class="action" id="alarm-home" type="button"><span class="at">Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
+                <button class="action" id="alarm-clear" type="button"><span class="at">Einsatz beenden</span><span class="ad">zurück in die Danke-Nachwirkung</span></button>
+                <button class="action danger" id="alarm-test" type="button"><span class="at">Alarm testen</span><span class="ad">löst einen echten Testalarm auf dem Spiegel aus</span></button>
+              </div>
+            </section>
+
+            <!-- Wetter + Als Nächstes -->
+            <section class="card bento-rest" id="start-weather" hidden>
               <div class="card-head"><h2>Wetter</h2><span class="card-meta" id="start-weather-place"></span></div>
               <div class="weather-row" id="start-weather-row"></div>
             </section>
-            <section class="card" id="start-next" data-need="hasFamily">
+            <section class="card bento-rest" id="start-next" data-need="hasFamily">
               <div class="card-head"><h2>Als Nächstes</h2><a href="#familie" class="more-link">Termine →</a></div>
               <div id="start-next-list"><p class="save-hint">Noch keine Termine eingetragen.</p></div>
             </section>
@@ -286,7 +293,7 @@
       <!-- Wichtige Termine (früher „Personen“). Die Personen selbst pflegt der
            Familienplan (Mitglieder), Geburtstage verknüpfen sich damit. -->
       <section class="page cols" data-page="familie">
-        <p class="page-lead">Geburtstage, Hochzeitstag und Countdowns für die Familienbotschaften auf dem Spiegel. Speichern startet MagicMirror einmal neu.</p>
+        <p class="page-lead">Geburtstage, Jahrestage und Countdowns für die Familienbotschaften auf dem Spiegel. Speichern startet MagicMirror einmal neu.</p>
         <div class="card tall">
           <h2>Geburtstage</h2>
           <p class="sub">Person aus den Familienmitgliedern wählen oder eine andere Person eintragen (z. B. Oma). Am Tag selbst und ein paar Tage vorher gibt es einen Hinweis.</p>
@@ -295,10 +302,11 @@
           <button type="button" class="btn-add" id="addBday">+ Geburtstag hinzufügen</button>
         </div>
         <div class="card">
-          <h2>Hochzeitstag</h2>
-          <p class="sub">Optional. Eine Woche vorher und am Tag selbst gibt es einen Hinweis.</p>
-          <div class="field"><label for="weddingDate">Datum <span class="opt">(TT.MM.JJJJ)</span></label>
-            <input type="text" class="mono-in" id="weddingDate" placeholder="20.06.2010" inputmode="numeric" style="max-width:200px;"></div>
+          <h2>Jahrestage</h2>
+          <p class="sub">Gemeinsame Tage wie Hochzeitstag, Kennenlerntag oder Einzug. Eine Woche vorher gibt es eine Erinnerung, am Tag selbst einen Glückwunsch mit der Zahl der Jahre.</p>
+          <div class="term-head ann"><span>Anlass</span><span>Datum <span class="opt">(TT.MM.JJJJ)</span></span></div>
+          <div class="bdays" id="anniversaries"></div>
+          <button type="button" class="btn-add" id="addAnniversary">+ Jahrestag hinzufügen</button>
         </div>
         <div class="card">
           <h2>Countdowns</h2>
@@ -567,6 +575,7 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="select.js"></script>
 <script src="familyplan.js"></script>
 <script src="updates.js"></script>
 <script src="app.js"></script>

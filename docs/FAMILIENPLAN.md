@@ -36,8 +36,9 @@ mit, ist aber zunächst ausgeschaltet.
    kombiniert werden oder feste Paare zusammenbleiben (z. B. Kochen +
    Küche).
 
-Geburtstage, Hochzeitstag und Countdowns für die Familienbotschaften stehen
-auf der Seite **Wichtige Termine**. Geburtstage werden dort mit den
+Geburtstage, Jahrestage (Hochzeitstag, Kennenlerntag, Einzug oder ein eigener
+Anlass) und Countdowns für die Familienbotschaften stehen auf der Seite
+**Familie → Termine**. Geburtstage werden dort mit den
 Familienmitgliedern verknüpft.
 
 ## 3. Im Alltag

@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 58 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 60 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -132,6 +132,22 @@ um den aktuellen Stand zu sehen.
 - [x] Kopfzeile zeigt die **Familienmitglieder** (Avatare + Anzahl, Klick →
       Familienplan → Mitglieder) statt der Edition; Edition nur noch unter Info
 - [ ] Live-Bild auf echter Pi-Hardware prüfen (Electron-Aufnahme, Last auf dem Pi 3)
+
+### Portal: eigene Bedienelemente & Jahrestage
+- [x] Eigene Auswahlfelder statt Browser-Dropdowns (`public/select.js`, für
+      alle Auswahlfelder automatisch), mit Avataren (Personen) und
+      Dienst-Symbolen; Tastatur (Pfeile, Pos1/Ende, Anfangsbuchstabe, Esc)
+- [x] Eigene Symbolauswahl für Dienste (Raster mit allen 36 Symbolen)
+- [x] Font Awesome Free „Solid“ im Portal mitgeliefert (`public/vendor/fa`, 250 KB) statt aus der
+      MagicMirror-Installation – Symbole funktionieren unabhängig von MagicMirror-Version und Pfad
+- [x] Eigener Kalender für Datumsfelder (Geburtstage/Countdowns ohne Jahr,
+      Jahrestage mit Jahresauswahl), Feld bleibt tippbar
+- [x] Dienst-Symbole in der Wochen-Zuteilung
+- [x] Startseite: zwei unabhängige Spalten statt Zeilenraster (keine Lücken mehr)
+- [x] „Hochzeitstag“ → **Jahrestage**: Liste mit Anlass (Hochzeitstag,
+      Jahrestag, Verlobungstag, Kennenlerntag, Einzugstag, eigener Anlass),
+      Glückwunsch mit Zahl der Jahre, Erinnerung eine Woche vorher; alter
+      Hochzeitstag wird übernommen
 
 ---
 

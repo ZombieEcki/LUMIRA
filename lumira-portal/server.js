@@ -509,9 +509,8 @@ app.delete("/api/familyplan/avatar/:memberId", requireAuth, (req, res) => {
 
 if (PRESET_AVATAR_DIR) app.use("/avatars", express.static(PRESET_AVATAR_DIR, { maxAge: "1d" }));
 app.use("/avatar-uploads", requireAuth, express.static(familyplanLib.AVATAR_UPLOAD_DIR, { maxAge: "1h" }));
-// Font Awesome lokal aus der MagicMirror-Installation (Symbol-Auswahl, auch ohne Internet)
-const FA_DIR = path.join(MM_ROOT, "node_modules", "@fortawesome", "fontawesome-free");
-if (fs.existsSync(FA_DIR)) app.use("/vendor/fa", express.static(FA_DIR, { maxAge: "7d" }));
+// Font Awesome liefert das Portal selbst mit (public/vendor/fa) – früher aus
+// der MagicMirror-Installation, deren Pfad sich je nach Version unterscheidet.
 
 // ---------------------------------------------------------------------------
 // Updates für MagicMirror² und externe Module (Portal → Info), siehe

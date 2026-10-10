@@ -173,6 +173,11 @@
         var first = FP_MEMBERS[0];
         $("#bdays").appendChild(bdayRow(first ? { memberId: first.id, name: first.name, date: "" } : { name: "", date: "" }));
       });
+      $("#addAnniversary").addEventListener("click", function () {
+        if ($all("#anniversaries .term-row").length >= 10) return;
+        var used = collectAnniversaryRows().map(function (a) { return a.type; });
+        $("#anniversaries").appendChild(annRow({ type: used.indexOf("wedding") === -1 ? "wedding" : "together", date: "" }));
+      });
       $("#addCountdown").addEventListener("click", function () { $("#countdowns").appendChild(countdownRow({ label: "", date: "" })); });
       $("#addCalUrl").addEventListener("click", function () {
         if ($all("#cal-urls .calrow").length >= 3) return;
@@ -237,7 +242,7 @@
     var s = SETTINGS;
     renderBdays(s.family.birthdays || []);
     renderCountdowns(s.family.countdowns || []);
-    $("#weddingDate").value = fullToDe(s.family.weddingDate || "");
+    renderAnniversaries(anniversariesOf(s.family));
 
     $("#loc-name").value = s.location.name || "";
     $("#loc-lat").value = s.location.lat;
@@ -297,6 +302,207 @@
     return m ? m[3] + "." + m[2] + "." + m[1] : String(s || "");
   }
 
+  // ---------------------------------------------------------------------
+  // Eigener Kalender für Datumsfelder („TT.MM.“ bzw. „TT.MM.JJJJ“). Das Feld
+  // bleibt tippbar; der Kalender öffnet per Klick aufs Symbol, per Klick ins
+  // Feld oder mit Pfeil runter. Pfeiltasten wandern durch die Tage,
+  // Bild auf/ab blättert Monate, Enter wählt, Esc schließt.
+  // ---------------------------------------------------------------------
+  var MONTHS_DP = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  var DP_OPEN = null;
+
+  function dpPad(n) { return (n < 10 ? "0" : "") + n; }
+  function dpParse(s, withYear) {
+    var m = /^(\d{1,2})\.(\d{1,2})\.?(\d{4})?$/.exec(String(s || "").trim());
+    if (!m) return null;
+    var d = Number(m[1]), mo = Number(m[2]) - 1, y = m[3] ? Number(m[3]) : null;
+    if (mo < 0 || mo > 11 || d < 1 || d > 31) return null;
+    return { d: d, m: mo, y: withYear ? y : null };
+  }
+  function dpDaysIn(y, m) {
+    // Ohne Jahr hat der Februar 29 Tage (Geburtstag am 29.02.)
+    return new Date(y == null ? 2024 : y, m + 1, 0).getDate();
+  }
+  function dpClose(focusInput) {
+    if (!DP_OPEN) return;
+    var o = DP_OPEN; DP_OPEN = null;
+    o.wrap.classList.remove("open");
+    o.btn.setAttribute("aria-expanded", "false");
+    if (focusInput) o.input.focus();
+  }
+  document.addEventListener("click", function (e) {
+    if (DP_OPEN && !DP_OPEN.wrap.contains(e.target)) dpClose(false);
+  });
+
+  function datePicker(input, opts) {
+    var withYear = !!(opts && opts.withYear);
+    var wrap = document.createElement("div");
+    wrap.className = "dp-wrap";
+    if (input.style.maxWidth) { wrap.style.maxWidth = input.style.maxWidth; input.style.maxWidth = ""; }
+    if (input.parentNode) input.parentNode.replaceChild(wrap, input);
+    wrap.appendChild(input);
+    input.setAttribute("autocomplete", "off");
+
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.className = "dp-btn"; btn.tabIndex = -1;
+    btn.setAttribute("aria-label", "Kalender öffnen");
+    btn.setAttribute("aria-haspopup", "dialog"); btn.setAttribute("aria-expanded", "false");
+    btn.appendChild(svgIcon("calendar"));
+    wrap.appendChild(btn);
+
+    var pop = document.createElement("div");
+    pop.className = "dp-pop"; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-label", "Datum wählen");
+    wrap.appendChild(pop);
+
+    var today = new Date();
+    var view = { y: today.getFullYear(), m: today.getMonth(), mode: "days" };
+    var focusDay = 1;
+    var self = { wrap: wrap, btn: btn, input: input };
+
+    function selected() { return dpParse(input.value, withYear); }
+
+    function headBtn(cls, icon, label, fn) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = cls; b.setAttribute("aria-label", label);
+      if (icon) b.appendChild(svgIcon(icon));
+      b.addEventListener("click", function (e) { e.stopPropagation(); fn(); });
+      return b;
+    }
+
+    function render() {
+      pop.innerHTML = "";
+      var head = document.createElement("div"); head.className = "dp-head";
+      if (view.mode === "years") {
+        var start = Math.floor(view.y / 12) * 12;
+        head.appendChild(headBtn("dp-nav", "chev-l", "Frühere Jahre", function () { view.y -= 12; render(); }));
+        var t = document.createElement("span"); t.className = "dp-title"; t.textContent = start + " – " + (start + 11);
+        head.appendChild(t);
+        head.appendChild(headBtn("dp-nav", "chev", "Spätere Jahre", function () { view.y += 12; render(); }));
+        pop.appendChild(head);
+        var yg = document.createElement("div"); yg.className = "dp-years";
+        var sel = selected();
+        for (var y = start; y < start + 12; y++) {
+          (function (yy) {
+            var b = document.createElement("button"); b.type = "button"; b.className = "dp-year"; b.textContent = yy;
+            if (sel && sel.y === yy) b.classList.add("sel");
+            if (yy === today.getFullYear()) b.classList.add("today");
+            b.addEventListener("click", function (e) { e.stopPropagation(); view.y = yy; view.mode = "days"; render(); focusGrid(); });
+            yg.appendChild(b);
+          })(y);
+        }
+        pop.appendChild(yg);
+        return;
+      }
+      head.appendChild(headBtn("dp-nav", "chev-l", "Vorheriger Monat", function () { shiftMonth(-1); }));
+      var title;
+      if (withYear) {
+        title = headBtn("dp-title dp-title-btn", null, "Jahr wählen", function () { view.mode = "years"; render(); });
+        title.textContent = MONTHS_DP[view.m] + " " + view.y;
+      } else {
+        title = document.createElement("span"); title.className = "dp-title"; title.textContent = MONTHS_DP[view.m];
+      }
+      head.appendChild(title);
+      head.appendChild(headBtn("dp-nav", "chev", "Nächster Monat", function () { shiftMonth(1); }));
+      pop.appendChild(head);
+
+      var grid = document.createElement("div"); grid.className = "dp-grid"; grid.setAttribute("role", "grid");
+      ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].forEach(function (w) {
+        var h = document.createElement("span"); h.className = "dp-wd"; h.textContent = w; grid.appendChild(h);
+      });
+      // Wochentage nach dem angezeigten (bzw. ohne Jahr: dem aktuellen) Jahr
+      var first = (new Date(view.y, view.m, 1).getDay() + 6) % 7;
+      for (var i = 0; i < first; i++) grid.appendChild(document.createElement("span"));
+      var n = dpDaysIn(withYear ? view.y : null, view.m);
+      if (focusDay > n) focusDay = n;
+      var sel2 = selected();
+      for (var d = 1; d <= n; d++) {
+        (function (dd) {
+          var b = document.createElement("button"); b.type = "button"; b.className = "dp-day"; b.textContent = dd;
+          b.dataset.day = dd;
+          b.tabIndex = dd === focusDay ? 0 : -1;
+          var isSel = sel2 && sel2.d === dd && sel2.m === view.m && (!withYear || sel2.y === view.y);
+          if (isSel) { b.classList.add("sel"); b.setAttribute("aria-selected", "true"); }
+          if (dd === today.getDate() && view.m === today.getMonth() && (!withYear || view.y === today.getFullYear())) b.classList.add("today");
+          b.setAttribute("aria-label", dd + ". " + MONTHS_DP[view.m] + (withYear ? " " + view.y : ""));
+          b.addEventListener("click", function (e) { e.stopPropagation(); pick(dd); });
+          grid.appendChild(b);
+        })(d);
+      }
+      grid.addEventListener("keydown", onGridKey);
+      pop.appendChild(grid);
+    }
+
+    function shiftMonth(delta) {
+      view.m += delta;
+      if (view.m < 0) { view.m = 11; view.y--; }
+      if (view.m > 11) { view.m = 0; view.y++; }
+      render();
+    }
+
+    function focusGrid() {
+      var b = pop.querySelector('.dp-day[data-day="' + focusDay + '"]');
+      if (b) b.focus();
+    }
+
+    function onGridKey(e) {
+      var n = dpDaysIn(withYear ? view.y : null, view.m);
+      var step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 7, ArrowUp: -7 }[e.key];
+      if (e.key === "Escape") { e.preventDefault(); dpClose(true); return; }
+      if (e.key === "PageDown" || e.key === "PageUp") { e.preventDefault(); shiftMonth(e.key === "PageDown" ? 1 : -1); focusGrid(); return; }
+      if (!step) return;
+      e.preventDefault();
+      var next = focusDay + step;
+      if (next < 1) { shiftMonth(-1); focusDay = dpDaysIn(withYear ? view.y : null, view.m) + next; render(); }
+      else if (next > n) { focusDay = next - n; shiftMonth(1); }
+      else { focusDay = next; render(); }
+      focusGrid();
+    }
+
+    function pick(d) {
+      input.value = dpPad(d) + "." + dpPad(view.m + 1) + "." + (withYear ? view.y : "");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      dpClose(true);
+    }
+
+    function open() {
+      if (DP_OPEN && DP_OPEN !== self) dpClose(false);
+      var s = selected();
+      if (s) { view.m = s.m; focusDay = s.d; if (withYear && s.y) view.y = s.y; else if (!withYear) view.y = today.getFullYear(); }
+      else { view.y = today.getFullYear(); view.m = today.getMonth(); focusDay = today.getDate(); }
+      view.mode = "days";
+      render();
+      DP_OPEN = self;
+      wrap.classList.add("open");
+      btn.setAttribute("aria-expanded", "true");
+      // Ausweichen, wenn links/unten kein Platz ist
+      pop.classList.remove("to-right", "to-top");
+      pop.style.right = "";
+      var r = pop.getBoundingClientRect();
+      if (r.left < 8) pop.classList.add("to-right");
+      else if (r.right > document.documentElement.clientWidth - 8) pop.style.right = (r.right - document.documentElement.clientWidth + 8) + "px";
+      if (r.bottom > window.innerHeight - 8 && wrap.getBoundingClientRect().top > r.height + 16) pop.classList.add("to-top");
+    }
+
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (DP_OPEN === self) dpClose(true); else { open(); focusGrid(); }
+    });
+    input.addEventListener("click", function () { if (DP_OPEN !== self) open(); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); if (DP_OPEN !== self) open(); focusGrid(); }
+      else if (e.key === "Escape" || e.key === "Tab") dpClose(false);
+    });
+    // Beim Tippen den Kalender mitführen
+    input.addEventListener("input", function () {
+      if (DP_OPEN !== self) return;
+      var s = selected();
+      if (s) { view.m = s.m; focusDay = s.d; if (withYear && s.y) view.y = s.y; render(); }
+    });
+    pop.addEventListener("click", function (e) { e.stopPropagation(); });
+    return wrap;
+  }
+
   // Neue Mitgliederliste: Auswahl aktualisieren, alte Einträge ohne
   // Verknüpfung per Namen verknüpfen (wird beim nächsten Speichern übernommen).
   function setFamilyMembers(members) {
@@ -327,6 +533,11 @@
     var linked = b.memberId && FP_MEMBERS.some(function (m) { return m.id === b.memberId; });
     FP_MEMBERS.forEach(function (m) {
       var o = document.createElement("option"); o.value = m.id; o.textContent = m.name;
+      // Avatar im eigenen Auswahlfeld (select.js)
+      o.dataset.initial = (m.name || "?").charAt(0).toUpperCase();
+      if (m.color) o.dataset.color = m.color;
+      var src = memberAvatarSrc(m);
+      if (src) o.dataset.img = src;
       if (linked && m.id === b.memberId) o.selected = true;
       sel.appendChild(o);
     });
@@ -341,6 +552,7 @@
     date.type = "text"; date.className = "mono-in"; date.placeholder = "TT.MM."; date.inputMode = "numeric"; date.value = b.date || "";
     date.setAttribute("aria-label", "Datum");
     var del = document.createElement("button"); del.type = "button"; del.className = "btn-x"; del.title = "entfernen"; del.textContent = "✕";
+    var dateBox = datePicker(date, { withYear: false });
     sel.addEventListener("change", function () {
       row.dataset.memberId = sel.value === OTHER ? "" : sel.value;
       name.hidden = sel.value !== OTHER;
@@ -349,7 +561,7 @@
     del.addEventListener("click", function () { row.remove(); });
     var who = document.createElement("div"); who.className = "term-who";
     who.appendChild(sel); who.appendChild(name);
-    row.appendChild(who); row.appendChild(date); row.appendChild(del);
+    row.appendChild(who); row.appendChild(dateBox); row.appendChild(del);
     return row;
   }
 
@@ -365,6 +577,72 @@
   }
   function collectBdays() {
     return collectBdayRows().filter(function (b) { return b.name || b.date; });
+  }
+
+  // Gemeinsame Jahrestage (Hochzeitstag, Kennenlerntag …), wie in
+  // lib/family-dates.js. Ältere Einstellungen kennen nur weddingDate.
+  var ANN_TYPES = [
+    ["wedding", "Hochzeitstag", "ring"],
+    ["together", "Jahrestag (zusammen seit)", "heart"],
+    ["engaged", "Verlobungstag", "gem"],
+    ["met", "Kennenlerntag", "user-group"],
+    ["moved", "Einzugstag", "house"],
+    ["other", "Anderer Anlass …", "star"]
+  ];
+  var ANN_LABEL = { wedding: "Hochzeitstag", together: "Jahrestag", engaged: "Verlobungstag", met: "Kennenlerntag", moved: "Einzugstag" };
+
+  function anniversariesOf(fam) {
+    fam = fam || {};
+    if (fam.anniversaries && fam.anniversaries.length) return fam.anniversaries;
+    return fam.weddingDate ? [{ type: "wedding", date: fam.weddingDate }] : [];
+  }
+
+  function renderAnniversaries(list) {
+    var wrap = $("#anniversaries");
+    wrap.innerHTML = "";
+    list.forEach(function (a) { wrap.appendChild(annRow({ type: a.type, label: a.label, date: fullToDe(a.date) })); });
+  }
+
+  function annRow(a) {
+    var row = document.createElement("div");
+    row.className = "term-row ann";
+    var sel = document.createElement("select");
+    sel.setAttribute("aria-label", "Anlass");
+    ANN_TYPES.forEach(function (t) {
+      var o = document.createElement("option"); o.value = t[0]; o.textContent = t[1];
+      o.dataset.icon = t[2];
+      if (t[0] === (a.type || "wedding")) o.selected = true;
+      sel.appendChild(o);
+    });
+    var name = document.createElement("input");
+    name.type = "text"; name.placeholder = "z. B. Hauskauf"; name.maxLength = 40; name.className = "term-name";
+    name.value = a.type === "other" ? (a.label || "") : "";
+    name.hidden = a.type !== "other";
+    var date = document.createElement("input");
+    date.type = "text"; date.className = "mono-in"; date.placeholder = "TT.MM.JJJJ"; date.inputMode = "numeric"; date.value = a.date || "";
+    date.setAttribute("aria-label", "Datum");
+    var del = document.createElement("button"); del.type = "button"; del.className = "btn-x"; del.title = "entfernen"; del.textContent = "✕";
+    sel.addEventListener("change", function () {
+      name.hidden = sel.value !== "other";
+      if (!name.hidden) name.focus();
+    });
+    del.addEventListener("click", function () { row.remove(); });
+    var who = document.createElement("div"); who.className = "term-who";
+    who.appendChild(sel); who.appendChild(name);
+    row.appendChild(who); row.appendChild(datePicker(date, { withYear: true })); row.appendChild(del);
+    return row;
+  }
+
+  function collectAnniversaryRows() {
+    return $all("#anniversaries .term-row").map(function (row) {
+      var type = $("select", row).value, inputs = $all("input", row);
+      var out = { type: type, date: inputs[1].value.trim() };
+      if (type === "other") out.label = inputs[0].value.trim();
+      return out;
+    });
+  }
+  function collectAnniversaries() {
+    return collectAnniversaryRows().filter(function (a) { return a.date || a.label; });
   }
 
   function renderCountdowns(list) {
@@ -383,7 +661,7 @@
     date.setAttribute("aria-label", "Datum");
     var del = document.createElement("button"); del.type = "button"; del.className = "btn-x"; del.title = "entfernen"; del.textContent = "✕";
     del.addEventListener("click", function () { row.remove(); });
-    row.appendChild(label); row.appendChild(date); row.appendChild(del);
+    row.appendChild(label); row.appendChild(datePicker(date, { withYear: false })); row.appendChild(del);
     return row;
   }
   function collectCountdowns() {
@@ -570,7 +848,7 @@
 
   function patchFor(section) {
     if (section === "familie") {
-      return { family: { birthdays: collectBdays(), weddingDate: $("#weddingDate").value.trim(), countdowns: collectCountdowns() } };
+      return { family: { birthdays: collectBdays(), anniversaries: collectAnniversaries(), countdowns: collectCountdowns() } };
     }
     if (section === "standort") {
       return {
@@ -882,12 +1160,16 @@
     return e;
   }
 
+  function memberAvatarSrc(m) {
+    return m.avatar && m.avatar.type === "preset" ? "/avatars/" + m.avatar.value + ".jpg"
+      : m.avatar && m.avatar.type === "upload" ? "/avatar-uploads/" + m.avatar.file + "?v=" + (m.avatar.v || 0) : null;
+  }
+
   // Rundes Mitglieder-Bild (eigenes Avatar, Foto oder Anfangsbuchstabe)
   function memberAvatar(m) {
     var av = el("span", "mini-av", (m.name || "?").charAt(0).toUpperCase());
     av.style.background = m.color; av.style.color = textOnColor(m.color);
-    var src = m.avatar && m.avatar.type === "preset" ? "/avatars/" + m.avatar.value + ".jpg"
-      : m.avatar && m.avatar.type === "upload" ? "/avatar-uploads/" + m.avatar.file + "?v=" + (m.avatar.v || 0) : null;
+    var src = memberAvatarSrc(m);
     if (src) { var img = el("img"); img.alt = ""; img.src = src; img.onerror = function () { img.remove(); }; av.appendChild(img); }
     return av;
   }
@@ -971,10 +1253,11 @@
       var d = daysUntilMMDD(b.date, today);
       if (d >= 0) items.push({ days: d, title: "Geburtstag " + b.name, icon: "cake" });
     });
-    if (fam.weddingDate) {
-      var wd = daysUntilMMDD(String(fam.weddingDate).slice(5), today);
-      if (wd >= 0) items.push({ days: wd, title: "Hochzeitstag", icon: "heart" });
-    }
+    anniversariesOf(fam).forEach(function (a) {
+      var ad = daysUntilMMDD(String(a.date).slice(5), today);
+      var label = a.type === "other" ? a.label : ANN_LABEL[a.type];
+      if (ad >= 0 && label) items.push({ days: ad, title: label, icon: "heart" });
+    });
     (fam.countdowns || []).forEach(function (c) {
       var d = daysUntilMMDD(c.date, today);
       if (d >= 0) items.push({ days: d, title: c.label, icon: "hourglass", when: d === 0 ? "heute" : "noch " + d + (d === 1 ? " Tag" : " Tage") });

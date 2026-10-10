@@ -251,15 +251,23 @@
     var m = memberById(memberId);
     sel.setAttribute("aria-label", (m ? m.name : "") + ", Dienst " + (slot + 1));
     used.forEach(function (d) {
-      var o = el("option", null, d.name); o.value = d.id; if (d.id === did) o.selected = true; sel.appendChild(o);
+      var o = el("option", null, d.name); o.value = d.id; if (d.id === did) o.selected = true;
+      o.dataset.icon = d.icon || "circle-question"; o.dataset.color = d.color;
+      sel.appendChild(o);
     });
-    var d0 = dutyById(did) || { color: "#9ca3af" };
-    sel.style.background = d0.color; sel.style.color = textOn(d0.color);
+    // Im Knopf nur Text – Farbe und Symbol zeigt das Feld drumherum
+    sel.setAttribute("data-lx-trigger", "text");
+    // Farbiges Feld mit Dienst-Symbol; das Auswahlfeld selbst ist durchsichtig
+    var d0 = dutyById(did) || { color: "#9ca3af", icon: "circle-question" };
+    var box = el("span", "fp-pselbox");
+    box.style.background = d0.color; box.style.color = textOn(d0.color);
+    box.appendChild(icon(d0.icon || "circle-question"));
+    box.appendChild(sel);
     sel.addEventListener("change", function () {
       api("/api/familyplan/weeks/" + w.start + "/assign", { method: "POST", body: { revision: PLAN.revision, memberId: memberId, slot: slot, dutyId: sel.value } })
         .then(function (p) { apply(p); ctx.toast("Gespeichert"); }).catch(fail);
     });
-    wrap.appendChild(sel);
+    wrap.appendChild(box);
     var auto = w.auto[memberId] || [];
     if (w.manual && auto.indexOf(did) === -1) wrap.appendChild(el("span", "fp-manual", "✎ manuell"));
     return wrap;
@@ -451,10 +459,7 @@
     color.addEventListener("input", function () { d.color = color.value; refresh(); });
     row.appendChild(color);
 
-    var ic = el("select", "fp-small"); ic.id = "fp-dicon-" + i; ic.setAttribute("aria-label", "Symbol");
-    (PLAN.icons || []).forEach(function (n) { var o = el("option", null, ICON_LABEL[n] || n); o.value = n; if (d.icon === n) o.selected = true; ic.appendChild(o); });
-    ic.addEventListener("change", function () { d.icon = ic.value; refresh(); });
-    row.appendChild(ic);
+    row.appendChild(iconPicker(d.icon, "fp-dicon-" + i, function (n) { d.icon = n; refresh(); }));
 
     var who = el("select", "fp-small"); who.id = "fp-droles-" + i; who.setAttribute("aria-label", "Für wen");
     FOR_WHOM.forEach(function (f) { var o = el("option", null, f.label); o.value = f.v; if (forWhom(d.roles) === f.v) o.selected = true; who.appendChild(o); });
@@ -467,6 +472,90 @@
     del.addEventListener("click", function () { draftDuties.splice(i, 1); renderTab(); });
     row.appendChild(del);
     return row;
+  }
+
+  // Eigene Symbolauswahl statt <select>: Knopf mit Symbol + Name, darunter
+  // ein Raster mit allen Symbolen. Pfeiltasten wandern durchs Raster,
+  // Enter wählt, Esc oder ein Klick daneben schließt.
+  var ICON_COLS = 6;
+
+  function closeIconPickers(except) {
+    document.querySelectorAll(".fp-icpick.open").forEach(function (p) {
+      if (p === except) return;
+      p.classList.remove("open");
+      p.querySelector(".fp-icbtn").setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function iconPicker(current, id, onPick) {
+    var wrap = el("div", "fp-icpick");
+    var btn = el("button", "fp-icbtn"); btn.type = "button"; btn.id = id;
+    btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("aria-label", "Symbol: " + (ICON_LABEL[current] || current));
+    function paintBtn(n) {
+      btn.replaceChildren(icon(n), el("span", "fp-icname", ICON_LABEL[n] || n), el("span", "fp-icchev", "▾"));
+    }
+    paintBtn(current);
+
+    var pop = el("div", "fp-icpop"); pop.setAttribute("role", "listbox"); pop.setAttribute("aria-label", "Symbol wählen");
+    var opts = (PLAN.icons || []).map(function (n) {
+      var o = el("button", "fp-icopt"); o.type = "button"; o.setAttribute("role", "option");
+      o.setAttribute("aria-selected", n === current ? "true" : "false");
+      o.title = ICON_LABEL[n] || n;
+      o.appendChild(icon(n)); o.appendChild(el("span", null, ICON_LABEL[n] || n));
+      o.addEventListener("click", function () {
+        current = n;
+        opts.forEach(function (x) { x.setAttribute("aria-selected", x === o ? "true" : "false"); });
+        paintBtn(n);
+        btn.setAttribute("aria-label", "Symbol: " + (ICON_LABEL[n] || n));
+        close(true);
+        onPick(n);
+      });
+      pop.appendChild(o);
+      return o;
+    });
+
+    function open() {
+      closeIconPickers(wrap);
+      wrap.classList.add("open");
+      btn.setAttribute("aria-expanded", "true");
+      // Nach links bzw. oben ausweichen, wenn rechts/unten kein Platz ist
+      pop.classList.remove("to-left", "to-top");
+      var r = pop.getBoundingClientRect();
+      if (r.right > window.innerWidth - 8) pop.classList.add("to-left");
+      if (r.bottom > window.innerHeight - 8 && btn.getBoundingClientRect().top > r.height + 16) pop.classList.add("to-top");
+      var sel = pop.querySelector('[aria-selected="true"]') || opts[0];
+      if (sel) { sel.scrollIntoView({ block: "nearest" }); sel.focus(); }
+    }
+    function close(focusBtn) {
+      wrap.classList.remove("open");
+      btn.setAttribute("aria-expanded", "false");
+      if (focusBtn) btn.focus();
+    }
+
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (wrap.classList.contains("open")) close(false); else open();
+    });
+    btn.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); open(); }
+    });
+    pop.addEventListener("click", function (e) { e.stopPropagation(); });
+    pop.addEventListener("keydown", function (e) {
+      var i = opts.indexOf(document.activeElement);
+      var step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: ICON_COLS, ArrowUp: -ICON_COLS }[e.key];
+      if (e.key === "Escape") { e.preventDefault(); close(true); return; }
+      if (e.key === "Tab") { close(false); return; }
+      if (step && i !== -1) {
+        e.preventDefault();
+        var t = opts[Math.min(opts.length - 1, Math.max(0, i + step))];
+        t.focus();
+      }
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(pop);
+    return wrap;
   }
 
   // ----- Wochenplan -----
@@ -728,7 +817,11 @@
       var row = el("div", "fp-pair");
       [0, 1].forEach(function (k) {
         var sel = el("select", "fp-small"); sel.id = "fp-pair-" + i + "-" + k; sel.setAttribute("aria-label", "Paar " + (i + 1) + ", Dienst " + (k + 1));
-        duties.forEach(function (d) { var o = el("option", null, d.name); o.value = d.id; if (pair[k] === d.id) o.selected = true; sel.appendChild(o); });
+        duties.forEach(function (d) {
+          var o = el("option", null, d.name); o.value = d.id; if (pair[k] === d.id) o.selected = true;
+          o.dataset.icon = d.icon || "circle-question"; o.dataset.color = d.color;
+          sel.appendChild(o);
+        });
         sel.addEventListener("change", function () { pair[k] = sel.value; });
         row.appendChild(sel);
         if (k === 0) row.appendChild(el("span", "save-hint", "+"));
@@ -772,6 +865,8 @@
       document.querySelectorAll(".fp-tab").forEach(function (b) {
         b.addEventListener("click", function () { TAB = b.getAttribute("data-fptab"); openPicker = null; render(); });
       });
+      // Offene Symbolauswahl schließt bei Klick daneben
+      document.addEventListener("click", function () { closeIconPickers(null); });
       load();
     },
     reload: load,

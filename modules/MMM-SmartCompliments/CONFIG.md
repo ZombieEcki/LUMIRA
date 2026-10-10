@@ -108,8 +108,9 @@ Nach dem Kopieren auf den Pi einmal `npm install` im Modulordner ausführen
 |--------|-----|----------|--------------|
 | `birthdays` | Liste | `[]` | `{ name, date: "MM-TT" }`. Am Tag: „🎂 Heute hat … Geburtstag." |
 | `birthdayReminderDays` | Zahl | `3` | Vorlauf für Geburtstagserinnerung. |
-| `weddingDate` | Text | `""` | `"JJJJ-MM-TT"`. Am Tag: „❤️ Alles Liebe zum Hochzeitstag." |
-| `anniversaryReminderDays` | Zahl | `7` | Vorlauf für Hochzeitstag-Erinnerung. |
+| `weddingDate` | Text | `""` | `"JJJJ-MM-TT"`. Am Tag: „❤️ Alles Liebe zum Hochzeitstag." Nur genutzt, wenn `anniversaries` leer ist. |
+| `anniversaries` | Liste | `[]` | Gemeinsame Jahrestage `{ type, label, date: "JJJJ-MM-TT" }`, `type`: `wedding`, `together`, `engaged`, `met`, `moved` oder `other`. Am Tag: Glückwunsch mit Zahl der Jahre (Hochzeitstag mit `weddingText`), vorher Erinnerung. |
+| `anniversaryReminderDays` | Zahl | `7` | Vorlauf für Jahrestag-Erinnerungen. |
 | `countdowns` | Liste | `[]` | `{ label, date: "MM-TT" }`. „Noch X Tage bis …" |
 
 ### Wetter-Schwellen

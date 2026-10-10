@@ -189,6 +189,26 @@ function normalizeFamily(family) {
 		if (wd === null) throw new ValidationError("family.weddingDate", "Hochzeitstag als TT.MM.JJJJ angeben, z. B. 20.06.2010");
 		out.weddingDate = wd;
 	}
+	if (family.anniversaries !== undefined) {
+		if (!Array.isArray(family.anniversaries)) throw new ValidationError("family.anniversaries", "anniversaries muss eine Liste sein");
+		if (family.anniversaries.length > 10) throw new ValidationError("family.anniversaries", "Höchstens 10 Jahrestage");
+		out.anniversaries = family.anniversaries.map((a, i) => {
+			const type = String((a && a.type) || "");
+			if (!Object.prototype.hasOwnProperty.call(familyDates.ANNIVERSARY_TYPES, type)) {
+				throw new ValidationError(`family.anniversaries.${i}`, "Unbekannte Art von Jahrestag");
+			}
+			const label = type === "other" ? String((a && a.label) || "").trim() : familyDates.ANNIVERSARY_TYPES[type];
+			if (!label || label.length > 40) throw new ValidationError(`family.anniversaries.${i}`, "Eigener Jahrestag braucht einen Namen (bis 40 Zeichen)");
+			const date = familyDates.toFullDate(a && a.date);
+			if (!date) throw new ValidationError(`family.anniversaries.${i}`, `${label}: Datum als TT.MM.JJJJ angeben, z. B. 20.06.2010`);
+			return type === "other" ? { type, label, date } : { type, date };
+		});
+		// Für ältere Leser von settings.json (und als Rückfall) den Hochzeitstag mitführen
+		if (family.weddingDate === undefined) {
+			const wedding = out.anniversaries.find((a) => a.type === "wedding");
+			out.weddingDate = wedding ? wedding.date : "";
+		}
+	}
 	if (family.countdowns !== undefined) {
 		if (!Array.isArray(family.countdowns)) throw new ValidationError("family.countdowns", "countdowns muss eine Liste sein");
 		if (family.countdowns.length > 20) throw new ValidationError("family.countdowns", "Höchstens 20 Countdowns");

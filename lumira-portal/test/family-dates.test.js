@@ -57,6 +57,36 @@ test("Speichern lehnt ungültige Termine mit verständlicher Meldung ab", () => 
 	assert.throws(() => settingsLib.patch({ family: { countdowns: [{ label: "Urlaub", date: "" }] } }), /Urlaub/);
 });
 
+test("Jahrestage: speichern, Hochzeitstag mitführen, Fehler", () => {
+	const saved = settingsLib.patch({
+		family: {
+			anniversaries: [
+				{ type: "wedding", date: "20.06.2010" },
+				{ type: "met", date: "14.02.2005", label: "wird ignoriert" },
+				{ type: "other", label: "Hauskauf", date: "01.04.2018" }
+			]
+		}
+	});
+	assert.deepEqual(saved.family.anniversaries, [
+		{ type: "wedding", date: "2010-06-20" },
+		{ type: "met", date: "2005-02-14" },
+		{ type: "other", label: "Hauskauf", date: "2018-04-01" }
+	]);
+	assert.equal(saved.family.weddingDate, "2010-06-20");
+	assert.equal(settingsLib.patch({ family: { anniversaries: [] } }).family.weddingDate, "");
+	assert.throws(() => settingsLib.patch({ family: { anniversaries: [{ type: "other", label: "", date: "01.01.2020" }] } }), /Namen/);
+	assert.throws(() => settingsLib.patch({ family: { anniversaries: [{ type: "met", date: "14.02." }] } }), /Kennenlerntag/);
+	assert.throws(() => settingsLib.patch({ family: { anniversaries: [{ type: "party", date: "01.01.2020" }] } }), /Unbekannte/);
+});
+
+test("anniversariesOf: neue Liste, sonst alter Hochzeitstag", () => {
+	const { anniversariesOf } = require("../lib/family-dates");
+	assert.deepEqual(anniversariesOf({ weddingDate: "2010-06-20", anniversaries: [] }), [{ type: "wedding", label: "Hochzeitstag", date: "2010-06-20" }]);
+	assert.deepEqual(anniversariesOf({ weddingDate: "2010-06-20", anniversaries: [{ type: "moved", date: "2019-09-01" }, { type: "other", label: "", date: "2019-09-01" }] }),
+		[{ type: "moved", label: "Einzugstag", date: "2019-09-01" }]);
+	assert.deepEqual(anniversariesOf({}), []);
+});
+
 test("config.js: Geburtstage im Modul-Format, auch alte TT.MM.-Einträge", () => {
 	const s = settingsLib.load();
 	s.edition = "home";
@@ -66,5 +96,6 @@ test("config.js: Geburtstage im Modul-Format, auch alte TT.MM.-Einträge", () =>
 	const sc = buildModules(s).find((m) => m.module === "MMM-SmartCompliments").config;
 	assert.deepEqual(sc.birthdays, [{ name: "Alt", date: "12-24" }, { name: "Neu", date: "03-14" }]);
 	assert.equal(sc.weddingDate, "2010-06-20");
+	assert.deepEqual(sc.anniversaries, [{ type: "wedding", label: "Hochzeitstag", date: "2010-06-20" }]);
 	assert.deepEqual(sc.countdowns, [{ label: "Urlaub", date: "08-01" }]);
 });
