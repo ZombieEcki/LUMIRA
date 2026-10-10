@@ -10,6 +10,22 @@
 "use strict";
 
 const { getEdition } = require("./editions");
+const familyDates = require("./family-dates");
+
+// „Wichtige Termine“ → Format von MMM-SmartCompliments ("MM-TT"). Rechnet
+// auch alte Einträge um, die die frühere Personen-Seite als "TT.MM."
+// gespeichert hat (die wurden vom Modul nie erkannt). Ungültige fallen weg.
+function birthdaysFor(family) {
+	return (family.birthdays || [])
+		.map((b) => ({ name: String((b && b.name) || "").trim(), date: familyDates.toMMDD(b && b.date) }))
+		.filter((b) => b.name && b.date);
+}
+
+function countdownsFor(family) {
+	return (family.countdowns || [])
+		.map((c) => ({ label: String((c && c.label) || "").trim(), date: familyDates.toMMDD(c && c.date) }))
+		.filter((c) => c.label && c.date);
+}
 
 function buildModules(settings) {
 	const edition = getEdition(settings.edition);
@@ -23,6 +39,24 @@ function buildModules(settings) {
 		}
 	];
 
+	// Familienplan (concept/familienplan.md) – direkt nach der Uhr, damit er
+	// in top_left unter ihr steht. Inhalte kommen live aus familyplan.json,
+	// hier nur Einbindung/Position/Breite.
+	const familyPlan = settings.familyPlan || {};
+	if (edition.hasFamily && familyPlan.enabled) {
+		modules.push({
+			module: "MMM-FamilyPlan",
+			position: familyPlan.position || "top_left",
+			config: {
+				maxWidth: familyPlan.maxWidth || "300px",
+				layout: familyPlan.layout === "inline" ? "inline" : "stacked",
+				showHeader: true,
+				showWeekRange: true,
+				hideOnAlarmPhases: edition.hasAlarm ? [1] : []
+			}
+		});
+	}
+
 	if (edition.hasFamily) {
 		const moods = (settings.compliments && settings.compliments.moods) || {};
 		modules.push({
@@ -34,10 +68,11 @@ function buildModules(settings) {
 				moodHerzlich: moods.herzlich !== false,
 				moodMotivierend: moods.motivierend !== false,
 				moodHumorvoll: moods.humorvoll !== false,
-				birthdays: (settings.family.birthdays || []).map((b) => ({ name: b.name, date: b.date })),
+				birthdays: birthdaysFor(settings.family),
 				birthdayText: "🥳 Happy Birthday, {name}!",
 				birthdayReminderDays: 3,
-				weddingDate: settings.family.weddingDate || "",
+				weddingDate: familyDates.toFullDate(settings.family.weddingDate) || "",
+				countdowns: countdownsFor(settings.family),
 				weddingText: "❤️ Alles Gute zum Hochzeitstag!",
 				anniversaryReminderDays: 7,
 				firefighterIntegration: edition.hasAlarm,

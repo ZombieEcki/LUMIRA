@@ -6,7 +6,14 @@ rotiert jede Woche automatisch, fair und nachvollziehbar. Gepflegt wird alles
 im Self-Service-Portal, ganz ohne SSH und ohne die `config.js` von Hand
 anzufassen.
 
-> Status: Konzept, Umsetzung offen. Siehe [CHECKLIST.md](../CHECKLIST.md).
+> Status: **Phase 0–3 umgesetzt** (10.10.2026), dazu eine Wochenplan-Vorschau
+> (nur lesend). Noch offen: Änderungen an Zukunftswochen, Begründungen,
+> Fairness-Matrix im Portal (Phase 4), Export/Import/Backup-Wiederherstellung
+> im Portal (Phase 5), Einbau beim Kunden (Phase 6). Code:
+> [modules/MMM-FamilyPlan](../modules/MMM-FamilyPlan),
+> [lumira-portal/lib/familyplan.js](../lumira-portal/lib/familyplan.js),
+> [lumira-portal/lib/familyplan-rotation.js](../lumira-portal/lib/familyplan-rotation.js).
+> Siehe [CHECKLIST.md](../CHECKLIST.md).
 > Grundlage: Anforderungsdokument „Familienplan-Modul für MagicMirror“ plus
 > Design-Mockup (Spiegel-Ansicht, Web-Verwaltung „Übersicht“ und
 > „Dienste bearbeiten“).
@@ -233,9 +240,9 @@ Mehr passt ohnehin nicht in die schmale Spalte oben links.
 modules/MMM-FamilyPlan/
 ├── MMM-FamilyPlan.js      // Anzeige (getDom, sicheres DOM-Bauen)
 ├── MMM-FamilyPlan.css
-├── node_helper.js         // liest familyplan.json, fs.watch, liefert Avatare aus
-├── icons.js               // Icon-Whitelist (wird auch vom Portal genutzt, siehe 6.4)
-├── avatars/               // Preset-Avatare, beim Installieren aus media/avatars/ erzeugt (siehe unten)
+├── node_helper.js         // liest familyplan.json, fs.watch, liefert hochgeladene Fotos aus
+├── payload.js             // reine Aufbereitung der laufenden Woche (ohne MagicMirror testbar)
+├── avatars/               // Preset-Avatare, verkleinert aus media/avatars/ (siehe unten)
 ├── package.json           // keine Abhängigkeiten
 └── README.md
 ```
@@ -248,15 +255,14 @@ sich nichts (der bestehende rsync-Block übernimmt den Rest).
 9 × `child-NN.png`, je 418 × 418 px, zusammen etwa 3,6 MB. Die Preset-ID ist
 der Dateiname ohne Endung (`"child-03"`).
 
-- **Verkleinern vor dem Ausliefern:** Auf dem Spiegel werden die Avatare mit
-  40 px gezeigt, im Portal mit höchstens etwa 96 px. Ein einmaliges
-  Verkleinern auf 256 × 256 px WebP (je etwa 15–25 KB statt 200 KB) spart
-  Speicher und Ladezeit auf dem Pi 3. Das passiert **beim Entwickeln** (ein
-  kleines Script, Ergebnis ins Repo), nicht auf dem Pi, damit dort keine
-  Bildbibliothek nötig ist.
-- **Wohin auf dem Pi:** `install.sh` kopiert die verkleinerten Dateien nach
-  `modules/MMM-FamilyPlan/avatars/` (Anzeige auf dem Spiegel) und nach
-  `~/lumira-portal/public/avatars/` (Auswahl-Galerie im Portal). Beides wird
+- **Verkleinert ausgeliefert:** Auf dem Spiegel werden die Avatare mit
+  40 px gezeigt, im Portal mit höchstens etwa 96 px. Deshalb liegen im Modul
+  verkleinerte Kopien (256 × 256 px JPG, zusammen 225 KB statt 3,6 MB).
+  Verkleinert wird **beim Entwickeln** (Ergebnis im Repo), nicht auf dem Pi,
+  damit dort keine Bildbibliothek nötig ist.
+- **Wohin auf dem Pi:** Die Avatare kommen mit dem Modul nach
+  `~/MagicMirror/modules/MMM-FamilyPlan/avatars/`. Das Portal liest seine
+  Auswahl-Galerie aus genau diesem Ordner (keine zweite Kopie). Beides wird
   bei jedem Update neu befüllt, das ist hier richtig, weil es keine
   Kundendaten sind. Eigene Fotos liegen getrennt in
   `~/.lumira/familyplan/avatars/` und überleben Updates.
@@ -279,7 +285,7 @@ const AVATAR_DIR    = path.join(LUMIRA_HOME, "familyplan", "avatars");
 start() {
 	// Hochgeladene Avatare über den MagicMirror-eigenen Express-Server
 	// ausliefern (kein eigener Port nötig):
-	this.expressApp.use("/MMM-FamilyPlan/avatars", express.static(AVATAR_DIR, { maxAge: "1h" }));
+	this.expressApp.use("/MMM-FamilyPlan/uploads", express.static(AVATAR_DIR, { maxAge: "1h" }));
 }
 ```
 
@@ -370,9 +376,10 @@ die letzten 15), atomar per `.tmp` + `rename`.
 
 Zusätzlich hier:
 
-- **Schreib-Warteschlange (Mutex):** Scheduler und API-Requests können
-  gleichzeitig schreiben wollen. Eine einfache Promise-Kette im Prozess
-  serialisiert alle Schreibvorgänge.
+- **Keine verschachtelten Schreibvorgänge:** Scheduler und API-Requests
+  können gleichzeitig schreiben wollen. Umgesetzt ist das ohne extra Mutex:
+  Jede Operation liest, ändert und schreibt komplett synchron. Node führt sie
+  damit nie verschachtelt aus.
 - **Revisionsprüfung:** Jeder schreibende Request schickt die `revision` mit,
   die er gelesen hat. Ist sie veraltet, kommt `409 Conflict` mit dem aktuellen
   Stand zurück („Der Plan wurde inzwischen auf einem anderen Gerät
@@ -552,7 +559,7 @@ tatsächlich mitgelieferte FA-Version geprüft werden.
 
 ### 6.5 Portal-Seite „Familienplan“
 
-Neuer Nav-Eintrag in der Gruppe „Konfiguration“, direkt nach „Personen“, mit
+Neuer Nav-Eintrag in der Gruppe „Konfiguration“, direkt vor „Wichtige Termine“, mit
 `data-need="hasFamily"` (also nur Home/Fire/Rescue). Innerhalb der Seite gibt
 es Unter-Reiter wie im Mockup (auf dem Handy über das vorhandene
 `page-select`-Muster als Dropdown):
@@ -574,16 +581,14 @@ es Unter-Reiter wie im Mockup (auf dem Handy über das vorhandene
 - Liste mit Avatar, Name, Rolle (Erwachsener/Kind), Farbe, Aktiv-Schalter,
   ▲▼ zum Sortieren. Pro Person „Bearbeiten“ und „Entfernen“.
 - **„+ Mitglied hinzufügen“** öffnet ein Formular: Name, Rolle, Farbe,
-  Avatar. So lassen sich z. B. die Kinder anlegen, die auf der
-  Personen-Seite (nur Geburtstage) gar nicht stehen.
+  Avatar. Das ist die **einzige Stelle**, an der die Familie gepflegt wird.
 - Avatar-Auswahl: Galerie mit dem mitgelieferten Set, eigenes Foto oder
   Initialen. Ein Foto-Upload wird **im Browser** per `<canvas>` auf
-  256 × 256 zugeschnitten und als WebP/PNG hochgeladen. So braucht der Pi
+  256 × 256 zugeschnitten und als JPG hochgeladen. So braucht der Pi
   keine Bildbibliothek (`sharp` & Co. sind native Module und auf dem Pi 3
   ein Installationsrisiko).
-- „Aus ‚Personen‘ übernehmen“: Import der Namen von der bestehenden
-  Personen-Seite, damit niemand doppelt tippen muss. Danach sind beide
-  Listen unabhängig.
+- Die frühere Seite „Personen“ heißt jetzt **„Wichtige Termine“** (siehe
+  6.6). Geburtstage dort verknüpfen sich mit diesen Mitgliedern.
 
 **③ Dienste** (Mockup „Dienste bearbeiten“)
 - Tabelle *Name | Farbe | Symbol | Für wen (alle / nur Erwachsene / nur
@@ -611,6 +616,29 @@ es Unter-Reiter wie im Mockup (auf dem Handy über das vorhandene
 Gespeichert wird pro Karte (wie bei „Sprüche“). Ein Speichervorgang wirkt in
 1–2 Sekunden auf dem Spiegel, ohne Neustart.
 
+### 6.6 Seite „Wichtige Termine“ (früher „Personen“)
+
+Personen gibt es nur noch an einer Stelle: in den Familienmitgliedern (6.5 ②).
+Die frühere Seite „Personen“ (Name + Geburtstag) heißt jetzt „Wichtige
+Termine“ und pflegt alles, was MMM-SmartCompliments an Terminen kennt:
+
+| Bereich | Eingabe | settings.json | MMM-SmartCompliments |
+|---------|---------|---------------|----------------------|
+| Geburtstage | Familienmitglied wählen oder „Andere Person …“ (z. B. Oma) + TT.MM. | `family.birthdays: [{ name, date: "MM-TT", memberId? }]` | `birthdays` |
+| Hochzeitstag | TT.MM.JJJJ | `family.weddingDate: "JJJJ-MM-TT"` | `weddingDate` |
+| Countdowns | Bezeichnung + TT.MM. | `family.countdowns: [{ label, date: "MM-TT" }]` | `countdowns` („Noch 12 Tage bis Sommerurlaub.“) |
+
+- **Verknüpfung:** Ein Geburtstag eines Familienmitglieds speichert dessen
+  `memberId`. Wird das Mitglied umbenannt, zieht der Name mit (Portal
+  schreibt settings.json und config.js neu, MagicMirror startet einmal neu).
+  Wird es entfernt, bleibt der Geburtstag mit dem letzten Namen stehen.
+- **Datumsformat:** Eingabe deutsch, gespeichert im Modul-Format
+  (`lib/family-dates.js`). Das behebt einen alten Fehler: Die frühere
+  Personen-Seite speicherte „TT.MM.“, das Modul erwartet „MM-TT“, Geburtstage
+  aus dem Portal wurden deshalb nie erkannt. `generate-config.js` rechnet
+  auch solche alten Einträge um.
+- Speichern startet MagicMirror einmal neu (die Termine stehen in config.js).
+
 ## 7. Datensicherung & Wiederherstellung
 
 | Ebene | Wie | Wann |
@@ -628,8 +656,8 @@ cp ~/.lumira/backups/familyplan.<zeitstempel>.json ~/.lumira/familyplan.json
 
 ## 8. Sicherheit & Robustheit
 
-- **Nur das Portal schreibt**, Schreibvorgänge laufen über einen Mutex, sind
-  atomar und haben vorher ein Backup.
+- **Nur das Portal schreibt**, Schreibvorgänge laufen synchron (nie
+  verschachtelt), sind atomar und haben vorher ein Backup.
 - **Whitelist-Merge** wie in `settings.js`: Unbekannte Felder aus der API
   werden verworfen.
 - **Kein `innerHTML`** auf dem Spiegel und im Portal für Namen und
@@ -747,7 +775,7 @@ Sprüche-Konzept (6.5): „Guten Morgen Franzi, heute wird gekocht 🍳“.
 ### 12.6 Feste Dienste und Einzel-Regeln
 Die Grob-Regel „nur Erwachsene / nur Kinder“ ist schon im Kern (Rollen, 6.2).
 Feiner wären Regeln pro Person: „Gartendienst immer Marcel“, „Kochdienst erst
-ab 12 Jahren“ (mit dem Geburtsdatum aus der Personen-Seite). Umsetzbar als
+ab 12 Jahren“ (mit dem Geburtstag von der Seite „Wichtige Termine“). Umsetzbar als
 gesperrte bzw. bevorzugte Zuordnung in 6.2, wieder ohne Sonderlogik.
 
 ### 12.8 Eigene Logins für die Kinder
@@ -766,7 +794,7 @@ Dienste diese Woche: …“.
 | # | Frage | Entscheidung | Folge im Konzept |
 |---|-------|--------------|------------------|
 | 1 | Läuft der Familien-Spiegel schon mit LUMIRA? | **Noch nicht.** | Umstellung auf LUMIRA ist Teil des Einbaus (11). Der eingeschränkte Portal-Modus ist nur noch Rückfalloption. |
-| 2 | Wer verwaltet die Namen? | **Der Familienplan selbst**, mit eigener Mitgliederverwaltung zum Anlegen und Verwalten, z. B. für die Kinder. | Rolle Erwachsener/Kind (4), „Für wen“ pro Dienst (6.5 ③), Formular „+ Mitglied hinzufügen“ (6.5 ②), Import aus „Personen“. |
+| 2 | Wer verwaltet die Namen? | **Der Familienplan selbst**, mit eigener Mitgliederverwaltung zum Anlegen und Verwalten, z. B. für die Kinder. | Rolle Erwachsener/Kind (4), „Für wen“ pro Dienst (6.5 ③), Formular „+ Mitglied hinzufügen“ (6.5 ②). Die frühere Seite „Personen“ heißt jetzt „Wichtige Termine“, Geburtstage verknüpfen sich mit den Mitgliedern (6.6). |
 | 3 | Feste Paare oder wechselnde Kombinationen? | **Anpassbar.** | `pairMode` + `fixedPairs` (4), Rotation über Einheiten (6.2), Umschalter in den Einstellungen (6.5 ⑤). |
 | 4 | Avatare | **Lizenzfreies Set** (liegt in `media/avatars/`: 9 Erwachsene, 9 Kinder), dazu eigene Fotos per Upload in der Verwaltung. | Preset-IDs `adult-NN`/`child-NN`, Verkleinern und Verteilen per `install.sh`, Galerie nach Rolle (5.1). Initialen bleiben der Fallback. |
 | 5 | Pillen untereinander oder nebeneinander? | **Beides als Option**, Breite wird vor dem Einbau gemessen. | `layout` + `maxWidth` (5.3), Messung in 11.1. |
@@ -801,7 +829,7 @@ Dienste diese Woche: …“.
 | Phase | Inhalt | Ergebnis |
 |-------|--------|----------|
 | **0** | `lib/store.js` extrahieren (settings/compliments/familyplan) | ein Backup-/Atomic-Write-Code statt drei Kopien |
-| **1** | `lib/familyplan-rotation.js` + Unit-Tests, `lib/familyplan.js` (Store, Mutex, Revision), Scheduler | Rotationslogik fertig und bewiesen, Wochen werden angelegt |
+| **1** | `lib/familyplan-rotation.js` + Unit-Tests, `lib/familyplan.js` (Store, Revision), Scheduler | Rotationslogik fertig und bewiesen, Wochen werden angelegt |
 | **2** | `MMM-FamilyPlan` (Anzeige, node_helper, Live-Reload, Avatare), `generate-config.js`, `settings.default.json`, `install.sh` | Plan erscheint auf dem Spiegel |
 | **3** | Portal-API + Seite: Übersicht, Mitgliederverwaltung (inkl. Rollen), Dienste, Einstellungen (inkl. Paar-Modus) | Familie pflegt alles selbst |
 | **4** | Wochenplan: Vorschau, Zukunfts-Overrides, „neu generieren“, „automatisch wiederherstellen“, Begründungen, Fairness-Matrix | volle Kontrolle über die Rotation |

@@ -1,0 +1,107 @@
+/* MMM-FamilyPlan – kompakte Spalte für oben links, gut lesbar auf Schwarz. */
+.MMM-FamilyPlan .fp {
+	text-align: left;
+	line-height: 1.25;
+}
+
+.MMM-FamilyPlan .fp-title {
+	font-size: 22px;
+	color: #fff;
+}
+
+.MMM-FamilyPlan .fp-week {
+	font-size: 15px;
+	color: #b9bcc2;
+	margin: 2px 0 10px;
+	font-variant-numeric: tabular-nums;
+}
+
+.MMM-FamilyPlan .fp-stale {
+	color: #6f747b;
+}
+
+.MMM-FamilyPlan .fp-hint {
+	margin-top: 4px;
+}
+
+.MMM-FamilyPlan .fp-row {
+	display: grid;
+	gap: 0 10px;
+	padding: 6px 0;
+	align-items: start;
+}
+
+.MMM-FamilyPlan .fp-bar {
+	align-self: stretch;
+	border-radius: 2px;
+}
+
+.MMM-FamilyPlan .fp-av {
+	position: relative;
+	border-radius: 50%;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 17px;
+}
+
+.MMM-FamilyPlan .fp-av img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.MMM-FamilyPlan .fp-right {
+	min-width: 0;
+}
+
+.MMM-FamilyPlan .fp-name {
+	font-size: 16px;
+	color: #fff;
+	margin-bottom: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.MMM-FamilyPlan .fp-pills {
+	display: grid;
+	gap: 5px;
+}
+
+.MMM-FamilyPlan .fp-inline .fp-pills {
+	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+
+.MMM-FamilyPlan .fp-pill {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	padding: 4px 9px;
+	border-radius: 5px;
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.MMM-FamilyPlan .fp-pill i {
+	flex: none;
+	width: 14px;
+	text-align: center;
+}
+
+.MMM-FamilyPlan .fp-pill-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.MMM-FamilyPlan .fp-free {
+	background: #2a2d31;
+	color: #c9ccd1;
+}

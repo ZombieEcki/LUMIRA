@@ -19,7 +19,7 @@ Self-Service-Portal ein – nicht mehr interaktiv im Terminal.
 
 | Ordner | Inhalt |
 |--------|--------|
-| [`modules/`](modules) | Die eigenen Module (MMM-aPagerAlarm, MMM-SmartCompliments, MMM-LumiraStatus) |
+| [`modules/`](modules) | Die eigenen Module (MMM-aPagerAlarm, MMM-SmartCompliments, MMM-LumiraStatus, MMM-FamilyPlan) |
 | [`lumira-portal/`](lumira-portal) | Self-Service-Portal – Ersteinrichtung per Access Point & laufende Konfiguration im Heimnetz |
 | [`version/`](version) | Basis-`config.js`-Vorlage je Edition, für die manuelle Grundinstallation |
 | [`docs/`](docs) | Geräte-/Installationsdokumentation |
@@ -73,6 +73,7 @@ keine Terminal-Eingabe mehr nötig.
 | **`MMM-aPagerAlarm`** | Feuerwehr-Alarmierung + Home-Assistant-Weiterleitung | **Eigen** |
 | **`MMM-SmartCompliments`** | intelligente Familien-/Motivationssprüche | **Eigen** |
 | **`MMM-LumiraStatus`** | Setup-Anleitung/QR-Code bzw. dezenter Status-Hinweis auf dem Spiegel | **Eigen** |
+| **`MMM-FamilyPlan`** | Familienplan: Wochendienste mit fairer automatischer Rotation, im Portal gepflegt (nur Home/Fire/Rescue, im Portal einschaltbar) | **Eigen** |
 
 ## 🧙 Was im Self-Service-Portal einzutragen ist
 
@@ -82,6 +83,8 @@ Nicht mehr Teil von `install.sh` – trägt der Kunde selbst unter
 | Feld | Wofür | Automatik |
 |------|-------|-----------|
 | **Name der Person** | Alarm-/Familienkarten | — |
+| **Familienmitglieder** | Familienplan (Seite „Familienplan“) | Rollen, Avatare, faire Wochenrotation |
+| **Wichtige Termine** | Geburtstage, Hochzeitstag, Countdowns für die Familienbotschaften | Geburtstage verknüpfen sich mit den Familienmitgliedern |
 | **Home-Assistant-Webhook** (optional) | Licht bei Alarm | wird in `forwardTargets` eingetragen |
 | **Ort/Stadt** | Wetter &amp; Standort | Ortssuche im Portal wandelt automatisch in Koordinaten um (Open-Meteo) |
 | **Kalender-URL** | Familienkalender | `webcal://` → `https://` automatisch |
@@ -162,6 +165,7 @@ pm2 stop MagicMirror      # anhalten
 - [modules/MMM-aPagerAlarm](modules/MMM-aPagerAlarm) – Alarmmodul
 - [modules/MMM-SmartCompliments](modules/MMM-SmartCompliments) – Familienassistent
 - [modules/MMM-LumiraStatus](modules/MMM-LumiraStatus) – Setup-/Status-Anzeige auf dem Spiegel
+- [modules/MMM-FamilyPlan](modules/MMM-FamilyPlan) – Familienplan (Wochendienste)
 
 ## ⚠️ Worauf achten
 

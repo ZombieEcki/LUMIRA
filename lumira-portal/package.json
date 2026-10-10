@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "provision": "node provision.js"
+    "provision": "node provision.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.19.2",

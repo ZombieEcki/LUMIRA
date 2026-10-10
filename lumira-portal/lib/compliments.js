@@ -6,19 +6,18 @@
 // Nur was der Kunde tatsächlich anpasst landet hier; leere/fehlende Listen
 // bedeuten "eingebauten Standardtext des Moduls behalten".
 //
-// Gleiches Muster wie lib/settings.js (Backup vor jedem Schreiben, atomarer
-// .tmp+rename-Schreibvorgang). Bewusst eigenständig statt gemeinsamer
-// lib/store.js – eine Extraktion ist ein separater, risikoärmerer Refactor.
+// Backup vor jedem Schreiben und atomarer .tmp+rename-Schreibvorgang kommen
+// aus dem gemeinsamen lib/store.js (wie bei settings.json/familyplan.json).
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 const settingsLib = require("./settings");
+const { createJsonStore } = require("./store");
 
 const LUMIRA_HOME = settingsLib.LUMIRA_HOME;
 const COMPLIMENTS_PATH = process.env.LUMIRA_COMPLIMENTS_PATH || path.join(LUMIRA_HOME, "compliments.json");
 const BACKUP_DIR = path.join(LUMIRA_HOME, "backups");
-const MAX_BACKUPS = 15;
+const store = createJsonStore({ filePath: COMPLIMENTS_PATH, backupDir: BACKUP_DIR, backupPrefix: "compliments", maxBackups: 15 });
 
 // Größenlimits (verhindert, dass ein verunglücktes Bulk-Paste Speicher/Anzeige sprengt)
 const MAX_ENTRIES_PER_CATEGORY = 200;
@@ -61,16 +60,11 @@ function isStringArray(v) {
 	return Array.isArray(v) && v.every((x) => typeof x === "string");
 }
 
-function ensureHome() {
-	fs.mkdirSync(LUMIRA_HOME, { recursive: true });
-	fs.mkdirSync(BACKUP_DIR, { recursive: true });
-}
-
 function load() {
 	const base = emptyShape();
-	if (!fs.existsSync(COMPLIMENTS_PATH)) return base;
+	if (!store.exists()) return base;
 	try {
-		const raw = JSON.parse(fs.readFileSync(COMPLIMENTS_PATH, "utf8"));
+		const raw = store.readRaw();
 		return mergeKnown(base, raw);
 	} catch (err) {
 		console.error("[lumira-portal] compliments.json ist beschädigt, nutze Leer-Schema:", err.message);
@@ -160,28 +154,9 @@ function validate(data) {
 	return true;
 }
 
-function backupExisting() {
-	if (!fs.existsSync(COMPLIMENTS_PATH)) return null;
-	ensureHome();
-	const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-	const dest = path.join(BACKUP_DIR, `compliments.${stamp}.json`);
-	fs.copyFileSync(COMPLIMENTS_PATH, dest);
-	const files = fs.readdirSync(BACKUP_DIR).filter((f) => f.startsWith("compliments.")).sort();
-	while (files.length > MAX_BACKUPS) {
-		fs.unlinkSync(path.join(BACKUP_DIR, files.shift()));
-	}
-	return dest;
-}
-
 function save(data) {
 	validate(data);
-	ensureHome();
-	backupExisting();
-	const toWrite = Object.assign({}, data, { updatedAt: new Date().toISOString() });
-	const tmp = `${COMPLIMENTS_PATH}.tmp`;
-	fs.writeFileSync(tmp, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
-	fs.renameSync(tmp, COMPLIMENTS_PATH);
-	return toWrite;
+	return store.write(Object.assign({}, data, { updatedAt: new Date().toISOString() }));
 }
 
 // Patch pro Kategorie: nur mitgeschickte Kategorien ersetzen, Rest bleibt.

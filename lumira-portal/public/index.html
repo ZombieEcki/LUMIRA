@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LUMIRA – Portal</title>
 <link rel="stylesheet" href="style.css">
+<!-- Font Awesome lokal aus der MagicMirror-Installation (Symbole im Familienplan) -->
+<link rel="stylesheet" href="/vendor/fa/css/all.min.css">
 </head>
 <body>
 
@@ -79,7 +81,8 @@
     </nav>
     <nav class="navgroup" id="nav-konfig">
       <span class="glabel">Konfiguration</span>
-      <button class="navbtn" data-page="familie" data-need="hasFamily"><span class="ic">👪</span>Personen</button>
+      <button class="navbtn" data-page="familienplan" data-need="hasFamily"><span class="ic">👪</span>Familienplan</button>
+      <button class="navbtn" data-page="familie" data-need="hasFamily"><span class="ic">🎂</span>Wichtige Termine</button>
       <button class="navbtn" data-page="spruche" data-need="hasFamily"><span class="ic">🗨</span>Sprüche</button>
       <button class="navbtn" data-page="standort"><span class="ic">📍</span>Standort &amp; Wetter</button>
       <button class="navbtn" data-page="kalender" data-need="hasCal"><span class="ic">📅</span>Kalender</button>
@@ -157,19 +160,48 @@
       </div>
     </section>
 
-    <!-- Familie / Personen -->
+    <!-- Wichtige Termine (früher „Personen“). Die Personen selbst pflegt der
+         Familienplan (Familienmitglieder), Geburtstage verknüpfen sich damit. -->
     <section class="page" data-page="familie">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Personen</h1>
-        <p id="familie-sub">Namen und Geburtstage für die Familienbotschaften.</p></div>
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Wichtige Termine</h1>
+        <p>Geburtstage, Hochzeitstag und Countdowns für die Familienbotschaften auf dem Spiegel. Speichern startet MagicMirror einmal neu.</p></div>
       <div class="card">
-        <!-- Namen hier sind zugleich die künftige Quelle für Familienmitglieder-Namen
-             eines späteren To-Do-Moduls (noch nicht gebaut). -->
-        <div class="bday-head"><span>Name</span><span>Geburtstag <span class="opt">(optional)</span></span></div>
+        <h2>🎂 Geburtstage</h2>
+        <p class="sub">Person aus den Familienmitgliedern wählen oder eine andere Person eintragen (z. B. Oma). Am Tag selbst und ein paar Tage vorher gibt es einen Hinweis.</p>
+        <div class="term-head"><span>Person</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
         <div class="bdays" id="bdays"></div>
-        <button type="button" class="btn-add" id="addBday">+ Person hinzufügen</button>
-        <div class="save-row"><button class="btn primary" data-save="familie">Speichern</button>
-          <span class="save-hint" data-savehint="familie"></span></div>
+        <button type="button" class="btn-add" id="addBday">+ Geburtstag hinzufügen</button>
       </div>
+      <div class="card">
+        <h2>💍 Hochzeitstag</h2>
+        <p class="sub">Optional. Eine Woche vorher und am Tag selbst gibt es einen Hinweis.</p>
+        <div class="field"><label for="weddingDate">Datum <span class="opt">(TT.MM.JJJJ)</span></label>
+          <input type="text" class="mono-in" id="weddingDate" placeholder="20.06.2010" inputmode="numeric" style="max-width:180px;"></div>
+      </div>
+      <div class="card">
+        <h2>⏳ Countdowns</h2>
+        <p class="sub">Termine, auf die sich alle freuen. Auf dem Spiegel z. B.: „Noch 12 Tage bis Sommerurlaub.“ Wiederholt sich jedes Jahr.</p>
+        <div class="term-head"><span>Bezeichnung</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
+        <div class="bdays" id="countdowns"></div>
+        <button type="button" class="btn-add" id="addCountdown">+ Countdown hinzufügen</button>
+      </div>
+      <div class="save-row"><button class="btn primary" data-save="familie">Speichern</button>
+        <span class="save-hint" data-savehint="familie"></span></div>
+    </section>
+
+    <!-- Familienplan (concept/familienplan.md) – Inhalt baut familyplan.js -->
+    <section class="page" data-page="familienplan">
+      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Familienplan</h1>
+        <p>Wer hat diese Woche welchen Dienst? Die Verteilung wechselt automatisch und fair. Änderungen wirken sofort auf dem Spiegel.</p></div>
+      <div class="fp-tabs" role="tablist" aria-label="Familienplan">
+        <button class="fp-tab" role="tab" data-fptab="uebersicht" aria-selected="true">Übersicht</button>
+        <button class="fp-tab" role="tab" data-fptab="mitglieder" aria-selected="false">Familienmitglieder</button>
+        <button class="fp-tab" role="tab" data-fptab="dienste" aria-selected="false">Dienste</button>
+        <button class="fp-tab" role="tab" data-fptab="wochen" aria-selected="false">Wochenplan</button>
+        <button class="fp-tab" role="tab" data-fptab="einstellungen" aria-selected="false">Einstellungen</button>
+      </div>
+      <div id="fp-warnings"></div>
+      <div id="fp-panel"><div class="save-hint">Lädt …</div></div>
     </section>
 
     <!-- Sprüche -->
@@ -338,6 +370,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<script src="familyplan.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

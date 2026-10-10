@@ -1,0 +1,15 @@
+{
+  "name": "mmm-familyplan",
+  "version": "1.0.0",
+  "description": "MagicMirror² – Familienplan für LUMIRA: Wochendienste mit fairer automatischer Rotation, gepflegt im LUMIRA-Portal.",
+  "main": "MMM-FamilyPlan.js",
+  "keywords": [
+    "MagicMirror",
+    "MagicMirror2",
+    "Familie",
+    "Dienste",
+    "Wochenplan"
+  ],
+  "author": "Liam Eckhof",
+  "license": "MIT"
+}

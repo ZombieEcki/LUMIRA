@@ -18,6 +18,7 @@ const multer = require("multer");
 
 const settingsLib = require("./lib/settings");
 const complimentsLib = require("./lib/compliments");
+const familyplanLib = require("./lib/familyplan");
 const modeLib = require("./lib/mode");
 const netLib = require("./lib/net");
 const authLib = require("./lib/auth");
@@ -297,6 +298,170 @@ app.post("/api/compliments", requireAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Familienplan (familyplan.json) – siehe concept/familienplan.md.
+// Bewusst KEIN pm2-Neustart: MMM-FamilyPlan lädt die Datei per fs.watch live
+// nach. Nur das Ein-/Ausschalten des Moduls läuft über POST /api/settings.
+// Jede schreibende Route schickt die gelesene "revision" mit; ist sie
+// veraltet (zweites Handy hat inzwischen gespeichert), kommt 409 + aktueller
+// Stand zurück.
+// ---------------------------------------------------------------------------
+const MM_ROOT = path.dirname(path.dirname(MM_CONFIG_PATH));
+// Preset-Avatare liefert das Modul mit (install.sh kopiert es nach
+// ~/MagicMirror/modules/). Beim Entwickeln im Repo liegt es daneben.
+const PRESET_AVATAR_DIR = [
+	process.env.LUMIRA_AVATAR_DIR,
+	path.join(MM_ROOT, "modules", "MMM-FamilyPlan", "avatars"),
+	path.join(__dirname, "..", "modules", "MMM-FamilyPlan", "avatars")
+].filter(Boolean).find((dir) => fs.existsSync(dir));
+const PRESET_FILE_RE = /^(adult|child)-\d{2}\.jpg$/;
+const MEMBER_ID_RE = /^m_[a-z0-9]{4,12}$/;
+const AVATAR_MIME = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+
+function ensureWeekSafe() {
+	try {
+		familyplanLib.ensureCurrentWeek(new Date());
+	} catch (err) {
+		console.error("[lumira-portal] Wochenwechsel Familienplan fehlgeschlagen:", err.message);
+	}
+}
+
+function familyplanError(res, err) {
+	if (err instanceof familyplanLib.ConflictError) {
+		return res.status(409).json({ error: err.message, conflict: true, plan: familyplanLib.view(new Date()) });
+	}
+	const status = err instanceof familyplanLib.ValidationError ? 400 : 500;
+	if (status === 500) console.error("[lumira-portal] Familienplan:", err);
+	res.status(status).json({ error: err.message, field: err.field });
+}
+
+// Führt eine Änderung aus, legt danach ggf. die laufende Woche an (z. B.
+// nach dem ersten Anlegen der Mitglieder) und liefert die frische Ansicht.
+// "after" darf Zusatzfelder für die Antwort liefern (z. B. restarted).
+function familyplanAction(res, fn, after) {
+	try {
+		fn(new Date());
+		ensureWeekSafe();
+		const extra = after ? after() : null;
+		res.json(Object.assign(familyplanLib.view(new Date()), extra || {}));
+	} catch (err) {
+		familyplanError(res, err);
+	}
+}
+
+// Geburtstage auf der Seite „Wichtige Termine“ sind mit Familienmitgliedern
+// verknüpft (memberId). Wird jemand umbenannt, zieht der Name mit; wird
+// jemand entfernt, bleibt der Geburtstag mit dem letzten Namen stehen.
+// Nur wenn sich dabei etwas ändert, wird config.js neu erzeugt (Neustart).
+function syncBirthdayNames() {
+	const settings = settingsLib.load();
+	const birthdays = (settings.family && settings.family.birthdays) || [];
+	const members = familyplanLib.load().members;
+	let changed = false;
+	const next = birthdays.map((b) => {
+		if (!b || !b.memberId) return b;
+		const m = members.find((x) => x.id === b.memberId);
+		if (!m || m.deleted) { changed = true; return { name: b.name, date: b.date }; }
+		if (m.name !== b.name) { changed = true; return Object.assign({}, b, { name: m.name }); }
+		return b;
+	});
+	if (!changed) return null;
+	const saved = settingsLib.patch({ family: { birthdays: next } });
+	regenerateAndRestart(saved);
+	return { restarted: true };
+}
+
+app.get("/api/familyplan", requireAuth, (req, res) => {
+	ensureWeekSafe();
+	res.json(familyplanLib.view(new Date()));
+});
+
+app.put("/api/familyplan/members", requireAuth, (req, res) => {
+	const body = req.body || {};
+	familyplanAction(res, (now) => familyplanLib.setMembers(body.revision, body.members, now), syncBirthdayNames);
+});
+
+app.put("/api/familyplan/duties", requireAuth, (req, res) => {
+	const body = req.body || {};
+	familyplanAction(res, (now) => familyplanLib.setDuties(body.revision, body.duties, now));
+});
+
+app.put("/api/familyplan/settings", requireAuth, (req, res) => {
+	const body = req.body || {};
+	familyplanAction(res, (now) => familyplanLib.setSettings(body.revision, body.settings, now));
+});
+
+app.post("/api/familyplan/weeks/:start/assign", requireAuth, (req, res) => {
+	const body = req.body || {};
+	familyplanAction(res, (now) => familyplanLib.assign(body.revision, req.params.start, String(body.memberId || ""), Number(body.slot), String(body.dutyId || ""), now));
+});
+
+app.post("/api/familyplan/weeks/:start/reset", requireAuth, (req, res) => {
+	const body = req.body || {};
+	familyplanAction(res, (now) => familyplanLib.resetWeek(body.revision, req.params.start, now));
+});
+
+app.post("/api/familyplan/regenerate", requireAuth, (req, res) => {
+	const body = req.body || {};
+	if (body.scope !== "current" || body.confirm !== true) {
+		return res.status(400).json({ error: "Nur „aktuelle Woche neu verteilen“ mit Bestätigung möglich" });
+	}
+	familyplanAction(res, (now) => familyplanLib.regenerateCurrent(body.revision, now));
+});
+
+app.get("/api/familyplan/presets", requireAuth, (req, res) => {
+	if (!PRESET_AVATAR_DIR) return res.json({ presets: [] });
+	const presets = fs.readdirSync(PRESET_AVATAR_DIR).filter((f) => PRESET_FILE_RE.test(f)).sort().map((f) => f.replace(/\.jpg$/, ""));
+	res.json({ presets });
+});
+
+// Eigenes Foto: der Browser schneidet es vorher auf 256 × 256 zu, hier nur
+// noch Typ/Größe/Signatur prüfen und unter der Mitglieds-ID ablegen.
+const avatarUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+
+function looksLikeImage(buf, ext) {
+	if (ext === "png") return buf.length > 8 && buf.readUInt32BE(0) === 0x89504e47;
+	if (ext === "jpg") return buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+	if (ext === "webp") return buf.length > 12 && buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP";
+	return false;
+}
+
+app.post("/api/familyplan/avatar/:memberId", requireAuth, avatarUpload.single("avatar"), (req, res) => {
+	const memberId = req.params.memberId;
+	const ext = req.file && AVATAR_MIME[req.file.mimetype];
+	if (!MEMBER_ID_RE.test(memberId) || !familyplanLib.memberExists(memberId)) {
+		return res.status(404).json({ error: "Mitglied nicht gefunden" });
+	}
+	if (!ext || !looksLikeImage(req.file.buffer, ext)) {
+		return res.status(400).json({ error: "Nur PNG-, JPG- oder WebP-Bilder bis 2 MB erlaubt" });
+	}
+	try {
+		fs.mkdirSync(familyplanLib.AVATAR_UPLOAD_DIR, { recursive: true });
+		for (const other of Object.values(AVATAR_MIME)) {
+			const old = path.join(familyplanLib.AVATAR_UPLOAD_DIR, `${memberId}.${other}`);
+			if (other !== ext && fs.existsSync(old)) fs.unlinkSync(old);
+		}
+		const file = `${memberId}.${ext}`;
+		fs.writeFileSync(path.join(familyplanLib.AVATAR_UPLOAD_DIR, file), req.file.buffer);
+		familyplanLib.setUploadedAvatar(memberId, file);
+		res.json(familyplanLib.view(new Date()));
+	} catch (err) {
+		familyplanError(res, err);
+	}
+});
+
+app.delete("/api/familyplan/avatar/:memberId", requireAuth, (req, res) => {
+	const memberId = req.params.memberId;
+	if (!MEMBER_ID_RE.test(memberId)) return res.status(404).json({ error: "Mitglied nicht gefunden" });
+	familyplanAction(res, () => familyplanLib.clearAvatar(memberId));
+});
+
+if (PRESET_AVATAR_DIR) app.use("/avatars", express.static(PRESET_AVATAR_DIR, { maxAge: "1d" }));
+app.use("/avatar-uploads", requireAuth, express.static(familyplanLib.AVATAR_UPLOAD_DIR, { maxAge: "1h" }));
+// Font Awesome lokal aus der MagicMirror-Installation (Symbol-Auswahl, auch ohne Internet)
+const FA_DIR = path.join(MM_ROOT, "node_modules", "@fortawesome", "fontawesome-free");
+if (fs.existsSync(FA_DIR)) app.use("/vendor/fa", express.static(FA_DIR, { maxAge: "7d" }));
+
+// ---------------------------------------------------------------------------
 // WLAN (Phase 2/3)
 // ---------------------------------------------------------------------------
 app.get("/api/wifi/scan", requireAuth, async (req, res) => {
@@ -420,6 +585,9 @@ if (require.main === module) {
 	app.listen(PORT, "0.0.0.0", () => {
 		console.log(`[lumira-portal] läuft auf Port ${PORT} (Modus: ${modeLib.get().mode})`);
 	});
+	// Wochenwechsel Familienplan: beim Start und dann jede Minute prüfen.
+	ensureWeekSafe();
+	setInterval(ensureWeekSafe, 60 * 1000);
 }
 
 module.exports = app;

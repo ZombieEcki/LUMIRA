@@ -167,12 +167,25 @@
       wireStandortSearch();
       wireAlarmSound();
       wireSpruche();
-      $("#addBday").addEventListener("click", function () { $("#bdays").appendChild(bdayRow({ name: "", date: "" })); });
+      $("#addBday").addEventListener("click", function () {
+        var first = FP_MEMBERS[0];
+        $("#bdays").appendChild(bdayRow(first ? { memberId: first.id, name: first.name, date: "" } : { name: "", date: "" }));
+      });
+      $("#addCountdown").addEventListener("click", function () { $("#countdowns").appendChild(countdownRow({ label: "", date: "" })); });
       $("#addCalUrl").addEventListener("click", function () {
         if ($all("#cal-urls .calrow").length >= 3) return;
         $("#cal-urls").appendChild(calUrlRow(""));
         updateAddCalUrlState();
       });
+      if (STATUS.edition.flags.hasFamily && window.LumiraFamilyPlan) {
+        window.LumiraFamilyPlan.init({
+          api: api,
+          toast: toast,
+          getSettings: function () { return SETTINGS; },
+          setSettings: function (s) { SETTINGS = s; renderModulePreview(); },
+          onPlanChange: function (plan) { setFamilyMembers(plan.members || []); }
+        });
+      }
       renderModuleList();
       renderModulePreview();
       refreshStatus();
@@ -198,6 +211,8 @@
   function populateForm() {
     var s = SETTINGS;
     renderBdays(s.family.birthdays || []);
+    renderCountdowns(s.family.countdowns || []);
+    $("#weddingDate").value = fullToDe(s.family.weddingDate || "");
 
     $("#loc-name").value = s.location.name || "";
     $("#loc-lat").value = s.location.lat;
@@ -239,27 +254,118 @@
   }
   function switchOn(el) { return el.getAttribute("aria-checked") === "true"; }
 
-  function renderBdays(list) {
+  // ---------------------------------------------------------------------
+  // Wichtige Termine: Geburtstage (verknüpft mit den Familienmitgliedern des
+  // Familienplans), Hochzeitstag, Countdowns. settings.json speichert das
+  // Format von MMM-SmartCompliments ("MM-TT" / "JJJJ-MM-TT"), hier wird
+  // deutsch angezeigt und eingegeben ("TT.MM." / "TT.MM.JJJJ").
+  // ---------------------------------------------------------------------
+  var FP_MEMBERS = [];          // Familienmitglieder aus dem Familienplan
+  var OTHER = "__other";
+
+  function mmddToDe(s) {
+    var m = /^(\d{2})-(\d{2})$/.exec(String(s || ""));
+    return m ? m[2] + "." + m[1] + "." : String(s || "");
+  }
+  function fullToDe(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ""));
+    return m ? m[3] + "." + m[2] + "." + m[1] : String(s || "");
+  }
+
+  // Neue Mitgliederliste: Auswahl aktualisieren, alte Einträge ohne
+  // Verknüpfung per Namen verknüpfen (wird beim nächsten Speichern übernommen).
+  function setFamilyMembers(members) {
+    var current = $("#bdays") ? collectBdayRows() : [];
+    FP_MEMBERS = members.slice();
+    current.forEach(function (b) {
+      if (b.memberId && !FP_MEMBERS.some(function (m) { return m.id === b.memberId; })) delete b.memberId;
+      if (b.memberId) return;
+      var match = FP_MEMBERS.filter(function (m) { return m.name.trim().toLowerCase() === b.name.trim().toLowerCase(); })[0];
+      if (match) b.memberId = match.id;
+    });
+    renderBdays(current, true);
+  }
+
+  function renderBdays(list, raw) {
     var wrap = $("#bdays");
     wrap.innerHTML = "";
-    list.forEach(function (b, i) { wrap.appendChild(bdayRow(b, i)); });
+    list.forEach(function (b) { wrap.appendChild(bdayRow(raw ? b : { memberId: b.memberId, name: b.name, date: mmddToDe(b.date) })); });
   }
-  function bdayRow(b, i) {
+
+  function bdayRow(b) {
     var row = document.createElement("div");
-    row.className = "bday";
-    row.innerHTML = '<input type="text" placeholder="Name" data-k="name">' +
-      '<input type="text" class="mono-in" placeholder="TT.MM." data-k="date">' +
-      '<button type="button" class="btn-x" title="entfernen">✕</button>';
-    $all("input", row)[0].value = b.name || "";
-    $all("input", row)[1].value = b.date || "";
-    $("button", row).addEventListener("click", function () { row.remove(); });
+    row.className = "term-row";
+    // Verknüpfung merken, auch wenn die Mitglieder noch nicht geladen sind
+    row.dataset.memberId = b.memberId || "";
+    var sel = document.createElement("select");
+    sel.setAttribute("aria-label", "Person");
+    var linked = b.memberId && FP_MEMBERS.some(function (m) { return m.id === b.memberId; });
+    FP_MEMBERS.forEach(function (m) {
+      var o = document.createElement("option"); o.value = m.id; o.textContent = m.name;
+      if (linked && m.id === b.memberId) o.selected = true;
+      sel.appendChild(o);
+    });
+    var other = document.createElement("option"); other.value = OTHER; other.textContent = "Andere Person …";
+    if (!linked) other.selected = true;
+    sel.appendChild(other);
+    var name = document.createElement("input");
+    name.type = "text"; name.placeholder = "Name, z. B. Oma Erika"; name.maxLength = 40; name.className = "term-name";
+    name.value = linked ? "" : (b.name || "");
+    name.hidden = linked;
+    var date = document.createElement("input");
+    date.type = "text"; date.className = "mono-in"; date.placeholder = "TT.MM."; date.inputMode = "numeric"; date.value = b.date || "";
+    date.setAttribute("aria-label", "Datum");
+    var del = document.createElement("button"); del.type = "button"; del.className = "btn-x"; del.title = "entfernen"; del.textContent = "✕";
+    sel.addEventListener("change", function () {
+      row.dataset.memberId = sel.value === OTHER ? "" : sel.value;
+      name.hidden = sel.value !== OTHER;
+      if (!name.hidden) name.focus();
+    });
+    del.addEventListener("click", function () { row.remove(); });
+    var who = document.createElement("div"); who.className = "term-who";
+    who.appendChild(sel); who.appendChild(name);
+    row.appendChild(who); row.appendChild(date); row.appendChild(del);
     return row;
   }
+
+  function collectBdayRows() {
+    return $all("#bdays .term-row").map(function (row) {
+      var sel = $("select", row), inputs = $all("input", row);
+      var member = FP_MEMBERS.filter(function (m) { return m.id === sel.value; })[0];
+      if (member) return { memberId: member.id, name: member.name, date: inputs[1].value.trim() };
+      var out = { name: inputs[0].value.trim(), date: inputs[1].value.trim() };
+      if (row.dataset.memberId) out.memberId = row.dataset.memberId; // noch nicht aufgelöste Verknüpfung
+      return out;
+    });
+  }
   function collectBdays() {
-    return $all("#bdays .bday").map(function (row) {
+    return collectBdayRows().filter(function (b) { return b.name || b.date; });
+  }
+
+  function renderCountdowns(list) {
+    var wrap = $("#countdowns");
+    wrap.innerHTML = "";
+    list.forEach(function (c) { wrap.appendChild(countdownRow({ label: c.label, date: mmddToDe(c.date) })); });
+  }
+  function countdownRow(c) {
+    var row = document.createElement("div");
+    row.className = "term-row";
+    var label = document.createElement("input");
+    label.type = "text"; label.placeholder = "z. B. Sommerurlaub"; label.maxLength = 40; label.value = c.label || "";
+    label.setAttribute("aria-label", "Bezeichnung");
+    var date = document.createElement("input");
+    date.type = "text"; date.className = "mono-in"; date.placeholder = "TT.MM."; date.inputMode = "numeric"; date.value = c.date || "";
+    date.setAttribute("aria-label", "Datum");
+    var del = document.createElement("button"); del.type = "button"; del.className = "btn-x"; del.title = "entfernen"; del.textContent = "✕";
+    del.addEventListener("click", function () { row.remove(); });
+    row.appendChild(label); row.appendChild(date); row.appendChild(del);
+    return row;
+  }
+  function collectCountdowns() {
+    return $all("#countdowns .term-row").map(function (row) {
       var inputs = $all("input", row);
-      return { name: inputs[0].value.trim(), date: inputs[1].value.trim() };
-    }).filter(function (b) { return b.name || b.date; });
+      return { label: inputs[0].value.trim(), date: inputs[1].value.trim() };
+    }).filter(function (c) { return c.label || c.date; });
   }
 
   function renderCalUrls(list) {
@@ -337,7 +443,7 @@
 
   function patchFor(section) {
     if (section === "familie") {
-      return { family: { birthdays: collectBdays() } };
+      return { family: { birthdays: collectBdays(), weddingDate: $("#weddingDate").value.trim(), countdowns: collectCountdowns() } };
     }
     if (section === "standort") {
       return {
@@ -435,7 +541,8 @@
 
   function renderModulePreview() {
     var flags = STATUS.edition.flags;
-    setPreviewCell("top_left", "🕐 Uhr");
+    var fpOn = flags.hasFamily && SETTINGS && SETTINGS.familyPlan && SETTINGS.familyPlan.enabled;
+    setPreviewCell("top_left", fpOn ? "🕐 Uhr / 🗓 Familienplan" : "🕐 Uhr");
     setPreviewCell("top_center", flags.hasFamily ? "💬 Kompliments" : "");
     var right = ["🌤 Wetter"];
     if (flags.hasRain) right.push("🌧 Regenradar");

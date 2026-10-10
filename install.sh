@@ -6,7 +6,7 @@
 #   - Node.js (falls fehlend/zu alt)
 #   - MagicMirror²
 #   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments,
-#     modules/MMM-LumiraStatus)
+#     modules/MMM-LumiraStatus, modules/MMM-FamilyPlan)
 #   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD)
 #   - eine lauffähige config.js mit Platzhalter-Werten für die gewählte Edition
 #   - optional Autostart per pm2
@@ -51,7 +51,7 @@ set -euo pipefail
 MM_DIR="${MM_DIR:-$HOME/MagicMirror}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
 MM_REPO="https://github.com/MagicMirrorOrg/MagicMirror"
-OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus")
+OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan")
 
 WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0
 EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1

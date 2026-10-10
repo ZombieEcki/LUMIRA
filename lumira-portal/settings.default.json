@@ -6,7 +6,8 @@
   },
   "family": {
     "birthdays": [],
-    "weddingDate": ""
+    "weddingDate": "",
+    "countdowns": []
   },
   "compliments": {
     "moods": {
@@ -14,6 +15,12 @@
       "motivierend": true,
       "humorvoll": true
     }
+  },
+  "familyPlan": {
+    "enabled": false,
+    "position": "top_left",
+    "maxWidth": "300px",
+    "layout": "stacked"
   },
   "location": {
     "name": "Berlin",

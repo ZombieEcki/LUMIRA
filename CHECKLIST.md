@@ -76,6 +76,25 @@ um den aktuellen Stand zu sehen.
       bei einem Update nur, falls es noch nicht lief, wodurch neuer Code nach
       `git pull` nie geladen wurde - jetzt immer echter `restart`
 
+### Familienplan (MMM-FamilyPlan)
+- [x] **`MMM-FamilyPlan`** – Familienplan oben links (Farbbalken, Avatar,
+      farbige Dienste mit Symbol), Live-Reload aus `~/.lumira/familyplan.json`
+- [x] **Faire Rotation** (`lumira-portal/lib/familyplan-rotation.js`):
+      deterministisch, in jedem Zyklus jeder Dienst genau einmal pro Person,
+      keine direkte Wiederholung, Rollen (Erwachsene/Kinder), feste Paare
+- [x] **Portal-Seite „Familienplan“**: Übersicht mit Tausch per Dropdown,
+      Mitgliederverwaltung mit Avataren/Foto-Upload, Dienste, Wochenplan-
+      Vorschau, Einstellungen; Wochenwechsel im Portal-Prozess
+- [x] Gemeinsamer Speicher `lib/store.js` (Backup + atomares Schreiben) für
+      settings.json, compliments.json und familyplan.json
+- [x] Seite „Personen“ → **„Wichtige Termine“**: Geburtstage (verknüpft mit
+      den Familienmitgliedern, Umbenennung zieht mit), Hochzeitstag und
+      Countdowns; Personen werden nur noch im Familienplan gepflegt
+- [x] Bugfix: Geburtstage aus dem Portal wurden nie erkannt (Portal speicherte
+      „TT.MM.“, MMM-SmartCompliments erwartet „MM-TT“) – jetzt umgerechnet,
+      auch für alte Einträge
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 34 Tests)
+
 ---
 
 ## 🐛 Bekannte Bugs (offen)
@@ -140,7 +159,7 @@ mit Aufforderung, es erneut einzugeben.
 | 8 | **Hintergrund-Option** (Farbe/Bild/Slideshow) | 📋 geplant |
 | 9 | **Alexa-Integration** (Ansagen bei Alarm, Sprachsteuerung für Kompliments-Schalter) | 📋 geplant |
 | 10 | **Sprüche von MMM-SmartCompliments in `compliments.json`** – vom Portal bearbeitbar statt in `config.js` fest codiert | 🟡 Phase 1-3 umgesetzt (Portal-Seite „Sprüche" + Stimmungs-Auswahl + Live-Reload, [concept/smartcompliments-json.md](concept/smartcompliments-json.md)); Live-Reload noch auf echter Pi-Hardware zu verifizieren; Phasen 4-7 (Migration, enabled/pinned, Import/Export, personMessages, Mehrsprachigkeit) offen |
-| 11 | **Familienplan** – Wochendienste (4 Personen × 2 Dienste) mit fairer automatischer Rotation, neues Modul `MMM-FamilyPlan` oben links, Verwaltung im Portal | 📋 Konzept fertig ([concept/familienplan.md](concept/familienplan.md)), Umsetzung offen; Einbau auf dem Familien-Spiegel erst nach dem Pi-3-Fix |
+| 11 | **Familienplan** – Wochendienste (4 Personen × 2 Dienste) mit fairer automatischer Rotation, neues Modul `MMM-FamilyPlan` oben links, Verwaltung im Portal | 🟡 Phase 0-3 umgesetzt ([concept/familienplan.md](concept/familienplan.md)): Modul, Rotation mit Rollen & festen Paaren, Portal-Seite „Familienplan“, Tests; noch auf echter Pi-Hardware zu verifizieren. Offen: Zukunftswochen bearbeiten, Fairness-Matrix (Phase 4), Export/Import im Portal (Phase 5), Lizenzangabe der Avatare, Einbau auf dem Familien-Spiegel nach dem Pi-3-Fix |
 
 **Legende:** ✅ erledigt · 🟡 in Arbeit / teilweise · 📋 geplant, noch nicht begonnen
 
