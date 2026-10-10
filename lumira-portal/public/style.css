@@ -16,7 +16,7 @@
   --r-sm:12px; --r:22px; --r-lg:28px;
   --font:"Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono:ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --rail-w:84px;
+  --rail-w:84px; --gut:clamp(32px, 2.4vw, 56px);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark) {
@@ -85,7 +85,7 @@ button, input, select, textarea { font-family:inherit; }
 
 .shell { flex:1; min-width:0; display:flex; flex-direction:column; }
 .topbar { display:flex; flex-wrap:wrap; align-items:center; gap:14px;
-  padding:calc(26px + env(safe-area-inset-top, 0px)) calc(32px + env(safe-area-inset-right, 0px)) 12px 32px; }
+  padding:calc(26px + env(safe-area-inset-top, 0px)) calc(var(--gut) + env(safe-area-inset-right, 0px)) 12px var(--gut); }
 .topbar-title { flex:1 1 280px; display:flex; flex-direction:column; gap:3px; min-width:0; }
 .eyebrow { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); }
 .topbar h1 { font-size:1.9rem; font-weight:800; letter-spacing:-.02em; }
@@ -101,14 +101,14 @@ button, input, select, textarea { font-family:inherit; }
   font-size:.66rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
 .icon-btn .nav-badge { position:absolute; top:4px; right:2px; border:2px solid var(--card); }
 
-.subnav { display:flex; gap:4px; padding:4px; margin:4px 32px 4px; background:var(--card); border-radius:999px; box-shadow:var(--shadow);
-  overflow-x:auto; scrollbar-width:none; align-self:flex-start; max-width:calc(100% - 64px); }
+.subnav { display:flex; gap:4px; padding:4px; margin:4px var(--gut) 4px; background:var(--card); border-radius:999px; box-shadow:var(--shadow);
+  overflow-x:auto; scrollbar-width:none; align-self:flex-start; max-width:calc(100% - 2 * var(--gut)); }
 .subnav::-webkit-scrollbar { display:none; }
 .subnav button { border:0; background:transparent; color:var(--muted); font-size:.88rem; font-weight:600; padding:10px 16px;
   border-radius:999px; cursor:pointer; white-space:nowrap; }
 .subnav button[aria-selected="true"] { background:var(--inv); color:var(--inv-ink); }
 
-main { padding:14px 32px 48px; max-width:1240px; width:100%; }
+main { padding:14px var(--gut) 48px; width:100%; }
 .page { display:none; }
 .page.active { display:block; animation:fade .18s ease-out; }
 @keyframes fade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
@@ -188,9 +188,9 @@ main { padding:14px 32px 48px; max-width:1240px; width:100%; }
 .next-row b { flex:1; font-size:.92rem; min-width:0; }
 .next-row span { font-size:.82rem; color:var(--muted); white-space:nowrap; }
 .weather-row { display:flex; gap:6px; }
-.wx { flex:1 0 54px; display:flex; flex-direction:column; align-items:center; gap:7px; padding:12px 4px; border-radius:999px; background:var(--soft); }
+.wx { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:7px; padding:12px 4px; border-radius:999px; background:var(--soft); }
 .wx.now { background:var(--inv); color:var(--inv-ink); }
-.wx span { font-size:.72rem; font-weight:600; } .wx b { font-size:.92rem; }
+.wx span { font-size:.72rem; font-weight:600; white-space:nowrap; } .wx b { font-size:.92rem; }
 
 /* ---------- Formulare ---------- */
 .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -416,6 +416,31 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
 .tips { margin:10px 0 0; padding-left:18px; display:grid; gap:10px; font-size:.92rem; color:var(--muted); }
 .tips b { color:var(--ink); }
 
+/* ---------- Breite Bildschirme (ab 1400 px): Platz nutzen statt Leerraum ----------
+   Das Portal füllt die ganze Breite. Damit Formulare nicht endlos lang
+   werden, stehen Karten (.cols), Kartenlisten (.card-grid) und Felder
+   (.form-cols) dort nebeneinander. */
+@media (min-width:1400px) {
+  .page.cols.active { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:18px; align-items:start; }
+  .page.cols > * { grid-column:1 / -1; }
+  .page.cols > .card { grid-column:auto; margin:0; }
+  .page.cols > .card.wide { grid-column:1 / -1; }
+  .page.cols > .card.tall { grid-row:span 2; }
+  .page.cols > .page-lead, .page.cols > .save-row { margin-bottom:0; }
+  .card-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:18px; align-items:start; margin-bottom:16px; }
+  .card-grid > .card { margin:0; }
+  .card.form-cols { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px 32px; align-items:start; }
+  .card.form-cols > .save-row, .card.form-cols > details, .card.form-cols > h2, .card.form-cols > .sub { grid-column:1 / -1; }
+  .card.form-cols .field, .card.form-cols .field.first, .card.form-cols > .save-row, .card.form-cols > details { margin-top:0; }
+  .card.form-cols > .toggle { border-top:0; }
+  .toggle-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:40px; }
+  .toggle-grid > .toggle { border-top:1px solid var(--line); }
+}
+@media (min-width:2100px) {
+  .card-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .page.cols.active.cols3 { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+}
+
 /* ---------- Handy (< 860 px): App-Kopf + schwebende Tab-Leiste ---------- */
 @media (max-width:860px) {
   .rail { display:none; }
@@ -445,6 +470,9 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
   .tab-btn .ic { width:22px; height:22px; }
   .tab-btn .lbl { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
   .toast { bottom:calc(100px + env(safe-area-inset-bottom, 0px)); }
+  .weather-row { gap:4px; }
+  .wx { padding:10px 2px; }
+  .wx span { font-size:.66rem; }
   .app-hint { flex-wrap:wrap; }
   .app-hint .banner-text { flex-basis:calc(100% - 100px); }
   .app-hint { align-items:flex-start; }

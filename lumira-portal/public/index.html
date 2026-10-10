@@ -271,9 +271,9 @@
 
       <!-- Wichtige Termine (früher „Personen“). Die Personen selbst pflegt der
            Familienplan (Mitglieder), Geburtstage verknüpfen sich damit. -->
-      <section class="page" data-page="familie">
+      <section class="page cols" data-page="familie">
         <p class="page-lead">Geburtstage, Hochzeitstag und Countdowns für die Familienbotschaften auf dem Spiegel. Speichern startet MagicMirror einmal neu.</p>
-        <div class="card">
+        <div class="card tall">
           <h2>Geburtstage</h2>
           <p class="sub">Person aus den Familienmitgliedern wählen oder eine andere Person eintragen (z. B. Oma). Am Tag selbst und ein paar Tage vorher gibt es einen Hinweis.</p>
           <div class="term-head"><span>Person</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
@@ -303,14 +303,16 @@
         <div class="card">
           <h2>Stimmung</h2>
           <p class="sub">Welche Art Sprüche soll vorkommen? Mindestens eine muss aktiv bleiben.</p>
+          <div class="toggle-grid">
           <div class="toggle"><span class="tl2">Herzlich</span>
             <button class="sw" id="mood-herzlich" role="switch" aria-label="Herzlich"></button></div>
           <div class="toggle"><span class="tl2">Motivierend</span>
             <button class="sw" id="mood-motivierend" role="switch" aria-label="Motivierend"></button></div>
           <div class="toggle"><span class="tl2">Humorvoll</span>
             <button class="sw" id="mood-humorvoll" role="switch" aria-label="Humorvoll"></button></div>
+          </div>
         </div>
-        <div id="spruch-cards"></div>
+        <div id="spruch-cards" class="card-grid"></div>
         <div class="save-row sticky"><button class="btn primary" id="save-spruche">Speichern</button>
           <span class="save-hint" id="spruche-hint"></span></div>
       </section>
@@ -321,14 +323,14 @@
         <div class="card">
           <h2>Module</h2>
           <p class="sub">Aktuell ist „Familienbotschaften“ schaltbar (auf der Startseite), der Rest folgt.</p>
-          <div id="module-list-extra"></div>
+          <div id="module-list-extra" class="toggle-grid"></div>
         </div>
       </section>
 
       <!-- Standort -->
       <section class="page" data-page="standort">
         <p class="page-lead">Für Wettervorhersage und Regenradar.</p>
-        <div class="card">
+        <div class="card form-cols">
           <div class="field first"><label for="loc-search">Ort/Stadt suchen</label>
             <div class="input-row">
               <input type="text" id="loc-search" placeholder="z. B. Musterstadt">
@@ -364,7 +366,7 @@
       <!-- Nachrichten -->
       <section class="page" data-page="news">
         <p class="page-lead">Nachrichtenticker am unteren Bildschirmrand.</p>
-        <div class="card">
+        <div class="card form-cols">
           <div class="field first"><label for="news-select">Nachrichten-Feed</label>
             <select id="news-select">
               <option value="tagesschau">Tagesschau</option>
@@ -381,7 +383,7 @@
       <!-- ================= ALARM ================= -->
       <section class="page" data-page="alarm">
         <p class="page-lead">Einstellungen für MMM-aPagerAlarm.</p>
-        <div class="card">
+        <div class="card form-cols">
           <div class="field first">
             <label id="lbl-personname" for="personName">Name der Person</label>
             <input type="text" id="personName">
@@ -418,7 +420,7 @@
 
       <!-- ================= MEHR ================= -->
       <!-- Info -->
-      <section class="page" data-page="info">
+      <section class="page cols" data-page="info">
         <div class="card">
           <div class="info-logo">
             <img class="for-light" src="img/logo-dark.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="560" height="480">
@@ -458,11 +460,11 @@
       </section>
 
       <!-- Als App (Startbildschirm) -->
-      <section class="page" data-page="app">
+      <section class="page cols" data-page="app">
         <p class="page-lead">Das Portal lässt sich wie eine App auf Handy, Tablet und PC ablegen – mit eigenem Symbol und ohne Browserleiste.
           Es funktioniert, solange das Gerät im selben WLAN wie der Spiegel ist.</p>
 
-        <div class="card app-status">
+        <div class="card app-status wide">
           <img src="img/icon-192.png" alt="" width="56" height="56">
           <div class="app-status-text"><b id="app-mode">–</b><span class="sub" id="app-mode-sub"></span></div>
           <button type="button" class="btn primary" id="app-install" hidden><svg class="ic"><use href="#i-download"/></svg>Installieren</button>
@@ -525,7 +527,7 @@
       </section>
 
       <!-- Sicherheit -->
-      <section class="page" data-page="sicherheit">
+      <section class="page cols" data-page="sicherheit">
         <p class="page-lead">PIN-Schutz für dieses Portal im Heimnetz.</p>
         <div class="card">
           <div class="field first"><label for="pin-new">Neuer PIN <span class="opt">(4-8 Ziffern)</span></label>

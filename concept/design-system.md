@@ -278,6 +278,14 @@ Seitenleiste 248 px mit Logo oben, den fünf Bereichen (aufklappbar mit
 Unterseiten), Gerätestatus unten. Inhalt max. 960 px, wo sinnvoll zweispaltig
 (z. B. Start: Status links, „Diese Woche“ rechts).
 
+**Umgesetzt (Bento):** Icon-Leiste 84 px statt Seitenleiste. Der Inhalt füllt
+die ganze Bildschirmbreite (Seitenrand `--gut`, 32–56 px), keine
+Maximalbreite. Ab 1400 px stehen Karten nebeneinander, damit Formulare nicht
+endlos lang werden: `.page.cols` (Karten zweispaltig, `.wide` = volle Breite,
+`.tall` = zwei Zeilen hoch), `.card-grid` (Kartenlisten, ab 2100 px
+dreispaltig), `.card.form-cols` (Felder einer Karte zweispaltig) und
+`.toggle-grid` (Schalterlisten). Darunter bleibt alles einspaltig.
+
 ### 5.5 „Zum Startbildschirm“
 
 Das Web-Manifest und die App-Icons sind schon da. Damit lässt sich das Portal
