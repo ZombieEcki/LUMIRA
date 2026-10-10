@@ -90,7 +90,7 @@
       nets.forEach(function (n) {
         var row = document.createElement("div");
         row.className = "wifi-item";
-        row.innerHTML = '<span class="ssid">' + (n.secure ? "🔒 " : "📶 ") + escapeHtml(n.ssid) + '</span>' +
+        row.innerHTML = '<span class="ssid">' + escapeHtml(n.ssid) + (n.secure ? " · gesichert" : "") + '</span>' +
           '<span class="sig">' + n.signal + '%</span>';
         row.addEventListener("click", function () {
           $all(".wifi-item", list).forEach(function (r) { r.classList.remove("sel"); });
@@ -139,7 +139,8 @@
     var pin = $("#login-pin").value.trim();
     var msg = $("#login-msg");
     msg.innerHTML = "";
-    api("/api/auth/login", { method: "POST", body: { pin: pin } }).then(function () {
+    var remember = $("#login-remember").checked;
+    api("/api/auth/login", { method: "POST", body: { pin: pin, remember: remember } }).then(function () {
       hide($("#login-screen"));
       showApp();
     }).catch(function (err) {
@@ -164,6 +165,7 @@
       wireSteuerung();
       wireWlan();
       wireSicherheit();
+      wireAppPage();
       wireStandortSearch();
       wireAlarmSound();
       wireSpruche();
@@ -183,16 +185,22 @@
           toast: toast,
           getSettings: function () { return SETTINGS; },
           setSettings: function (s) { SETTINGS = s; renderModulePreview(); },
-          onPlanChange: function (plan) { setFamilyMembers(plan.members || []); }
+          onPlanChange: function (plan) { setFamilyMembers(plan.members || []); renderStartFamily(plan); }
         });
       }
       if (window.LumiraUpdates) {
-        window.LumiraUpdates.init({ toast: toast, goPage: goPage });
+        window.LumiraUpdates.init({ toast: toast, goPage: goPage, onStatus: renderUpdateTile });
       }
+      wireTheme();
+      wireLogout();
+      renderGreeting();
+      renderStartNext();
+      loadWeather();
       renderModuleList();
       renderModulePreview();
       refreshStatus();
       setInterval(refreshStatus, 5000);
+      setInterval(renderGreeting, 60 * 1000);
     });
   }
 
@@ -200,9 +208,9 @@
     var flags = STATUS.edition.flags;
     $("#edn-name").textContent = STATUS.edition.name;
     $("#lbl-personname").textContent = STATUS.edition.personLabel;
-    $all(".navbtn[data-need]").forEach(function (btn) {
-      var need = btn.getAttribute("data-need");
-      btn.style.display = flags[need] ? "" : "none";
+    // Alles mit data-need (Kacheln, Karten, Links) nur in passenden Editionen
+    $all("[data-need]").forEach(function (el) {
+      if (!flags[el.getAttribute("data-need")]) el.hidden = true;
     });
     $("#card-alarm-actions").hidden = !flags.hasAlarm;
     $("#rain-row").style.display = flags.hasRain ? "" : "none";
@@ -407,34 +415,135 @@
   // ---------------------------------------------------------------------
   // Navigation
   // ---------------------------------------------------------------------
+  // Fünf Bereiche (concept/design-system.md 5.1), je mit ihren Seiten.
+  // Desktop: Icon-Leiste links, Handy: Tab-Leiste unten; Bereiche mit
+  // mehreren Seiten zeigen oben Reiter. Die Adresse (#seite) merkt sich die
+  // Seite, damit Zurück-Taste und Lesezeichen funktionieren.
+  var AREAS = [
+    { id: "start", label: "Start", icon: "home", pages: [["start", "Übersicht"]] },
+    { id: "familie", label: "Familie", icon: "users", need: "hasFamily", pages: [["familienplan", "Familienplan"], ["familie", "Termine"], ["spruche", "Sprüche"]] },
+    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
+    { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarmierung"]] },
+    { id: "mehr", label: "Mehr", icon: "more", pages: [["info", "Info & Updates"], ["app", "Als App"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit"]] }
+  ];
+  var currentPage = "";
+
+  function visibleAreas() {
+    var flags = STATUS.edition.flags;
+    return AREAS.filter(function (a) { return !a.need || flags[a.need]; }).map(function (a) {
+      return { id: a.id, label: a.label, icon: a.icon, pages: a.pages.filter(function (p) { return !p[2] || flags[p[2]]; }) };
+    });
+  }
+
+  function areaOf(page) {
+    return visibleAreas().filter(function (a) { return a.pages.some(function (p) { return p[0] === page; }); })[0] || null;
+  }
+
+  function svgIcon(name) {
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "ic");
+    svg.setAttribute("aria-hidden", "true");
+    var use = document.createElementNS(ns, "use");
+    use.setAttribute("href", "#i-" + name);
+    svg.appendChild(use);
+    return svg;
+  }
+
   function goPage(name) {
-    $all(".navbtn").forEach(function (b) { b.classList.toggle("active", b.getAttribute("data-page") === name); });
+    var area = areaOf(name);
+    if (!area) { name = "start"; area = areaOf("start"); }
+    currentPage = name;
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
-    var sel = $("#page-select");
-    if (sel && sel.value !== name) sel.value = name;
+    $all("[data-area-btn]").forEach(function (b) {
+      var on = b.getAttribute("data-area-btn") === area.id;
+      b.classList.toggle("active", on);
+      if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    // Reiter des Bereichs
+    var sub = $("#subnav");
+    sub.innerHTML = "";
+    sub.hidden = area.pages.length < 2;
+    area.pages.forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", p[0] === name ? "true" : "false");
+      b.textContent = p[1];
+      b.addEventListener("click", function () { goPage(p[0]); });
+      sub.appendChild(b);
+    });
+    // Kopfzeile
+    if (name === "start") {
+      renderGreeting();
+    } else {
+      $("#area-eyebrow").textContent = area.label;
+      $("#area-title").textContent = area.pages.filter(function (p) { return p[0] === name; })[0][1];
+      $("#area-sub").textContent = "";
+    }
+    if (location.hash !== "#" + name) {
+      try { history.replaceState(null, "", "#" + name); } catch (e) { location.hash = name; }
+    }
+    window.scrollTo(0, 0);
   }
 
   function wireNav() {
-    $all(".navbtn").forEach(function (btn) {
-      btn.addEventListener("click", function () { goPage(btn.getAttribute("data-page")); });
-    });
-    var sel = $("#page-select");
-    sel.innerHTML = "";
-    $all(".navgroup").forEach(function (group) {
-      var label = $(".glabel", group);
-      var optgroup = document.createElement("optgroup");
-      optgroup.label = label ? label.textContent : "";
-      $all(".navbtn", group).forEach(function (btn) {
-        if (btn.style.display === "none") return;
-        var opt = document.createElement("option");
-        opt.value = btn.getAttribute("data-page");
-        opt.textContent = btn.textContent;
-        optgroup.appendChild(opt);
+    ["rail", "tabbar"].forEach(function (kind) {
+      var host = $('[data-areas="' + kind + '"]');
+      visibleAreas().forEach(function (a) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = kind === "rail" ? "rail-btn" : "tab-btn";
+        b.setAttribute("data-area-btn", a.id);
+        b.setAttribute("aria-label", a.label);
+        b.appendChild(svgIcon(a.icon));
+        var lbl = document.createElement("span");
+        lbl.className = "lbl";
+        lbl.textContent = a.label;
+        b.appendChild(lbl);
+        if (a.id === "mehr") {
+          var badge = document.createElement("span");
+          badge.className = "nav-badge area-badge";
+          badge.hidden = true;
+          b.appendChild(badge);
+        }
+        b.addEventListener("click", function () { goPage(a.pages[0][0]); });
+        host.appendChild(b);
       });
-      if (optgroup.children.length) sel.appendChild(optgroup);
     });
-    sel.addEventListener("change", function () { goPage(sel.value); });
-    goPage("steuerung");
+    // Links innerhalb der Seiten (#seite) und Zurück-Taste
+    window.addEventListener("hashchange", function () {
+      var target = location.hash.replace(/^#/, "");
+      if (target && target !== currentPage) goPage(target);
+    });
+    $("#upd-bell").addEventListener("click", function () { goPage("info"); });
+    goPage(location.hash.replace(/^#/, "") || "start");
+  }
+
+  // Hell / Dunkel / Auto (System), gemerkt im Browser
+  function wireTheme() {
+    var stored = "auto";
+    try { stored = localStorage.getItem("lumira-theme") || "auto"; } catch (e) {}
+    function apply(mode) {
+      if (mode === "light" || mode === "dark") document.documentElement.setAttribute("data-theme", mode);
+      else document.documentElement.removeAttribute("data-theme");
+      $all("[data-theme-set]").forEach(function (b) {
+        b.setAttribute("aria-pressed", b.getAttribute("data-theme-set") === mode ? "true" : "false");
+      });
+      try { localStorage.setItem("lumira-theme", mode); } catch (e) {}
+    }
+    $all("[data-theme-set]").forEach(function (b) {
+      b.addEventListener("click", function () { apply(b.getAttribute("data-theme-set")); });
+    });
+    apply(stored);
+  }
+
+  function wireLogout() {
+    var btn = $("#logout-btn");
+    btn.hidden = !(SETTINGS.portal && SETTINGS.portal.pinSet);
+    btn.addEventListener("click", function () {
+      api("/api/auth/logout", { method: "POST" }).then(function () { location.reload(); }).catch(function () { location.reload(); });
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -495,6 +604,8 @@
     api("/api/settings", { method: "POST", body: patchFor(section) }).then(function (settings) {
       SETTINGS = settings;
       btn.disabled = false;
+      renderStartNext();
+      renderGreeting();
       if (hint) hint.textContent = "Gespeichert – MagicMirror startet neu.";
       toast("Gespeichert");
     }).catch(function (err) {
@@ -531,12 +642,12 @@
   // Steuerung der Module: Platzhalter-Liste + rein visuelle Vorschau
   // ---------------------------------------------------------------------
   var MODULE_LIST = [
-    { need: "hasAlarm", label: "🚒 Alarmierung" },
-    { need: "hasCal", label: "📅 Kalender" },
-    { need: null, label: "📰 Nachrichten" },
-    { need: null, label: "🌤 Wetter" },
-    { need: "hasRain", label: "🌧 Regenradar" },
-    { need: null, label: "🕐 Uhr" }
+    { need: "hasAlarm", label: "Alarmierung" },
+    { need: "hasCal", label: "Kalender" },
+    { need: null, label: "Nachrichten" },
+    { need: null, label: "Wetter" },
+    { need: "hasRain", label: "Regenradar" },
+    { need: null, label: "Uhr" }
   ];
   function renderModuleList() {
     var wrap = $("#module-list-extra");
@@ -555,50 +666,254 @@
   function renderModulePreview() {
     var flags = STATUS.edition.flags;
     var fpOn = flags.hasFamily && SETTINGS && SETTINGS.familyPlan && SETTINGS.familyPlan.enabled;
-    setPreviewCell("top_left", fpOn ? "🕐 Uhr / 🗓 Familienplan" : "🕐 Uhr");
-    setPreviewCell("top_center", flags.hasFamily ? "💬 Kompliments" : "");
-    var right = ["🌤 Wetter"];
-    if (flags.hasRain) right.push("🌧 Regenradar");
-    setPreviewCell("top_right", right.join(" / "));
-    setPreviewCell("bottom_left", flags.hasCal ? "📅 Kalender" : "");
-    setPreviewCell("bottom_right", "ℹ️ Status");
-    $("#mp-bottombar").textContent = "📰 Nachrichten";
+    setPreviewCell("top_left", fpOn ? "Uhr · Familienplan" : "Uhr");
+    setPreviewCell("top_center", flags.hasFamily ? "Sprüche" : "");
+    var right = ["Wetter"];
+    if (flags.hasRain) right.push("Regenradar");
+    setPreviewCell("top_right", right.join(" · "));
+    setPreviewCell("bottom_left", flags.hasCal ? "Kalender" : "");
+    setPreviewCell("bottom_right", "Status");
+    $("#mp-bottombar").textContent = "Nachrichten";
     var overlay = $("#mp-overlay");
-    overlay.textContent = "🚒 Alarmierung (Vollbild bei Alarm)";
+    overlay.textContent = "Alarmierung – Vollbild bei Alarm";
     overlay.hidden = !flags.hasAlarm;
+    var visible = 3 + (fpOn ? 1 : 0) + (flags.hasFamily ? 1 : 0) + (flags.hasRain ? 1 : 0) + (flags.hasCal ? 1 : 0);
+    $("#mirror-sub").textContent = visible + " Module sichtbar";
   }
   function setPreviewCell(region, text) {
     var cell = $('.mp-cell[data-region="' + region + '"]');
     if (cell) cell.textContent = text;
   }
 
+  function setTile(id, state) {
+    var t = $(id);
+    if (!t) return;
+    t.classList.remove("warn", "err", "off");
+    if (state) t.classList.add(state);
+  }
+
   function refreshStatus() {
     api("/api/status").then(function (status) {
       STATUS = status;
-      var netTile = $("#tile-network");
+      var ipv4 = (status.network.ipv4 || [])[0];
       $("#net-state-text").textContent = status.network.online ? "Heimnetz" : "getrennt";
-      $("#net-sub").textContent = status.network.ssid || "–";
-      netTile.classList.toggle("warn", !status.network.online);
+      $("#net-sub").textContent = (status.network.ssid || "") + (ipv4 ? (status.network.ssid ? " · " : "") + ipv4.address : "") || "–";
+      setTile("#tile-network", status.network.online ? "" : "warn");
       $("#wlan-status-v").textContent = status.network.online ? "verbunden" : "getrennt";
       $("#wlan-ssid-v").textContent = status.network.ssid || "–";
       renderIpInfo();
     }).catch(function () {});
 
-    if (STATUS.edition.flags.hasAlarm) {
-      api("/api/proxy/alarm/health").then(function (data) {
+    // Der Spiegel gilt als "läuft", wenn eines seiner Module antwortet
+    // (Sprüche-Schalter bzw. Alarm-Webhook laufen im MagicMirror-Prozess).
+    var flags = STATUS.edition.flags;
+    var checks = [];
+    if (flags.hasAlarm) {
+      checks.push(api("/api/proxy/alarm/health").then(function (data) {
         $("#alarm-state-text").textContent = "bereit";
         $("#alarm-sub").textContent = data.module || "MMM-aPagerAlarm";
+        setTile("#tile-alarm", "");
+        return true;
       }).catch(function () {
         $("#alarm-state-text").textContent = "nicht erreichbar";
-        $("#tile-alarm").classList.add("warn");
-      });
+        $("#alarm-sub").textContent = "Alarm-Modul antwortet nicht";
+        setTile("#tile-alarm", "err");
+        return false;
+      }));
     }
-
-    api("/api/proxy/compliments/status").then(function (data) {
+    checks.push(api("/api/proxy/compliments/status").then(function (data) {
       $("#compliments-state").textContent = data.enabled === false ? "Aus" : "An";
+      return true;
     }).catch(function () {
       $("#compliments-state").textContent = "–";
+      return false;
+    }));
+    Promise.all(checks).then(function (results) {
+      var up = results.some(Boolean);
+      $("#mirror-state-text").textContent = up ? "läuft" : "nicht erreichbar";
+      setTile("#tile-mirror", up ? "" : "err");
+      var dot = $("#device-dot");
+      dot.className = "dot " + (up ? "ok" : "err");
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Startseite: Begrüßung, Updates-Kachel, Familienplan, Als Nächstes, Wetter
+  // ---------------------------------------------------------------------
+  var WEATHER_NOW = null;
+  var START_PLAN = null;
+  var WEEKDAYS_LONG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+  var MONTHS_LONG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+  function renderGreeting() {
+    if (currentPage !== "start") return;
+    var now = new Date();
+    var h = now.getHours();
+    var hello = h < 5 ? "Gute Nacht" : h < 11 ? "Guten Morgen" : h < 17 ? "Hallo" : h < 22 ? "Guten Abend" : "Gute Nacht";
+    $("#area-eyebrow").textContent = "Start";
+    $("#area-title").textContent = hello + (STATUS.edition.flags.hasFamily ? ", Familie" : "");
+    var parts = [WEEKDAYS_LONG[now.getDay()] + ", " + now.getDate() + ". " + MONTHS_LONG[now.getMonth()]];
+    if (SETTINGS && SETTINGS.location && SETTINGS.location.name) {
+      parts.push(SETTINGS.location.name.split(",")[0] + (WEATHER_NOW !== null ? " " + Math.round(WEATHER_NOW) + "°" : ""));
+    }
+    $("#area-sub").textContent = parts.join(" · ");
+  }
+
+  function renderUpdateTile(s) {
+    var n = (s && s.available) || 0;
+    $("#upd-tile-text").textContent = n ? n + " verfügbar" : (s && s.checkedAt ? "aktuell" : "noch nicht geprüft");
+    var names = (s && s.components || []).filter(function (c) { return c.updateAvailable; }).map(function (c) { return c.name; });
+    $("#upd-tile-sub").textContent = names.length ? names.join(", ") : "MagicMirror² & Module";
+    setTile("#tile-updates", n ? "warn" : (s && s.checkedAt ? "" : "off"));
+    $all(".area-badge").forEach(function (b) { b.hidden = !n; b.textContent = String(n); });
+  }
+
+  function textOnColor(hex) {
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return "#121214";
+    var c = [1, 3, 5].map(function (i) { var v = parseInt(hex.substr(i, 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2] > 0.3 ? "#14161a" : "#ffffff";
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+
+  function renderStartFamily(plan) {
+    START_PLAN = plan;
+    var wrap = $("#start-fp-rows");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    var w = plan.currentWeek;
+    $("#start-fp-week").textContent = w ? "KW " + w.kw : "";
+    if (!w) {
+      wrap.appendChild(el("p", "save-hint", plan.members && plan.members.length ? "Die erste Woche wird gleich angelegt." : "Noch keine Familie angelegt – unter Familie → Familienplan → Mitglieder geht es los."));
+      renderStartNext();
+      return;
+    }
+    var duties = {};
+    (plan.allDuties || []).forEach(function (d) { duties[d.id] = d; });
+    var order = (plan.allMembers || []).map(function (m) { return m.id; });
+    Object.keys(w.assign).sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); }).forEach(function (id) {
+      var m = (plan.allMembers || []).filter(function (x) { return x.id === id; })[0];
+      if (!m) return;
+      var row = el("div", "mini-row");
+      var av = el("span", "mini-av", (m.name || "?").charAt(0).toUpperCase());
+      av.style.background = m.color; av.style.color = textOnColor(m.color);
+      var src = m.avatar && m.avatar.type === "preset" ? "/avatars/" + m.avatar.value + ".jpg"
+        : m.avatar && m.avatar.type === "upload" ? "/avatar-uploads/" + m.avatar.file + "?v=" + (m.avatar.v || 0) : null;
+      if (src) { var img = el("img"); img.alt = ""; img.src = src; img.onerror = function () { img.remove(); }; av.appendChild(img); }
+      row.appendChild(av);
+      var nm = el("span", "mini-name");
+      nm.appendChild(el("b", null, m.name));
+      nm.appendChild(el("span", null, m.role === "child" ? "Kind" : "Erwachsener"));
+      row.appendChild(nm);
+      var chips = el("span", "chips");
+      w.assign[id].forEach(function (did) {
+        var d = duties[did]; if (!d) return;
+        var chip = el("span", "chip");
+        var dot = el("i", "d"); dot.style.background = d.color;
+        chip.appendChild(dot);
+        chip.appendChild(document.createTextNode(d.name));
+        chips.appendChild(chip);
+      });
+      if (!w.assign[id].length) chips.appendChild(el("span", "save-hint", "diese Woche frei"));
+      row.appendChild(chips);
+      wrap.appendChild(row);
+    });
+    renderStartNext();
+  }
+
+  // Nächste Termine aus „Wichtige Termine“ + Wochenwechsel des Familienplans
+  function daysUntilMMDD(mmdd, today) {
+    var p = /^(\d{2})-(\d{2})$/.exec(String(mmdd || ""));
+    if (!p) return -1;
+    var t = new Date(today.getFullYear(), Number(p[1]) - 1, Number(p[2]));
+    if (t < today) t = new Date(today.getFullYear() + 1, Number(p[1]) - 1, Number(p[2]));
+    return Math.round((t - today) / 864e5);
+  }
+  function whenText(days) {
+    return days === 0 ? "heute" : days === 1 ? "morgen" : "in " + days + " Tagen";
+  }
+
+  function renderStartNext() {
+    var list = $("#start-next-list");
+    if (!list || !SETTINGS) return;
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var items = [];
+    var fam = SETTINGS.family || {};
+    (fam.birthdays || []).forEach(function (b) {
+      var d = daysUntilMMDD(b.date, today);
+      if (d >= 0) items.push({ days: d, title: "Geburtstag " + b.name, icon: "cake" });
+    });
+    if (fam.weddingDate) {
+      var wd = daysUntilMMDD(String(fam.weddingDate).slice(5), today);
+      if (wd >= 0) items.push({ days: wd, title: "Hochzeitstag", icon: "heart" });
+    }
+    (fam.countdowns || []).forEach(function (c) {
+      var d = daysUntilMMDD(c.date, today);
+      if (d >= 0) items.push({ days: d, title: c.label, icon: "hourglass", when: d === 0 ? "heute" : "noch " + d + (d === 1 ? " Tag" : " Tage") });
+    });
+    if (START_PLAN && START_PLAN.preview && START_PLAN.preview[0]) {
+      var p = START_PLAN.preview[0].start.split("-");
+      var start = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      var dd = Math.round((start - today) / 864e5);
+      items.push({ days: dd, title: "Wochenwechsel Familienplan", icon: "refresh",
+        when: WEEKDAYS_LONG[start.getDay()].slice(0, 2) + ", " + p[2] + "." + p[1] + "." });
+    }
+    items.sort(function (a, b) { return a.days - b.days; });
+    list.innerHTML = "";
+    if (!items.length) { list.appendChild(el("p", "save-hint", "Noch keine Termine eingetragen.")); return; }
+    items.slice(0, 4).forEach(function (it) {
+      var row = el("div", "next-row");
+      var ic = el("span", "next-ic"); ic.appendChild(svgIcon(it.icon));
+      row.appendChild(ic);
+      row.appendChild(el("b", null, it.title));
+      row.appendChild(el("span", null, it.when || whenText(it.days)));
+      list.appendChild(row);
+    });
+  }
+
+  // Wetter direkt vom Browser bei Open-Meteo (kostenlos, ohne Schlüssel) –
+  // ohne Internet bleibt die Karte einfach ausgeblendet.
+  function weatherIcon(code) {
+    if (code === 0 || code === 1) return "sun";
+    if (code === 2) return "cloudsun";
+    if (code === 3) return "cloud";
+    if (code === 45 || code === 48) return "fog";
+    if (code >= 71 && code <= 77 || code === 85 || code === 86) return "snow";
+    if (code >= 95) return "storm";
+    if (code >= 51) return "rain";
+    return "cloud";
+  }
+
+  function loadWeather() {
+    var loc = SETTINGS && SETTINGS.location;
+    if (!loc || !isFinite(loc.lat) || !isFinite(loc.lon)) return;
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + encodeURIComponent(loc.lat) + "&longitude=" + encodeURIComponent(loc.lon) +
+      "&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&forecast_hours=6&timezone=auto";
+    fetch(url).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(function (d) {
+      WEATHER_NOW = d.current && typeof d.current.temperature_2m === "number" ? d.current.temperature_2m : null;
+      var row = $("#start-weather-row");
+      row.innerHTML = "";
+      var cells = [{ t: "Jetzt", code: d.current.weather_code, temp: d.current.temperature_2m, now: true }];
+      (d.hourly.time || []).slice(1, 6).forEach(function (iso, i) {
+        cells.push({ t: iso.slice(11, 13) + " Uhr", code: d.hourly.weather_code[i + 1], temp: d.hourly.temperature_2m[i + 1] });
+      });
+      cells.forEach(function (c) {
+        var cell = el("div", "wx" + (c.now ? " now" : ""));
+        cell.appendChild(el("span", null, c.t));
+        cell.appendChild(svgIcon(weatherIcon(c.code)));
+        cell.appendChild(el("b", null, Math.round(c.temp) + "°"));
+        row.appendChild(cell);
+      });
+      $("#start-weather-place").textContent = (loc.name || "").split(",")[0];
+      $("#start-weather").hidden = false;
+      renderGreeting();
+    }).catch(function () { /* kein Internet: Wetter-Karte bleibt aus */ });
   }
 
   // ---------------------------------------------------------------------
@@ -625,7 +940,7 @@
       list.forEach(function (r) {
         var row = document.createElement("div");
         row.className = "wifi-item";
-        row.innerHTML = '<span class="ssid">📍 ' + escapeHtml(r.name) + '</span>' +
+        row.innerHTML = '<span class="ssid">' + escapeHtml(r.name) + '</span>' +
           '<span class="sig">' + r.lat.toFixed(2) + ", " + r.lon.toFixed(2) + '</span>';
         row.addEventListener("click", function () {
           $("#loc-name").value = r.name;
@@ -655,19 +970,115 @@
   }
 
   // ---------------------------------------------------------------------
+  // Als App (Startbildschirm), siehe Seite „Als App“
+  // ---------------------------------------------------------------------
+  // Chrome/Edge bieten das Installieren nur über HTTPS (oder localhost) an –
+  // dann kommt dieses Ereignis und wir zeigen einen eigenen Knopf. Im
+  // Heimnetz per http bleibt es aus, dafür gibt es die Anleitung.
+  var installPrompt = null;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    installPrompt = e;
+    var b = document.getElementById("app-install");
+    if (b) b.hidden = false;
+  });
+
+  function isStandalone() {
+    return window.navigator.standalone === true ||
+      (window.matchMedia && (window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: window-controls-overlay)").matches));
+  }
+
+  function detectOs() {
+    var ua = navigator.userAgent || "";
+    // iPadOS meldet sich als Mac, hat aber Touch
+    if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+    if (/Android/.test(ua)) return "android";
+    return "desktop";
+  }
+
+  function showOsSteps(os) {
+    $all("#app-os [data-os]").forEach(function (b) { b.setAttribute("aria-selected", b.getAttribute("data-os") === os ? "true" : "false"); });
+    $all("[data-os-steps]").forEach(function (ol) { ol.hidden = ol.getAttribute("data-os-steps") !== os; });
+  }
+
+  function wireAppPage() {
+    var os = detectOs();
+    var standalone = isStandalone();
+    var portalHost = (STATUS.portalUrl || "").replace(/^https?:\/\//, "");
+    var ip = ((STATUS.network && STATUS.network.ipv4) || [])[0];
+    var port = (portalHost.match(/:(\d+)$/) || [])[1] || "8092";
+
+    $("#app-mode").textContent = standalone ? "LUMIRA läuft als App" : "LUMIRA läuft im Browser";
+    $("#app-mode-sub").textContent = standalone
+      ? "Alles erledigt – das Portal ist auf diesem Gerät als App abgelegt."
+      : "Mit der Anleitung unten liegt LUMIRA in einer Minute auf deinem Startbildschirm.";
+    $all("[data-app-host]").forEach(function (e) { e.textContent = portalHost || "lumira.local:8092"; });
+    $all("[data-app-ip]").forEach(function (e) { e.textContent = ip ? ip.address + ":" + port : "siehe Info"; });
+    $("#app-origin").textContent = location.host;
+
+    showOsSteps(os);
+    $all("#app-os [data-os]").forEach(function (b) {
+      b.addEventListener("click", function () { showOsSteps(b.getAttribute("data-os")); });
+    });
+
+    var install = $("#app-install");
+    install.hidden = !installPrompt || standalone;
+    install.addEventListener("click", function () {
+      if (!installPrompt) return;
+      installPrompt.prompt();
+      installPrompt.userChoice.then(function (r) {
+        if (r && r.outcome === "accepted") { install.hidden = true; toast("LUMIRA wird installiert"); }
+        installPrompt = null;
+      });
+    });
+
+    // Hinweis auf der Startseite: nur auf Handy/Tablet im Browser, bis man ihn wegklickt
+    var dismissed = false;
+    try { dismissed = localStorage.getItem("lumira-app-hint") === "off"; } catch (e) {}
+    $("#app-hint").hidden = standalone || dismissed || os === "desktop";
+    $("#app-hint-close").addEventListener("click", function () {
+      $("#app-hint").hidden = true;
+      try { localStorage.setItem("lumira-app-hint", "off"); } catch (e) {}
+    });
+  }
+
+  // ---------------------------------------------------------------------
   // Sicherheit / PIN
   // ---------------------------------------------------------------------
+  function loadSessions() {
+    var pinSet = !!(SETTINGS.portal && SETTINGS.portal.pinSet);
+    $("#sessions-card").hidden = !pinSet;
+    if (!pinSet) return;
+    api("/api/auth/sessions").then(function (r) {
+      $("#sessions-count").textContent = r.count === 1
+        ? "Nur dieses Gerät ist angemeldet."
+        : r.count + " Geräte bzw. Browser sind angemeldet (inklusive diesem).";
+      $("#sessions-clear").disabled = r.count < 2;
+    }).catch(function () { $("#sessions-card").hidden = true; });
+  }
+
   function wireSicherheit() {
     $("#pin-save").addEventListener("click", function () {
       var pin = $("#pin-new").value.trim();
       var hint = $("#pin-hint");
       api("/api/auth/set-pin", { method: "POST", body: { pin: pin } }).then(function () {
-        hint.textContent = "PIN gespeichert.";
+        hint.textContent = "PIN gespeichert. Andere Geräte müssen sich neu anmelden.";
         $("#pin-new").value = "";
         $("#pin-remove").hidden = false;
+        SETTINGS.portal = SETTINGS.portal || {};
+        SETTINGS.portal.pinSet = true;
+        loadSessions();
       }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
     });
     $("#pin-remove").hidden = !(SETTINGS.portal && SETTINGS.portal.pinSet);
+    loadSessions();
+    $("#sessions-clear").addEventListener("click", function () {
+      if (!confirm("Alle anderen Geräte abmelden? Dort muss dann wieder der PIN eingegeben werden.")) return;
+      api("/api/auth/logout-others", { method: "POST" }).then(function () {
+        $("#sessions-hint").textContent = "Erledigt.";
+        loadSessions();
+      }).catch(function (err) { $("#sessions-hint").textContent = "Fehler: " + err.message; });
+    });
     $("#pin-remove").addEventListener("click", function () {
       if (!confirm("PIN wirklich entfernen? Das Portal ist danach ohne Anmeldung im Heimnetz erreichbar.")) return;
       var hint = $("#pin-remove-hint");
@@ -675,6 +1086,7 @@
         hint.textContent = "PIN entfernt.";
         $("#pin-remove").hidden = true;
         SETTINGS.portal.pinSet = false;
+        loadSessions();
       }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
     });
   }

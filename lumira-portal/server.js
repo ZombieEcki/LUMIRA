@@ -12,7 +12,6 @@ const http = require("http");
 const https = require("https");
 const express = require("express");
 const bodyParser = require("body-parser");
-const crypto = require("crypto");
 const fs = require("fs");
 const multer = require("multer");
 
@@ -27,11 +26,11 @@ const alarmSoundLib = require("./lib/alarm-sound");
 const { generateConfig } = require("./lib/generate-config");
 const { getEdition } = require("./lib/editions");
 const { createUpdater } = require("./lib/updates");
+const { createSessionStore } = require("./lib/sessions");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
 const SESSION_COOKIE = "lumira_session";
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
 
 const app = express();
 // 256 KB reichen überall – außer beim Import einer Familienplan-Sicherung
@@ -42,10 +41,10 @@ app.use((req, res, next) => (req.path === IMPORT_PATH ? next() : jsonParser(req,
 app.disable("x-powered-by");
 
 // ---------------------------------------------------------------------------
-// Sessions (in-memory, einfacher als eine zusätzliche Abhängigkeit für ein
-// LAN-only-Tool mit einer Handvoll Nutzern pro Gerät)
+// Sessions (lib/sessions.js, als Hash in ~/.lumira/sessions.json, damit ein
+// Neustart des Portals die App auf dem Handy nicht abmeldet)
 // ---------------------------------------------------------------------------
-const sessions = new Map(); // token -> expiresAt
+const sessions = createSessionStore({ filePath: path.join(settingsLib.LUMIRA_HOME, "sessions.json") });
 
 function parseCookies(req) {
 	const header = req.headers.cookie;
@@ -59,21 +58,12 @@ function parseCookies(req) {
 	return out;
 }
 
-function createSession() {
-	const token = crypto.randomBytes(24).toString("hex");
-	sessions.set(token, Date.now() + SESSION_TTL_MS);
-	return token;
+function isAuthenticated(req) {
+	return sessions.check(parseCookies(req)[SESSION_COOKIE]);
 }
 
-function isAuthenticated(req) {
-	const token = parseCookies(req)[SESSION_COOKIE];
-	if (!token) return false;
-	const expires = sessions.get(token);
-	if (!expires || expires < Date.now()) {
-		sessions.delete(token);
-		return false;
-	}
-	return true;
+function clearSessionCookie(res) {
+	res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
 }
 
 // PIN-Schutz gilt erst, sobald einer gesetzt ist (Ersteinrichtung selbst
@@ -110,6 +100,12 @@ app.post("/api/auth/set-pin", (req, res) => {
 	const salt = authLib.generateSalt();
 	const hash = authLib.hashPin(pin, salt);
 	settingsLib.patch({ portal: { pinHash: hash, pinSalt: salt } });
+	// Neuer PIN → alle anderen Geräte müssen sich neu anmelden. Dieses Gerät
+	// bekommt eine frische Sitzung (sonst stünde es nach dem ersten PIN
+	// plötzlich ohne Anmeldung da).
+	sessions.clear();
+	const { token, maxAgeSec } = sessions.create(true);
+	res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSec}`);
 	res.json({ ok: true });
 });
 
@@ -119,23 +115,31 @@ app.post("/api/auth/login", (req, res) => {
 	if (!authLib.verifyPin(pin, settings.portal.pinHash, settings.portal.pinSalt)) {
 		return res.status(401).json({ error: "Falscher PIN" });
 	}
-	const token = createSession();
-	res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_MS / 1000}`);
+	const { token, maxAgeSec } = sessions.create(!!(req.body && req.body.remember));
+	res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSec}`);
 	res.json({ ok: true });
 });
 
 app.post("/api/auth/logout", (req, res) => {
-	const token = parseCookies(req)[SESSION_COOKIE];
-	if (token) sessions.delete(token);
-	res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
+	sessions.remove(parseCookies(req)[SESSION_COOKIE]);
+	clearSessionCookie(res);
 	res.json({ ok: true });
+});
+
+// Angemeldete Geräte (Seite „Sicherheit“): Anzahl und „alle anderen abmelden“
+app.get("/api/auth/sessions", requireAuth, (req, res) => {
+	res.json({ count: sessions.count() });
+});
+
+app.post("/api/auth/logout-others", requireAuth, (req, res) => {
+	sessions.clear(parseCookies(req)[SESSION_COOKIE]);
+	res.json({ ok: true, count: sessions.count() });
 });
 
 app.post("/api/auth/remove-pin", requireAuth, (req, res) => {
 	settingsLib.patch({ portal: { pinHash: "", pinSalt: "" } });
-	const token = parseCookies(req)[SESSION_COOKIE];
-	if (token) sessions.delete(token);
-	res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
+	sessions.clear();
+	clearSessionCookie(res);
 	res.json({ ok: true });
 });
 

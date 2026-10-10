@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 49 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 53 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -109,6 +109,19 @@ um den aktuellen Stand zu sehen.
       „Was ist neu?“ und Protokoll), „Zurück zur vorherigen Version“
 - [x] IPv4-Adresse und Portal-Adresse per IP unter Info (für Handys, die
       `lumira.local` nicht auflösen)
+
+### Portal als App (Startbildschirm, „Weg 1“)
+- [x] Web-App-Manifest, App-Symbole (inkl. randlosem „maskable“-Symbol für
+      Android), iPhone-Metadaten, sichere Ränder (Notch/Home-Leiste)
+- [x] Seite „Mehr → Als App“ mit Anleitung für iPhone/iPad, Android und PC/Mac
+      (Gerät wird erkannt), Hinweis auf der Startseite (nur Handy im Browser,
+      wegklickbar), Installieren-Knopf, sobald der Browser es anbietet (HTTPS)
+- [x] „Auf diesem Gerät angemeldet bleiben“ (90 Tage statt 12 h); Sitzungen
+      überleben einen Portal-Neustart (`~/.lumira/sessions.json`, nur Hashes)
+- [x] „Sicherheit“: angemeldete Geräte zählen, alle anderen abmelden; neuer
+      PIN meldet alle anderen Geräte ab; erster PIN lässt das aktuelle Gerät
+      angemeldet (vorher 401 bis zum Neuladen)
+- [ ] Auf echtem iPhone und Android-Handy testen
 
 ---
 
@@ -175,6 +188,8 @@ mit Aufforderung, es erneut einzugeben.
 | 9 | **Alexa-Integration** (Ansagen bei Alarm, Sprachsteuerung für Kompliments-Schalter) | 📋 geplant |
 | 10 | **Sprüche von MMM-SmartCompliments in `compliments.json`** – vom Portal bearbeitbar statt in `config.js` fest codiert | 🟡 Phase 1-3 umgesetzt (Portal-Seite „Sprüche" + Stimmungs-Auswahl + Live-Reload, [concept/smartcompliments-json.md](concept/smartcompliments-json.md)); Live-Reload noch auf echter Pi-Hardware zu verifizieren; Phasen 4-7 (Migration, enabled/pinned, Import/Export, personMessages, Mehrsprachigkeit) offen |
 | 11 | **Familienplan** – Wochendienste (4 Personen × 2 Dienste) mit fairer automatischer Rotation, neues Modul `MMM-FamilyPlan` oben links, Verwaltung im Portal | 🟡 Phase 0-5 umgesetzt ([concept/familienplan.md](concept/familienplan.md), Anleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)); noch auf echter Pi-Hardware zu verifizieren. Offen: Einbau auf dem Familien-Spiegel nach dem Pi-3-Fix (Phase 6) |
+| 12 | **Design-System 2.0 & mobile Version** – Bento-Stil (monochrom, Schwarz/Weiß als Aktionsfarbe), fünf Bereiche, Icon-Leiste am Desktop, Tab-Leiste am Handy | 🟡 Im Portal umgesetzt: neue Startseite (Status, Spiegel, Alarm, Familienplan, Wetter, Als Nächstes), Bereiche Start/Familie/Spiegel/Alarm/Mehr mit Reitern, Hell/Dunkel/Auto, eigene Symbole statt Emojis ([concept/design-system.md](concept/design-system.md)). Offen: Dialoge statt Browser-Rückfragen, Fehler direkt am Feld, eigene Schrift lokal, Spiegel-Module und statische Seiten im neuen Stil |
+| 13 | **LUMIRA als App für Handy und PC** | 🟡 Weg 1 (Web-App auf dem Startbildschirm) umgesetzt. Offen: Weg 2 (Android/iOS-App mit Kopplung per QR-Code, Tauri für PC), Weg 3 (HTTPS im Heimnetz, damit Android/PC „echt“ installieren) |
 
 **Legende:** ✅ erledigt · 🟡 in Arbeit / teilweise · 📋 geplant, noch nicht begonnen
 

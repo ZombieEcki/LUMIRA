@@ -70,6 +70,7 @@
     S.components.forEach(function (c) { list.appendChild(row(c)); });
 
     renderJob();
+    if (ctx && ctx.onStatus) ctx.onStatus(S);
   }
 
   function row(c) {
@@ -133,8 +134,8 @@
     var box = el("div", "upd-job " + job.status);
     var label = job.action === "rollback" ? "Zurücksetzen" : "Update";
     var head = job.status === "running" ? "⏳ " + label + " läuft: " + job.name + " … (Seite kann offen bleiben, der Spiegel ist kurz dunkel)"
-      : job.status === "success" ? "✅ " + label + " abgeschlossen: " + job.name
-      : "❌ " + label + " fehlgeschlagen: " + job.name + (job.error ? " – " + job.error : "");
+      : job.status === "success" ? label + " abgeschlossen: " + job.name
+      : label + " fehlgeschlagen: " + job.name + (job.error ? " – " + job.error : "");
     box.appendChild(el("b", null, head));
     if (job.log && job.log.length) {
       var det = el("details");

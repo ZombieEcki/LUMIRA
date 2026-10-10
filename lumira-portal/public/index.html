@@ -2,32 +2,76 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LUMIRA – Portal</title>
+<meta name="theme-color" content="#F4F4F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1012" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="img/favicon-64.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- Als App auf dem Startbildschirm (iPhone/iPad, Android, PC) – siehe Seite „Als App“ -->
+<meta name="application-name" content="LUMIRA">
+<meta name="apple-mobile-web-app-title" content="LUMIRA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<!-- Gewähltes Farbschema vor dem ersten Zeichnen setzen (kein Aufblitzen) -->
+<script>try { var t = localStorage.getItem("lumira-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
 <link rel="stylesheet" href="style.css">
-<!-- Font Awesome lokal aus der MagicMirror-Installation (Symbole im Familienplan) -->
+<!-- Font Awesome lokal aus der MagicMirror-Installation (Dienst-Symbole im Familienplan) -->
 <link rel="stylesheet" href="/vendor/fa/css/all.min.css">
 </head>
 <body>
 
+<!-- Symbole (Lucide-Stil, lokal, ohne Internet) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9.5V21h14V9.5M10 21v-6h4v6"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M9 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6 6 0 0 1 3.5 5.8"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 21h8M12 17v4"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3-1-3 0-6 1-8.5z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.8" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19h.01"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l4-4-4-4M14 12H3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-cake" viewBox="0 0 24 24"><path d="M4 21h16M5 21v-8h14v8M12 13V9M12 6.5a1.5 1.5 0 0 0 1.5-1.5C13.5 4 12 2.5 12 2.5S10.5 4 10.5 5A1.5 1.5 0 0 0 12 6.5M5 16c2 1.5 3.5 1.5 5 0s3-1.5 4.5 0 3 1.5 4.5 0"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.4-9.2-9A4.8 4.8 0 0 1 12 6.3a4.8 4.8 0 0 1 9.2 4.7C19.5 15.6 12 20 12 20z"/></symbol>
+  <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-cloudsun" viewBox="0 0 24 24"><path d="M8 3v1.5M3.5 7.5H5M4.6 4.1l1 1M11.4 4.1l-1 1M5.3 10.3A3.5 3.5 0 1 1 11 7M8 20a4 4 0 1 1 .8-7.9A5 5 0 0 1 18 13a3.5 3.5 0 0 1-.5 7z"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 19a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 11a4 4 0 0 1-1 8z"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 7a4 4 0 0 1-1 8M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></symbol>
+  <symbol id="i-snow" viewBox="0 0 24 24"><path d="M12 2v20M4.9 7l14.2 10M19.1 7 4.9 17"/></symbol>
+  <symbol id="i-storm" viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 7a4 4 0 0 1-1 8M13 13l-3 5h4l-3 5"/></symbol>
+  <symbol id="i-fog" viewBox="0 0 24 24"><path d="M4 9h16M3 13h18M5 17h14"/></symbol>
+</svg>
+
 <!-- ---------- Setup-Bildschirm (WLAN einrichten, Access-Point-Modus) ---------- -->
 <section id="setup-screen" class="center-screen" hidden>
+  <div class="screen-logo">
+    <img class="for-light" src="img/logo-dark.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="560" height="480">
+    <img class="for-dark" src="img/logo-light.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="560" height="480">
+  </div>
   <div class="card card-narrow">
-    <h2>📶 LUMIRA einrichten</h2>
+    <h2>LUMIRA einrichten</h2>
     <p class="sub">Wähle dein Heimnetz-WLAN und gib das Passwort ein. Danach
       verbindet sich LUMIRA damit und du kannst mit deinen persönlichen
       Angaben weitermachen.</p>
     <div class="field first">
       <label>Verfügbare Netzwerke</label>
       <div class="wifi-list" id="wifi-list"><div class="save-hint">Suche läuft…</div></div>
-      <button type="button" class="btn" id="wifi-rescan" style="margin-top:8px;">🔄 Neu suchen</button>
+      <button type="button" class="btn" id="wifi-rescan" style="margin-top:8px;">Neu suchen</button>
     </div>
     <div class="field">
-      <label>Ausgewähltes Netzwerk</label>
+      <label for="setup-ssid">Ausgewähltes Netzwerk</label>
       <input type="text" id="setup-ssid" class="mono-in" placeholder="SSID" readonly>
     </div>
     <div class="field">
-      <label>WLAN-Passwort</label>
+      <label for="setup-psk">WLAN-Passwort</label>
       <input type="password" id="setup-psk" placeholder="Passwort">
     </div>
     <div class="save-row">
@@ -46,15 +90,21 @@
 
 <!-- ---------- Login (PIN) ---------- -->
 <section id="login-screen" class="center-screen" hidden>
+  <div class="screen-logo">
+    <img class="for-light" src="img/logo-dark.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="560" height="480">
+    <img class="for-dark" src="img/logo-light.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="560" height="480">
+  </div>
   <div class="card card-narrow">
-    <h2>🔒 LUMIRA-Portal</h2>
-    <p class="sub">Bitte PIN eingeben.</p>
+    <h2>Anmelden</h2>
+    <p class="sub">Bitte den PIN für das LUMIRA-Portal eingeben.</p>
     <div class="field first">
-      <label>PIN</label>
-      <input type="password" id="login-pin" inputmode="numeric" maxlength="8" placeholder="••••">
+      <label for="login-pin">PIN</label>
+      <input type="password" id="login-pin" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="current-password">
     </div>
+    <label class="check-row"><input type="checkbox" id="login-remember" checked>
+      <span>Auf diesem Gerät angemeldet bleiben <span class="opt">(90 Tage)</span></span></label>
     <div class="save-row">
-      <button type="button" class="btn primary" id="login-submit">Anmelden</button>
+      <button type="button" class="btn primary wide" id="login-submit">Anmelden</button>
     </div>
     <div id="login-msg"></div>
   </div>
@@ -62,337 +112,445 @@
 
 <!-- ---------- Haupt-App ---------- -->
 <div class="app" id="app" hidden>
-  <aside class="sidebar">
-    <div class="brand"><span class="bt">LUMIRA</span></div>
 
-    <div class="device-card">
-      <div class="edn"><span class="swatch"></span><span id="edn-name">–</span></div>
-      <div class="status-row" id="status-row"><span class="dot"></span><span id="status-text">–</span></div>
-    </div>
+  <!-- Icon-Leiste (Desktop/Tablet) -->
+  <nav class="rail" aria-label="Hauptnavigation">
+    <img class="rail-logo" src="img/mark-light.png" alt="LUMIRA" width="144" height="116">
+    <div class="rail-items" data-areas="rail"></div>
+    <div class="rail-spacer"></div>
+    <button type="button" class="rail-btn" id="logout-btn" aria-label="Abmelden" title="Abmelden" hidden>
+      <svg class="ic"><use href="#i-logout"/></svg>
+    </button>
+  </nav>
 
-    <div class="mobile-nav">
-      <span class="glabel">Seite</span>
-      <select id="page-select" aria-label="Seite wählen"></select>
-    </div>
-
-    <nav class="navgroup">
-      <span class="glabel">Übersicht</span>
-      <button class="navbtn" data-page="steuerung"><span class="ic">🎛</span>Steuerung</button>
-    </nav>
-    <nav class="navgroup" id="nav-konfig">
-      <span class="glabel">Konfiguration</span>
-      <button class="navbtn" data-page="familienplan" data-need="hasFamily"><span class="ic">👪</span>Familienplan</button>
-      <button class="navbtn" data-page="familie" data-need="hasFamily"><span class="ic">🎂</span>Wichtige Termine</button>
-      <button class="navbtn" data-page="spruche" data-need="hasFamily"><span class="ic">🗨</span>Sprüche</button>
-      <button class="navbtn" data-page="standort"><span class="ic">📍</span>Standort &amp; Wetter</button>
-      <button class="navbtn" data-page="kalender" data-need="hasCal"><span class="ic">📅</span>Kalender</button>
-      <button class="navbtn" data-page="news"><span class="ic">📰</span>Nachrichten</button>
-      <button class="navbtn" data-page="alarm" data-need="hasAlarm"><span class="ic">🚒</span>Alarmierung</button>
-      <button class="navbtn" data-page="wlan"><span class="ic">📶</span>WLAN</button>
-    </nav>
-    <nav class="navgroup">
-      <span class="glabel">Mehr</span>
-      <button class="navbtn" data-page="sicherheit"><span class="ic">🔒</span>Sicherheit</button>
-      <button class="navbtn" data-page="info"><span class="ic">ℹ️</span>Info<span class="nav-badge" id="upd-badge" hidden></span></button>
-    </nav>
-    <div class="sidebar-spacer"></div>
-  </aside>
-
-  <main>
-    <!-- Steuerung -->
-    <section class="page" data-page="steuerung">
-      <div class="pagehead"><span class="eyebrow">Übersicht</span><h1>Steuerung</h1>
-        <p>Status von Pi &amp; Spiegel, Schnellzugriff auf Alarmierung und Familienassistent.</p></div>
-
-      <div class="setup-banner upd-banner" id="upd-banner" hidden>
-        <span>⬆️ <span id="upd-banner-text">Updates verfügbar</span></span>
-        <button type="button" class="btn" id="upd-banner-btn">Anzeigen</button>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-title">
+        <span class="eyebrow" id="area-eyebrow">Start</span>
+        <h1 id="area-title">Willkommen</h1>
+        <span class="topbar-sub" id="area-sub"></span>
       </div>
-
-      <div class="tiles">
-        <div class="tile" id="tile-network"><span class="tl">Netzwerk</span>
-          <span class="tv"><span class="dot"></span><span id="net-state-text">–</span></span>
-          <span class="ts" id="net-sub">–</span></div>
-        <div class="tile" id="tile-alarm"><span class="tl">Alarmierung</span>
-          <span class="tv"><span class="dot"></span><span id="alarm-state-text">–</span></span>
-          <span class="ts" id="alarm-sub">–</span></div>
-      </div>
-
-      <div class="card" id="card-alarm-actions" hidden>
-        <h2>Alarmierung</h2>
-        <p class="sub">Manuelle Phasensteuerung von MMM-aPagerAlarm.</p>
-        <div class="action-grid" style="margin-top:14px;">
-          <button class="action" id="alarm-home"><span class="at">🏠 Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
-          <button class="action" id="alarm-clear"><span class="at">✅ Einsatz beenden</span><span class="ad">zurück in Danke-Nachwirkung</span></button>
-          <button class="action" id="alarm-test"><span class="at">🔔 Alarm testen</span><span class="ad">löst einen echten Testalarm auf dem Spiegel aus</span></button>
+      <div class="topbar-actions">
+        <div class="seg" role="group" aria-label="Darstellung" id="theme-seg">
+          <button type="button" data-theme-set="light">Hell</button>
+          <button type="button" data-theme-set="dark">Dunkel</button>
+          <button type="button" data-theme-set="auto">Auto</button>
+        </div>
+        <button type="button" class="icon-btn" id="upd-bell" aria-label="Updates anzeigen" title="Updates">
+          <svg class="ic"><use href="#i-bell"/></svg>
+          <span class="nav-badge" id="upd-badge" hidden></span>
+        </button>
+        <div class="device-chip" title="Edition">
+          <span class="dot" id="device-dot"></span>
+          <span id="edn-name">–</span>
         </div>
       </div>
+    </header>
 
-      <div class="card">
-        <h2>Steuerung der Module</h2>
-        <p class="sub">Module einzeln ein-/ausblenden. Nur „Kompliments" ist aktuell schaltbar, der Rest folgt.</p>
-        <div class="toggle" style="margin-top:8px;">
-          <span class="tl2">💬 Familienbotschaften (Kompliments)</span>
-          <button class="action" id="compliments-toggle" style="flex:none; text-align:center;">
-            <span class="at" id="compliments-state">–</span></button>
+    <div class="subnav" id="subnav" role="tablist" aria-label="Unterseiten" hidden></div>
+
+    <main id="main">
+      <!-- ================= START ================= -->
+      <section class="page" data-page="start">
+        <div class="banner app-hint" id="app-hint" hidden>
+          <img src="img/icon-192.png" alt="" width="40" height="40">
+          <div class="banner-text"><b>LUMIRA als App</b><span>Leg das Portal auf deinen Startbildschirm – dann ist es mit einem Tipp da.</span></div>
+          <a class="btn primary small" href="#app">Anleitung</a>
+          <button type="button" class="icon-btn" id="app-hint-close" aria-label="Hinweis ausblenden">×</button>
         </div>
-        <div id="module-list-extra"></div>
+        <div class="banner upd-banner" id="upd-banner" hidden>
+          <svg class="ic"><use href="#i-download"/></svg>
+          <span id="upd-banner-text">Updates verfügbar</span>
+          <button type="button" class="btn small" id="upd-banner-btn">Anzeigen</button>
+        </div>
 
-        <div class="module-preview" id="module-preview">
-          <p class="save-hint" style="margin-bottom:8px;">Vorschau – Anordnung folgt später</p>
-          <div class="mp-grid">
-            <div class="mp-cell" data-region="top_left"></div>
-            <div class="mp-cell" data-region="top_center"></div>
-            <div class="mp-cell" data-region="top_right"></div>
-            <div class="mp-cell mp-empty"></div>
-            <div class="mp-cell mp-empty"></div>
-            <div class="mp-cell mp-empty"></div>
-            <div class="mp-cell" data-region="bottom_left"></div>
-            <div class="mp-cell mp-empty"></div>
-            <div class="mp-cell" data-region="bottom_right"></div>
+        <div class="status-grid">
+          <a href="#module" class="tile" id="tile-mirror">
+            <span class="tile-ic"><svg class="ic"><use href="#i-monitor"/></svg></span>
+            <span class="tile-body"><span class="tl">Spiegel</span>
+              <span class="tv"><span class="dot"></span><span id="mirror-state-text">–</span></span>
+              <span class="ts" id="mirror-sub">–</span></span>
+          </a>
+          <a href="#alarm" class="tile" id="tile-alarm" data-need="hasAlarm">
+            <span class="tile-ic"><svg class="ic"><use href="#i-flame"/></svg></span>
+            <span class="tile-body"><span class="tl">Alarmierung</span>
+              <span class="tv"><span class="dot"></span><span id="alarm-state-text">–</span></span>
+              <span class="ts" id="alarm-sub">–</span></span>
+          </a>
+          <a href="#wlan" class="tile" id="tile-network">
+            <span class="tile-ic"><svg class="ic"><use href="#i-wifi"/></svg></span>
+            <span class="tile-body"><span class="tl">Netzwerk</span>
+              <span class="tv"><span class="dot"></span><span id="net-state-text">–</span></span>
+              <span class="ts" id="net-sub">–</span></span>
+          </a>
+          <a href="#info" class="tile" id="tile-updates">
+            <span class="tile-ic"><svg class="ic"><use href="#i-download"/></svg></span>
+            <span class="tile-body"><span class="tl">Updates</span>
+              <span class="tv"><span class="dot"></span><span id="upd-tile-text">–</span></span>
+              <span class="ts" id="upd-tile-sub">–</span></span>
+          </a>
+        </div>
+
+        <div class="bento">
+          <!-- Spiegel -->
+          <section class="card span7">
+            <div class="card-head"><h2>Spiegel</h2><a href="#module" class="more-link">Module →</a></div>
+            <div class="mirror-split">
+              <div class="module-preview" id="module-preview">
+                <div class="mp-grid">
+                  <div class="mp-cell" data-region="top_left"></div>
+                  <div class="mp-cell" data-region="top_center"></div>
+                  <div class="mp-cell" data-region="top_right"></div>
+                  <div class="mp-cell mp-empty"></div>
+                  <div class="mp-cell mp-empty"></div>
+                  <div class="mp-cell mp-empty"></div>
+                  <div class="mp-cell" data-region="bottom_left"></div>
+                  <div class="mp-cell mp-empty"></div>
+                  <div class="mp-cell" data-region="bottom_right"></div>
+                </div>
+                <div class="mp-row mp-bar" id="mp-bottombar"></div>
+                <div class="mp-row mp-overlay" id="mp-overlay"></div>
+              </div>
+              <div class="mirror-side">
+                <span class="tl">Familienbotschaften</span>
+                <p class="mirror-text">Sprüche, Geburtstage und Hinweise wechseln automatisch auf dem Spiegel.</p>
+                <div class="toggle">
+                  <span class="tl2">Sprüche anzeigen</span>
+                  <button class="btn small" id="compliments-toggle" type="button"><span id="compliments-state">–</span></button>
+                </div>
+                <a href="#spruche" class="btn ghost small" data-need="hasFamily">Sprüche bearbeiten</a>
+              </div>
+            </div>
+          </section>
+
+          <!-- Alarmierung -->
+          <section class="card span5" id="card-alarm-actions" hidden>
+            <div class="card-head"><h2>Alarmierung</h2><a href="#alarm" class="more-link">Einstellungen →</a></div>
+            <p class="sub">Manuelle Phasensteuerung von MMM-aPagerAlarm.</p>
+            <div class="action-list">
+              <button class="action" id="alarm-home" type="button"><span class="at">Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
+              <button class="action" id="alarm-clear" type="button"><span class="at">Einsatz beenden</span><span class="ad">zurück in die Danke-Nachwirkung</span></button>
+              <button class="action danger" id="alarm-test" type="button"><span class="at">Alarm testen</span><span class="ad">löst einen echten Testalarm auf dem Spiegel aus</span></button>
+            </div>
+          </section>
+
+          <!-- Familienplan -->
+          <section class="card span7" id="start-fp" data-need="hasFamily">
+            <div class="card-head"><h2>Familienplan</h2><span class="card-meta" id="start-fp-week"></span><a href="#familienplan" class="more-link">Öffnen →</a></div>
+            <div id="start-fp-rows"><p class="save-hint">Lädt …</p></div>
+          </section>
+
+          <!-- Wetter + Als Nächstes -->
+          <div class="span5 stack">
+            <section class="card" id="start-weather" hidden>
+              <div class="card-head"><h2>Wetter</h2><span class="card-meta" id="start-weather-place"></span></div>
+              <div class="weather-row" id="start-weather-row"></div>
+            </section>
+            <section class="card" id="start-next" data-need="hasFamily">
+              <div class="card-head"><h2>Als Nächstes</h2><a href="#familie" class="more-link">Termine →</a></div>
+              <div id="start-next-list"><p class="save-hint">Noch keine Termine eingetragen.</p></div>
+            </section>
           </div>
-          <div class="mp-row mp-bar" id="mp-bottombar"></div>
-          <div class="mp-row mp-overlay" id="mp-overlay"></div>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <h2>System</h2>
-        <p class="sub">Neustart des Mini-PCs, falls der Spiegel sich einmal aufhängt.</p>
-        <div class="save-row">
-          <button class="btn" id="pi-reboot">🔄 Pi neu starten</button>
+      <!-- ================= FAMILIE ================= -->
+      <!-- Familienplan (concept/familienplan.md) – Inhalt baut familyplan.js -->
+      <section class="page" data-page="familienplan">
+        <p class="page-lead">Wer hat diese Woche welchen Dienst? Die Verteilung wechselt automatisch und fair. Änderungen wirken sofort auf dem Spiegel.</p>
+        <div class="fp-tabs seg wide" role="tablist" aria-label="Familienplan">
+          <button class="fp-tab" role="tab" data-fptab="uebersicht" aria-selected="true">Übersicht</button>
+          <button class="fp-tab" role="tab" data-fptab="mitglieder" aria-selected="false">Mitglieder</button>
+          <button class="fp-tab" role="tab" data-fptab="dienste" aria-selected="false">Dienste</button>
+          <button class="fp-tab" role="tab" data-fptab="wochen" aria-selected="false">Wochenplan</button>
+          <button class="fp-tab" role="tab" data-fptab="einstellungen" aria-selected="false">Einstellungen</button>
         </div>
-      </div>
-    </section>
+        <div id="fp-warnings"></div>
+        <div id="fp-panel"><div class="save-hint">Lädt …</div></div>
+      </section>
 
-    <!-- Wichtige Termine (früher „Personen“). Die Personen selbst pflegt der
-         Familienplan (Familienmitglieder), Geburtstage verknüpfen sich damit. -->
-    <section class="page" data-page="familie">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Wichtige Termine</h1>
-        <p>Geburtstage, Hochzeitstag und Countdowns für die Familienbotschaften auf dem Spiegel. Speichern startet MagicMirror einmal neu.</p></div>
-      <div class="card">
-        <h2>🎂 Geburtstage</h2>
-        <p class="sub">Person aus den Familienmitgliedern wählen oder eine andere Person eintragen (z. B. Oma). Am Tag selbst und ein paar Tage vorher gibt es einen Hinweis.</p>
-        <div class="term-head"><span>Person</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
-        <div class="bdays" id="bdays"></div>
-        <button type="button" class="btn-add" id="addBday">+ Geburtstag hinzufügen</button>
-      </div>
-      <div class="card">
-        <h2>💍 Hochzeitstag</h2>
-        <p class="sub">Optional. Eine Woche vorher und am Tag selbst gibt es einen Hinweis.</p>
-        <div class="field"><label for="weddingDate">Datum <span class="opt">(TT.MM.JJJJ)</span></label>
-          <input type="text" class="mono-in" id="weddingDate" placeholder="20.06.2010" inputmode="numeric" style="max-width:180px;"></div>
-      </div>
-      <div class="card">
-        <h2>⏳ Countdowns</h2>
-        <p class="sub">Termine, auf die sich alle freuen. Auf dem Spiegel z. B.: „Noch 12 Tage bis Sommerurlaub.“ Wiederholt sich jedes Jahr.</p>
-        <div class="term-head"><span>Bezeichnung</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
-        <div class="bdays" id="countdowns"></div>
-        <button type="button" class="btn-add" id="addCountdown">+ Countdown hinzufügen</button>
-      </div>
-      <div class="save-row"><button class="btn primary" data-save="familie">Speichern</button>
-        <span class="save-hint" data-savehint="familie"></span></div>
-    </section>
+      <!-- Wichtige Termine (früher „Personen“). Die Personen selbst pflegt der
+           Familienplan (Mitglieder), Geburtstage verknüpfen sich damit. -->
+      <section class="page" data-page="familie">
+        <p class="page-lead">Geburtstage, Hochzeitstag und Countdowns für die Familienbotschaften auf dem Spiegel. Speichern startet MagicMirror einmal neu.</p>
+        <div class="card">
+          <h2>Geburtstage</h2>
+          <p class="sub">Person aus den Familienmitgliedern wählen oder eine andere Person eintragen (z. B. Oma). Am Tag selbst und ein paar Tage vorher gibt es einen Hinweis.</p>
+          <div class="term-head"><span>Person</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
+          <div class="bdays" id="bdays"></div>
+          <button type="button" class="btn-add" id="addBday">+ Geburtstag hinzufügen</button>
+        </div>
+        <div class="card">
+          <h2>Hochzeitstag</h2>
+          <p class="sub">Optional. Eine Woche vorher und am Tag selbst gibt es einen Hinweis.</p>
+          <div class="field"><label for="weddingDate">Datum <span class="opt">(TT.MM.JJJJ)</span></label>
+            <input type="text" class="mono-in" id="weddingDate" placeholder="20.06.2010" inputmode="numeric" style="max-width:200px;"></div>
+        </div>
+        <div class="card">
+          <h2>Countdowns</h2>
+          <p class="sub">Termine, auf die sich alle freuen. Auf dem Spiegel z. B.: „Noch 12 Tage bis Sommerurlaub.“ Wiederholt sich jedes Jahr.</p>
+          <div class="term-head"><span>Bezeichnung</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
+          <div class="bdays" id="countdowns"></div>
+          <button type="button" class="btn-add" id="addCountdown">+ Countdown hinzufügen</button>
+        </div>
+        <div class="save-row sticky"><button class="btn primary" data-save="familie">Speichern</button>
+          <span class="save-hint" data-savehint="familie"></span></div>
+      </section>
 
-    <!-- Familienplan (concept/familienplan.md) – Inhalt baut familyplan.js -->
-    <section class="page" data-page="familienplan">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Familienplan</h1>
-        <p>Wer hat diese Woche welchen Dienst? Die Verteilung wechselt automatisch und fair. Änderungen wirken sofort auf dem Spiegel.</p></div>
-      <div class="fp-tabs" role="tablist" aria-label="Familienplan">
-        <button class="fp-tab" role="tab" data-fptab="uebersicht" aria-selected="true">Übersicht</button>
-        <button class="fp-tab" role="tab" data-fptab="mitglieder" aria-selected="false">Familienmitglieder</button>
-        <button class="fp-tab" role="tab" data-fptab="dienste" aria-selected="false">Dienste</button>
-        <button class="fp-tab" role="tab" data-fptab="wochen" aria-selected="false">Wochenplan</button>
-        <button class="fp-tab" role="tab" data-fptab="einstellungen" aria-selected="false">Einstellungen</button>
-      </div>
-      <div id="fp-warnings"></div>
-      <div id="fp-panel"><div class="save-hint">Lädt …</div></div>
-    </section>
+      <!-- Sprüche -->
+      <section class="page" data-page="spruche">
+        <p class="page-lead">Textbausteine und Stimmung der Familienbotschaften. Änderungen wirken sofort, ohne Neustart.</p>
+        <div class="card">
+          <h2>Stimmung</h2>
+          <p class="sub">Welche Art Sprüche soll vorkommen? Mindestens eine muss aktiv bleiben.</p>
+          <div class="toggle"><span class="tl2">Herzlich</span>
+            <button class="sw" id="mood-herzlich" role="switch" aria-label="Herzlich"></button></div>
+          <div class="toggle"><span class="tl2">Motivierend</span>
+            <button class="sw" id="mood-motivierend" role="switch" aria-label="Motivierend"></button></div>
+          <div class="toggle"><span class="tl2">Humorvoll</span>
+            <button class="sw" id="mood-humorvoll" role="switch" aria-label="Humorvoll"></button></div>
+        </div>
+        <div id="spruch-cards"></div>
+        <div class="save-row sticky"><button class="btn primary" id="save-spruche">Speichern</button>
+          <span class="save-hint" id="spruche-hint"></span></div>
+      </section>
 
-    <!-- Sprüche -->
-    <section class="page" data-page="spruche">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Sprüche</h1>
-        <p>Textbausteine und Stimmung der Familienbotschaften. Änderungen wirken sofort, ohne Neustart.</p></div>
+      <!-- ================= SPIEGEL ================= -->
+      <section class="page" data-page="module">
+        <p class="page-lead">Was der Spiegel anzeigt. Einzelne Module lassen sich nach und nach ein- und ausblenden.</p>
+        <div class="card">
+          <h2>Module</h2>
+          <p class="sub">Aktuell ist „Familienbotschaften“ schaltbar (auf der Startseite), der Rest folgt.</p>
+          <div id="module-list-extra"></div>
+        </div>
+      </section>
 
-      <div class="card">
-        <h2>Stimmung</h2>
-        <p class="sub">Welche Art Sprüche soll vorkommen? Mindestens eine muss aktiv bleiben.</p>
-        <div class="toggle" style="margin-top:10px;"><span class="tl2">💛 Herzlich</span>
-          <button class="sw" id="mood-herzlich" role="switch"></button></div>
-        <div class="toggle"><span class="tl2">💪 Motivierend</span>
-          <button class="sw" id="mood-motivierend" role="switch"></button></div>
-        <div class="toggle"><span class="tl2">😄 Humorvoll</span>
-          <button class="sw" id="mood-humorvoll" role="switch"></button></div>
-      </div>
-
-      <div id="spruch-cards"></div>
-
-      <div class="save-row"><button class="btn primary" id="save-spruche">Speichern</button>
-        <span class="save-hint" id="spruche-hint"></span></div>
-    </section>
-
-    <!-- Standort -->
-    <section class="page" data-page="standort">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Standort &amp; Wetter</h1>
-        <p>Für Wettervorhersage und Regenradar.</p></div>
-      <div class="card">
-        <div class="field first"><label>Ort/Stadt suchen</label>
-          <div style="display:flex; gap:8px;">
-            <input type="text" id="loc-search" placeholder="z. B. Musterstadt">
-            <button type="button" class="btn" id="loc-search-btn" style="flex:none;">🔍 Suchen</button>
+      <!-- Standort -->
+      <section class="page" data-page="standort">
+        <p class="page-lead">Für Wettervorhersage und Regenradar.</p>
+        <div class="card">
+          <div class="field first"><label for="loc-search">Ort/Stadt suchen</label>
+            <div class="input-row">
+              <input type="text" id="loc-search" placeholder="z. B. Musterstadt">
+              <button type="button" class="btn" id="loc-search-btn"><svg class="ic"><use href="#i-search"/></svg>Suchen</button>
+            </div>
+            <div class="wifi-list" id="loc-results" hidden></div>
           </div>
-          <div class="wifi-list" id="loc-results" hidden></div>
-        </div>
-        <div class="field"><label>Ortsname <span class="opt">(nur Anzeige)</span></label><input type="text" id="loc-name"></div>
-        <div class="grid2">
-          <div class="field"><label>Breitengrad</label><input type="text" class="mono-in" id="loc-lat"></div>
-          <div class="field"><label>Längengrad</label><input type="text" class="mono-in" id="loc-lon"></div>
-        </div>
-        <div class="toggle" id="rain-row" style="margin-top:14px;">
-          <span class="tl2">DWD-Regenradar<small>zeigt Regen in den nächsten 2 Stunden</small></span>
-          <button class="sw" id="sw-rain" role="switch"></button>
-        </div>
-        <div class="save-row"><button class="btn primary" data-save="standort">Speichern</button>
-          <span class="save-hint" data-savehint="standort"></span></div>
-      </div>
-    </section>
-
-    <!-- Kalender -->
-    <section class="page" data-page="kalender">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Kalender</h1>
-        <p>Bis zu 3 Kalender (iCloud/ICS) – werden zu einer gemeinsamen, sortierten Übersicht zusammengeführt.</p></div>
-      <div class="card">
-        <div class="bdays" id="cal-urls"></div>
-        <button type="button" class="btn-add" id="addCalUrl">+ Kalender hinzufügen</button>
-        <div class="save-row"><button class="btn primary" data-save="kalender">Speichern</button>
-          <span class="save-hint" data-savehint="kalender"></span></div>
-      </div>
-    </section>
-
-    <!-- Nachrichten -->
-    <section class="page" data-page="news">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Nachrichten</h1>
-        <p>Nachrichtenticker am unteren Bildschirmrand.</p></div>
-      <div class="card">
-        <div class="field first"><label>Nachrichten-Feed</label>
-          <select id="news-select">
-            <option value="tagesschau">Tagesschau</option>
-            <option value="heise">heise online</option>
-            <option value="custom">Eigener RSS-Feed …</option>
-          </select></div>
-        <div class="field" id="news-custom-row" hidden><label>Eigene RSS-URL</label>
-          <input type="url" class="mono-in" id="news-url"></div>
-        <div class="save-row"><button class="btn primary" data-save="news">Speichern</button>
-          <span class="save-hint" data-savehint="news"></span></div>
-      </div>
-    </section>
-
-    <!-- Alarm -->
-    <section class="page" data-page="alarm">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>Alarmierung</h1>
-        <p>Einstellungen für MMM-aPagerAlarm.</p></div>
-      <div class="card">
-        <div class="field first">
-          <label id="lbl-personname">Name der Person</label>
-          <input type="text" id="personName">
-        </div>
-        <div class="grid2">
-          <div class="field"><label>Überschrift</label><input type="text" id="alarmTitle"></div>
-          <div class="field"><label>Alarm-Dauer (Min)</label><input type="number" class="mono-in" id="alarmDuration"></div>
-          <div class="field"><label>„im Einsatz" (Min)</label><input type="number" class="mono-in" id="infoDuration"></div>
-          <div class="field"><label>„war im Einsatz" (Min)</label><input type="number" class="mono-in" id="returnDuration"></div>
-        </div>
-        <div class="toggle" style="margin-top:14px;"><span class="tl2">Alarmton abspielen</span>
-          <button class="sw" id="sw-sound" role="switch"></button></div>
-        <div class="field"><label>Alarmton-Datei <span class="opt">(mp3/wav/ogg, max. 5MB)</span></label>
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <input type="file" id="alarm-sound-file" accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg">
-            <button type="button" class="btn" id="alarm-sound-upload">Hochladen</button>
-            <button type="button" class="btn" id="alarm-sound-reset" hidden>Zurücksetzen</button>
+          <div class="field"><label for="loc-name">Ortsname <span class="opt">(nur Anzeige)</span></label><input type="text" id="loc-name"></div>
+          <div class="grid2">
+            <div class="field"><label for="loc-lat">Breitengrad</label><input type="text" class="mono-in" id="loc-lat"></div>
+            <div class="field"><label for="loc-lon">Längengrad</label><input type="text" class="mono-in" id="loc-lon"></div>
           </div>
-          <span class="save-hint" id="alarm-sound-hint">Standardton</span>
+          <div class="toggle" id="rain-row">
+            <span class="tl2">DWD-Regenradar<small>zeigt Regen in den nächsten 2 Stunden</small></span>
+            <button class="sw" id="sw-rain" role="switch" aria-label="Regenradar"></button>
+          </div>
+          <div class="save-row"><button class="btn primary" data-save="standort">Speichern</button>
+            <span class="save-hint" data-savehint="standort"></span></div>
         </div>
-        <div class="field"><label>Home-Assistant-Webhook <span class="opt">(optional)</span></label>
-          <input type="url" class="mono-in" id="haWebhookUrl" placeholder="http://<HA-IP>:8123/api/webhook/alarm"></div>
-        <details style="margin-top:6px;">
-          <summary class="save-hint" style="cursor:pointer;">ℹ️ Wie richte ich das in Home Assistant ein?</summary>
-          <p class="save-hint" style="margin-top:8px;">
-            In Home Assistant unter <em>Einstellungen → Automatisierungen → Neue Automatisierung</em>
-            einen Auslöser „Webhook" anlegen und die dort erzeugte URL hier eintragen.
-            LUMIRA sendet dann bei jedem Alarmphasenwechsel <code>{state, keyword, unit, time}</code> per POST.
-            Ausführliche Anleitung: <code>docs/HOME_ASSISTANT.md</code> im Projekt.
-          </p>
-        </details>
-        <div class="save-row"><button class="btn primary" data-save="alarm">Speichern</button>
-          <span class="save-hint" data-savehint="alarm"></span></div>
-      </div>
-    </section>
+      </section>
 
-    <!-- WLAN -->
-    <section class="page" data-page="wlan">
-      <div class="pagehead"><span class="eyebrow">Konfiguration</span><h1>WLAN</h1>
-        <p>Aktuelles Netzwerk und WLAN-Wechsel.</p></div>
-      <div class="card">
-        <div class="info-list">
-          <div class="info-row"><span class="k">Status</span><span class="v" id="wlan-status-v">–</span></div>
-          <div class="info-row"><span class="k">Netzwerk</span><span class="v" id="wlan-ssid-v">–</span></div>
+      <!-- Kalender -->
+      <section class="page" data-page="kalender">
+        <p class="page-lead">Bis zu 3 Kalender (iCloud/ICS) – werden zu einer gemeinsamen, sortierten Übersicht zusammengeführt.</p>
+        <div class="card">
+          <div class="bdays" id="cal-urls"></div>
+          <button type="button" class="btn-add" id="addCalUrl">+ Kalender hinzufügen</button>
+          <div class="save-row"><button class="btn primary" data-save="kalender">Speichern</button>
+            <span class="save-hint" data-savehint="kalender"></span></div>
         </div>
-        <div class="save-row">
-          <button class="btn" id="wlan-change-btn">📶 WLAN ändern</button>
-        </div>
-        <p class="save-hint" style="margin-top:10px;">Startet den Einrichtungs-Access-Point
-          „LUMIRA-Setup" neu. Der Spiegel zeigt danach eine Anleitung.</p>
-      </div>
-    </section>
+      </section>
 
-    <!-- Sicherheit -->
-    <section class="page" data-page="sicherheit">
-      <div class="pagehead"><span class="eyebrow">Mehr</span><h1>Sicherheit</h1>
-        <p>PIN-Schutz für dieses Portal im Heimnetz.</p></div>
-      <div class="card">
-        <div class="field first"><label>Neuer PIN <span class="opt">(4-8 Ziffern)</span></label>
-          <input type="password" id="pin-new" inputmode="numeric" maxlength="8"></div>
-        <div class="save-row"><button class="btn primary" id="pin-save">PIN speichern</button>
-          <span class="save-hint" id="pin-hint"></span></div>
-        <div class="save-row"><button class="btn" id="pin-remove" hidden>PIN entfernen</button>
-          <span class="save-hint" id="pin-remove-hint"></span></div>
-      </div>
-    </section>
-
-    <!-- Info -->
-    <section class="page" data-page="info">
-      <div class="pagehead"><span class="eyebrow">Mehr</span><h1>Info</h1></div>
-      <div class="card">
-        <div class="info-list">
-          <div class="info-row"><span class="k">Edition</span><span class="v" id="info-edition">–</span></div>
-          <div class="info-row"><span class="k">Hostname</span><span class="v" id="info-hostname">–</span></div>
-          <div class="info-row"><span class="k">Portal-Adresse</span><span class="v" id="info-portal">–</span></div>
-          <div class="info-row"><span class="k">IP-Adresse (IPv4)</span><span class="v" id="info-ipv4">–</span></div>
-          <div class="info-row"><span class="k">Portal per IP</span><span class="v" id="info-portal-ip">–</span></div>
-          <div class="info-row"><span class="k">Idee &amp; Umsetzung</span><span class="v">Marcel Weiße, Liam Eckhof</span></div>
+      <!-- Nachrichten -->
+      <section class="page" data-page="news">
+        <p class="page-lead">Nachrichtenticker am unteren Bildschirmrand.</p>
+        <div class="card">
+          <div class="field first"><label for="news-select">Nachrichten-Feed</label>
+            <select id="news-select">
+              <option value="tagesschau">Tagesschau</option>
+              <option value="heise">heise online</option>
+              <option value="custom">Eigener RSS-Feed …</option>
+            </select></div>
+          <div class="field" id="news-custom-row" hidden><label for="news-url">Eigene RSS-URL</label>
+            <input type="url" class="mono-in" id="news-url"></div>
+          <div class="save-row"><button class="btn primary" data-save="news">Speichern</button>
+            <span class="save-hint" data-savehint="news"></span></div>
         </div>
-        <p class="save-hint" style="margin-top:10px;">Falls <span class="mono-in" id="info-portal-host">lumira.local</span> auf einem Handy
-          nicht klappt (häufig bei Android), funktioniert die Adresse per IP immer.</p>
-      </div>
+      </section>
 
-      <!-- Updates für MagicMirror² und externe Module (updates.js) -->
-      <div class="card" id="updates-card">
-        <div class="upd-head">
-          <div><h2>Updates</h2>
-            <p class="sub">MagicMirror² und zusätzlich installierte Module. Geprüft wird automatisch alle 12 Stunden, aktualisiert wird nur, wenn du es hier startest.</p></div>
-          <button type="button" class="btn" id="upd-check">🔄 Jetzt prüfen</button>
+      <!-- ================= ALARM ================= -->
+      <section class="page" data-page="alarm">
+        <p class="page-lead">Einstellungen für MMM-aPagerAlarm.</p>
+        <div class="card">
+          <div class="field first">
+            <label id="lbl-personname" for="personName">Name der Person</label>
+            <input type="text" id="personName">
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="alarmTitle">Überschrift</label><input type="text" id="alarmTitle"></div>
+            <div class="field"><label for="alarmDuration">Alarm-Dauer (Min)</label><input type="number" class="mono-in" id="alarmDuration"></div>
+            <div class="field"><label for="infoDuration">„im Einsatz" (Min)</label><input type="number" class="mono-in" id="infoDuration"></div>
+            <div class="field"><label for="returnDuration">„war im Einsatz" (Min)</label><input type="number" class="mono-in" id="returnDuration"></div>
+          </div>
+          <div class="toggle"><span class="tl2">Alarmton abspielen</span>
+            <button class="sw" id="sw-sound" role="switch" aria-label="Alarmton abspielen"></button></div>
+          <div class="field"><label for="alarm-sound-file">Alarmton-Datei <span class="opt">(mp3/wav/ogg, max. 5MB)</span></label>
+            <div class="input-row wrap">
+              <input type="file" id="alarm-sound-file" accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg">
+              <button type="button" class="btn" id="alarm-sound-upload">Hochladen</button>
+              <button type="button" class="btn" id="alarm-sound-reset" hidden>Zurücksetzen</button>
+            </div>
+            <span class="save-hint" id="alarm-sound-hint">Standardton</span>
+          </div>
+          <div class="field"><label for="haWebhookUrl">Home-Assistant-Webhook <span class="opt">(optional)</span></label>
+            <input type="url" class="mono-in" id="haWebhookUrl" placeholder="http://<HA-IP>:8123/api/webhook/alarm"></div>
+          <details class="help">
+            <summary>Wie richte ich das in Home Assistant ein?</summary>
+            <p>In Home Assistant unter <em>Einstellungen → Automatisierungen → Neue Automatisierung</em>
+              einen Auslöser „Webhook" anlegen und die dort erzeugte URL hier eintragen.
+              LUMIRA sendet dann bei jedem Alarmphasenwechsel <code>{state, keyword, unit, time}</code> per POST.
+              Ausführliche Anleitung: <code>docs/HOME_ASSISTANT.md</code> im Projekt.</p>
+          </details>
+          <div class="save-row"><button class="btn primary" data-save="alarm">Speichern</button>
+            <span class="save-hint" data-savehint="alarm"></span></div>
         </div>
-        <p class="save-hint" id="upd-checked">–</p>
-        <div id="upd-list"></div>
-        <div id="upd-job"></div>
-        <p class="save-hint" style="margin-top:12px;">Die eigenen LUMIRA-Module und das Portal kommen mit dem LUMIRA-Update
-          (per SSH: <span class="mono-in">cd ~/LUMIRA &amp;&amp; git pull &amp;&amp; ./install.sh</span>).</p>
-      </div>
-    </section>
-  </main>
+      </section>
+
+      <!-- ================= MEHR ================= -->
+      <!-- Info -->
+      <section class="page" data-page="info">
+        <div class="card">
+          <div class="info-logo">
+            <img class="for-light" src="img/logo-dark.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="560" height="480">
+            <img class="for-dark" src="img/logo-light.png" alt="LUMIRA – Familie. Sicherheit. Verbunden." width="560" height="480">
+          </div>
+          <div class="info-list">
+            <div class="info-row"><span class="k">Edition</span><span class="v" id="info-edition">–</span></div>
+            <div class="info-row"><span class="k">Hostname</span><span class="v" id="info-hostname">–</span></div>
+            <div class="info-row"><span class="k">Portal-Adresse</span><span class="v" id="info-portal">–</span></div>
+            <div class="info-row"><span class="k">IP-Adresse (IPv4)</span><span class="v" id="info-ipv4">–</span></div>
+            <div class="info-row"><span class="k">Portal per IP</span><span class="v" id="info-portal-ip">–</span></div>
+            <div class="info-row"><span class="k">Idee &amp; Umsetzung</span><span class="v">Marcel Weiße, Liam Eckhof</span></div>
+          </div>
+          <p class="save-hint" style="margin-top:10px;">Falls <span class="mono-in" id="info-portal-host">lumira.local</span> auf einem Handy
+            nicht klappt (häufig bei Android), funktioniert die Adresse per IP immer.</p>
+        </div>
+
+        <!-- Updates für MagicMirror² und externe Module (updates.js) -->
+        <div class="card" id="updates-card">
+          <div class="upd-head">
+            <div><h2>Updates</h2>
+              <p class="sub">MagicMirror² und zusätzlich installierte Module. Geprüft wird automatisch alle 12 Stunden, aktualisiert wird nur, wenn du es hier startest.</p></div>
+            <button type="button" class="btn" id="upd-check"><svg class="ic"><use href="#i-refresh"/></svg>Jetzt prüfen</button>
+          </div>
+          <p class="save-hint" id="upd-checked">–</p>
+          <div id="upd-list"></div>
+          <div id="upd-job"></div>
+          <p class="save-hint" style="margin-top:12px;">Die eigenen LUMIRA-Module und das Portal kommen mit dem LUMIRA-Update
+            (per SSH: <span class="mono-in">cd ~/LUMIRA &amp;&amp; git pull &amp;&amp; ./install.sh</span>).</p>
+        </div>
+
+        <div class="card">
+          <h2>System</h2>
+          <p class="sub">Neustart des Mini-PCs, falls der Spiegel sich einmal aufhängt.</p>
+          <div class="save-row"><button class="btn" id="pi-reboot" type="button"><svg class="ic"><use href="#i-refresh"/></svg>Pi neu starten</button></div>
+        </div>
+      </section>
+
+      <!-- Als App (Startbildschirm) -->
+      <section class="page" data-page="app">
+        <p class="page-lead">Das Portal lässt sich wie eine App auf Handy, Tablet und PC ablegen – mit eigenem Symbol und ohne Browserleiste.
+          Es funktioniert, solange das Gerät im selben WLAN wie der Spiegel ist.</p>
+
+        <div class="card app-status">
+          <img src="img/icon-192.png" alt="" width="56" height="56">
+          <div class="app-status-text"><b id="app-mode">–</b><span class="sub" id="app-mode-sub"></span></div>
+          <button type="button" class="btn primary" id="app-install" hidden><svg class="ic"><use href="#i-download"/></svg>Installieren</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>So geht's</h2></div>
+          <div class="seg" id="app-os" role="tablist" aria-label="Gerät">
+            <button type="button" role="tab" data-os="ios">iPhone &amp; iPad</button>
+            <button type="button" role="tab" data-os="android">Android</button>
+            <button type="button" role="tab" data-os="desktop">PC &amp; Mac</button>
+          </div>
+
+          <ol class="steps" data-os-steps="ios">
+            <li>Portal in <b>Safari</b> öffnen (ab iOS 16.4 geht auch Chrome oder Edge) – am besten über <span class="mono-in" data-app-host>lumira.local:8092</span>.</li>
+            <li>Unten bzw. oben auf das <b>Teilen-Symbol</b> tippen (Quadrat mit Pfeil nach oben).</li>
+            <li><b>„Zum Home-Bildschirm“</b> wählen – ggf. in der Liste etwas nach unten scrollen.</li>
+            <li>Name „LUMIRA“ lassen und <b>„Hinzufügen“</b> tippen. Fertig: LUMIRA öffnet sich jetzt ohne Browserleiste.</li>
+          </ol>
+          <ol class="steps" data-os-steps="android" hidden>
+            <li>Portal in <b>Chrome</b> öffnen – am besten über die IP-Adresse <span class="mono-in" data-app-ip>–</span>, denn <span class="mono-in">.local</span> klappt auf vielen Android-Handys nicht.</li>
+            <li>Oben rechts auf <b>⋮</b> (Menü) tippen.</li>
+            <li><b>„Zum Startbildschirm hinzufügen“</b> wählen, Name „LUMIRA“ lassen und bestätigen.</li>
+            <li>Das LUMIRA-Symbol liegt jetzt auf dem Startbildschirm. Hinweis: Android öffnet es noch im Chrome-Fenster, eine „echte“ App wird es erst mit HTTPS (geplant).</li>
+          </ol>
+          <ol class="steps" data-os-steps="desktop" hidden>
+            <li><b>Chrome:</b> Menü ⋮ → <b>„Streamen, speichern und teilen“</b> → <b>„Verknüpfung erstellen …“</b> → Haken bei <b>„Als Fenster öffnen“</b> → Erstellen.</li>
+            <li><b>Edge:</b> Menü … → <b>„Apps“</b> → <b>„Diese Website als App installieren“</b>.</li>
+            <li><b>Mac mit Safari:</b> Menü <b>Ablage</b> → <b>„Zum Dock hinzufügen“</b>.</li>
+            <li>LUMIRA startet dann in einem eigenen Fenster und lässt sich an Taskleiste bzw. Dock anheften.</li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <h2>Gut zu wissen</h2>
+          <ul class="tips">
+            <li><b>Nicht jedes Mal den PIN eingeben:</b> Beim Anmelden „Auf diesem Gerät angemeldet bleiben“ anhaken – dann bleibt die App 90 Tage angemeldet.
+              Unter <a href="#sicherheit">Sicherheit</a> kannst du alle Geräte auf einmal abmelden.</li>
+            <li><b>Welche Adresse?</b> Die App merkt sich die Adresse, mit der du sie angelegt hast (jetzt: <span class="mono-in" id="app-origin">–</span>).
+              Wird über die IP-Adresse angelegt, sollte der Spiegel im Router eine <b>feste IP</b> bekommen, sonst findet die App ihn nach einem Router-Neustart evtl. nicht mehr.</li>
+            <li><b>Nur im Heimnetz:</b> Unterwegs ist der Spiegel nicht erreichbar – das ist Absicht, deine Daten bleiben zu Hause.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- WLAN -->
+      <section class="page" data-page="wlan">
+        <p class="page-lead">Aktuelles Netzwerk und WLAN-Wechsel.</p>
+        <div class="card">
+          <div class="info-list">
+            <div class="info-row"><span class="k">Status</span><span class="v" id="wlan-status-v">–</span></div>
+            <div class="info-row"><span class="k">Netzwerk</span><span class="v" id="wlan-ssid-v">–</span></div>
+          </div>
+          <div class="save-row">
+            <button class="btn" id="wlan-change-btn" type="button"><svg class="ic"><use href="#i-wifi"/></svg>WLAN ändern</button>
+          </div>
+          <p class="save-hint" style="margin-top:10px;">Startet den Einrichtungs-Access-Point
+            „LUMIRA-Setup" neu. Der Spiegel zeigt danach eine Anleitung.</p>
+        </div>
+      </section>
+
+      <!-- Sicherheit -->
+      <section class="page" data-page="sicherheit">
+        <p class="page-lead">PIN-Schutz für dieses Portal im Heimnetz.</p>
+        <div class="card">
+          <div class="field first"><label for="pin-new">Neuer PIN <span class="opt">(4-8 Ziffern)</span></label>
+            <input type="password" id="pin-new" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
+          <div class="save-row"><button class="btn primary" id="pin-save">PIN speichern</button>
+            <span class="save-hint" id="pin-hint"></span></div>
+          <div class="save-row"><button class="btn" id="pin-remove" hidden>PIN entfernen</button>
+            <span class="save-hint" id="pin-remove-hint"></span></div>
+        </div>
+        <div class="card" id="sessions-card" hidden>
+          <h2>Angemeldete Geräte</h2>
+          <p class="sub" id="sessions-count">–</p>
+          <div class="save-row"><button class="btn" id="sessions-clear" type="button"><svg class="ic"><use href="#i-logout"/></svg>Alle anderen Geräte abmelden</button>
+            <span class="save-hint" id="sessions-hint"></span></div>
+          <p class="save-hint" style="margin-top:10px;">Zum Beispiel, wenn ein Handy verloren gegangen ist. Ein neuer PIN meldet ebenfalls alle anderen Geräte ab.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Tab-Leiste (Handy) -->
+  <nav class="tabbar" aria-label="Hauptnavigation" data-areas="tabbar"></nav>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="familyplan.js"></script>
 <script src="updates.js"></script>
 <script src="app.js"></script>

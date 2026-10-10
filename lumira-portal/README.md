@@ -34,6 +34,7 @@ automatisch mit installiert (siehe README.md im Projekt-Root), Port **8092**.
 | `lib/net.js` | `nmcli`-Wrapper (Access Point, WLAN-Scan/-Verbindung) |
 | `lib/mode.js` | Betriebsmodus-Zustand (`FAMILY`/`SETUP`) |
 | `lib/auth.js` | PIN-Hashing (scrypt) für den Portal-Zugriffsschutz |
+| `lib/sessions.js` | Anmelde-Sitzungen (12 h bzw. 90 Tage „angemeldet bleiben“), als Hash in `~/.lumira/sessions.json` |
 | `provision.js` | Watchdog (Boot + alle 2 Min via systemd-Timer) |
 | `public/` | Frontend (Vanilla JS, kein Build-Schritt), Familienplan-Seite in `public/familyplan.js` |
 | `test/` | Unit-Tests (`npm test`, Node-eigener Test-Runner, keine Abhängigkeiten) |

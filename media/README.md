@@ -12,6 +12,19 @@ Logos und Bilder, die von Doku, Landingpage und Modulen genutzt werden.
 | `lumira-logo-dark.png` | quadratisch (1254 × 1254), transparent, dunkle Schrift | auf **hellem** Hintergrund |
 | `lumira-logo-light.png` | quadratisch (1254 × 1254), transparent, helle Schrift | auf **dunklem** Hintergrund (Portal, Spiegel) |
 
+### logos/web/
+
+Für Webseiten verkleinerte Fassungen (Landingpage, Konfigurator, Portal-Vorschau); das Portal hat dieselben Dateien unter `lumira-portal/public/img/`:
+
+| Datei | Inhalt |
+|-------|--------|
+| `logo-light.png` / `logo-dark.png` | Haus + Schriftzug + Claim (560 px breit) |
+| `mark-light.png` / `mark-dark.png` | nur Haus-Zeichen |
+| `wordmark-light.png` / `wordmark-dark.png` | nur Schriftzug „LUMIRA“ |
+| `favicon-64.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png` | Zeichen auf Dunkelblau für Browser-Tab und Startbildschirm |
+
+`light` = helle Schrift für dunklen Grund, `dark` = dunkle Schrift für hellen Grund.
+
 ## avatars/
 
 Preset-Avatare für den Familienplan (siehe
