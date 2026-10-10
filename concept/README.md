@@ -10,6 +10,7 @@ sind. Aktueller Umsetzungsstand jeweils in [CHECKLIST.md](../CHECKLIST.md).
 | [smartcompliments-json.md](smartcompliments-json.md) | MMM-SmartCompliments-Sprüche aus `config.js` in eine vom Portal bearbeitbare `compliments.json` auslagern |
 | [design-system.md](design-system.md) | Design-System 2.0: Marke, Tokens, Komponenten, neue Navigation und echte Handy-Version |
 | [familienplan.md](familienplan.md) | Familienplan: Wochendienste mit fairer automatischer Rotation (neues Modul `MMM-FamilyPlan`), gepflegt im Portal |
+| [app.md](app.md) | LUMIRA als App: Web-App auf dem Startbildschirm (umgesetzt), Ideen für Android/iOS/PC-Apps, HTTPS im Heimnetz, Zugriff von unterwegs |
 
 Neue Ideen kommen als eigene Markdown-Datei hierher, sobald sie über eine
 kurze Notiz hinaus konkret genug sind, um sie auszuformulieren.
