@@ -96,6 +96,23 @@
 	text-align: center;
 }
 
+.MMM-FamilyPlan .fp-pill-days {
+	margin-left: 0.4em;
+	padding-left: 0.4em;
+	border-left: 1px solid currentColor;
+	font-size: 0.85em;
+	opacity: 0.8;
+	white-space: nowrap;
+}
+
+/* Dienst mit festen Tagen: heute fällig → leuchtet, an anderen Tagen etwas zurückgenommen */
+.MMM-FamilyPlan .fp-pill.fp-today {
+	box-shadow: 0 0 0 2px #fff, 0 0 14px rgba(255, 255, 255, 0.45);
+	font-weight: 700;
+}
+.MMM-FamilyPlan .fp-pill.fp-today .fp-pill-days { opacity: 1; text-transform: uppercase; letter-spacing: 0.04em; }
+.MMM-FamilyPlan .fp-pill.fp-later { opacity: 0.72; }
+
 .MMM-FamilyPlan .fp-pill-text {
 	overflow: hidden;
 	text-overflow: ellipsis;

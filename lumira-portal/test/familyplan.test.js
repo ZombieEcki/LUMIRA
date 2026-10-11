@@ -300,3 +300,23 @@ test("Backups auflisten und wiederherstellen, auch bei beschädigter Datei", () 
 	assert.equal(fp.view(WED).settings.title, "Version A");
 	assert.throws(() => fp.restoreBackup("../settings.json", WED), /nicht gefunden/);
 });
+
+test("Dienste an Wochentagen: gespeichert, sortiert, ohne neuen Zyklus", () => {
+	reset();
+	const saved = family(0);
+	fp.ensureCurrentWeek(WED);
+	const before = fp.view(WED);
+	const cycleStart = fp.load().settings.cycleStart;
+	const assignBefore = JSON.stringify(before.currentWeek && before.currentWeek.assign);
+	const list = before.duties.map((d) => d.name === "Mülldienst" ? Object.assign({}, d, { days: [4, 2, 2, 9, "x"] })
+		: d.name === "Baddienst" ? Object.assign({}, d, { days: [6] }) : d);
+	fp.setDuties(fp.load().revision, list, WED);
+	const after = fp.view(WED);
+	assert.deepEqual(after.duties.find((d) => d.name === "Mülldienst").days, [2, 4], "Di, Do – sortiert, Unsinn entfernt");
+	assert.deepEqual(after.duties.find((d) => d.name === "Baddienst").days, [6]);
+	assert.deepEqual(after.duties.find((d) => d.name === "Kochdienst").days, []);
+	// Tage sind nur Anzeige: Verteilung und Zyklus bleiben
+	assert.equal(fp.load().settings.cycleStart, cycleStart);
+	assert.equal(JSON.stringify(after.currentWeek && after.currentWeek.assign), assignBefore);
+	assert.ok(saved);
+});

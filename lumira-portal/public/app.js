@@ -1202,6 +1202,16 @@
     $("#member-chip").title = list.length ? list.map(function (m) { return m.name; }).join(", ") + " – verwalten" : "Familienmitglieder anlegen";
   }
 
+  // [1,2,3,4,5] → "Mo–Fr" (wie im Familienplan)
+  function startDaysText(days) {
+    var short = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+    var idx = [1, 2, 3, 4, 5, 6, 0].filter(function (n) { return days.indexOf(n) !== -1; }).map(function (n) { return (n + 6) % 7; });
+    var runs = [];
+    idx.forEach(function (i) { var l = runs[runs.length - 1]; if (l && i === l[1] + 1) l[1] = i; else runs.push([i, i]); });
+    function nm(i) { return short[(i + 1) % 7]; }
+    return runs.map(function (r) { return r[1] - r[0] >= 2 ? nm(r[0]) + "–" + nm(r[1]) : r[0] === r[1] ? nm(r[0]) : nm(r[0]) + ", " + nm(r[1]); }).join(", ");
+  }
+
   function renderStartFamily(plan) {
     START_PLAN = plan;
     var wrap = $("#start-fp-rows");
@@ -1233,6 +1243,13 @@
         var dot = el("i", "d"); dot.style.background = d.color;
         chip.appendChild(dot);
         chip.appendChild(document.createTextNode(d.name));
+        // Feste Tage: heute fällig hervorheben, sonst die Tage dahinter
+        var days = Array.isArray(d.days) ? d.days : [];
+        if (days.length && days.length < 7) {
+          var today = days.indexOf(new Date().getDay()) !== -1;
+          chip.appendChild(el("span", "chip-days", today ? "heute" : startDaysText(days)));
+          if (today) chip.classList.add("is-today");
+        }
         chips.appendChild(chip);
       });
       if (!w.assign[id].length) chips.appendChild(el("span", "save-hint", "diese Woche frei"));

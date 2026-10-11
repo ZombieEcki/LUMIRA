@@ -178,6 +178,45 @@
     xhr.send(fd);
   }
 
+  // Format des Spiegels aus dem Live-Bild (MMM-LumiraStatus) – hochkant oder quer
+  function mirrorAspect() {
+    var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 4000); });
+    var shot = fetch("/api/mirror/screenshot", { credentials: "same-origin", cache: "no-store" })
+      .then(function (r) { return r.ok ? r.blob() : null; })
+      .then(function (b) {
+        if (!b) return null;
+        return new Promise(function (resolve) {
+          var u = URL.createObjectURL(b), i = new Image();
+          i.onload = function () { URL.revokeObjectURL(u); resolve(i.naturalWidth / i.naturalHeight); };
+          i.onerror = function () { URL.revokeObjectURL(u); resolve(null); };
+          i.src = u;
+        });
+      }).catch(function () { return null; });
+    return Promise.race([shot, timeout]);
+  }
+
+  function cropThenUpload(file) {
+    var hint = $("#amb-upload");
+    hint.textContent = "Format des Spiegels wird ermittelt …";
+    mirrorAspect().then(function (a) {
+      hint.textContent = "";
+      var portrait = a ? a < 1 : false;
+      var aspects = [
+        { label: "Hochkant 9:16", value: 9 / 16 },
+        { label: "Quer 16:9", value: 16 / 9 },
+        { label: "Original", value: "original" }
+      ];
+      // Passt das Live-Bild genau zu keinem Standard, sein eigenes Format anbieten
+      if (a && Math.abs(a - 9 / 16) > 0.02 && Math.abs(a - 16 / 9) > 0.02) aspects.unshift({ label: "Wie der Spiegel", value: a });
+      var start = a ? aspects[0].value : (portrait ? 9 / 16 : 16 / 9);
+      return window.LumiraCrop.open({ file: file, aspects: aspects, aspect: start, out: { maxSide: 1920 }, quality: 0.9, title: "Hintergrundbild zuschneiden" });
+    }).then(function (blob) {
+      if (!blob) return; // abgebrochen
+      var name = String(file.name || "Bild").replace(/\.[a-z0-9]{2,5}$/i, "") + ".jpg";
+      upload(new File([blob], name, { type: "image/jpeg" }));
+    }).catch(function (err) { hint.textContent = err.message; });
+  }
+
   window.LumiraAmbient = {
     init: function (context) {
       ctx = context;
@@ -217,7 +256,10 @@
       $("#amb-file").addEventListener("change", function () {
         var f = this.files && this.files[0];
         this.value = "";
-        if (f) upload(f);
+        if (!f) return;
+        // Standbilder vorher zuschneiden; Videos und GIFs (Animation) direkt
+        if (/^image\/(jpeg|png|webp)$/.test(f.type) && window.LumiraCrop) cropThenUpload(f);
+        else upload(f);
       });
       load();
       // Stand gelegentlich auffrischen (Timer abgelaufen, anderes Gerät)

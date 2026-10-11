@@ -109,10 +109,23 @@
 
   function icon(name) { var i = el("i", "fa-solid fa-" + name); i.setAttribute("aria-hidden", "true"); return i; }
 
+  var DAY_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  // [1,2,3,4,5] → "Mo–Fr", [2] → "Di" (wie MMM-FamilyPlan/payload.js)
+  function daysText(days) {
+    if (!days || !days.length || days.length === 7) return "";
+    var idx = [1, 2, 3, 4, 5, 6, 0].filter(function (n) { return days.indexOf(n) !== -1; }).map(function (n) { return (n + 6) % 7; });
+    var runs = [];
+    idx.forEach(function (i) { var last = runs[runs.length - 1]; if (last && i === last[1] + 1) last[1] = i; else runs.push([i, i]); });
+    function nm(i) { return DAY_SHORT[(i + 1) % 7]; }
+    return runs.map(function (r) { return r[1] - r[0] >= 2 ? nm(r[0]) + "–" + nm(r[1]) : r[0] === r[1] ? nm(r[0]) : nm(r[0]) + ", " + nm(r[1]); }).join(", ");
+  }
+
   function pill(d) {
     var p = el("span", "fp-pill");
     p.style.background = d.color; p.style.color = textOn(d.color);
     p.appendChild(icon(d.icon)); p.appendChild(el("span", null, d.name));
+    var dt = daysText(d.days);
+    if (dt) p.appendChild(el("span", "fp-pill-days", dt));
     return p;
   }
 
@@ -391,30 +404,21 @@
     return box;
   }
 
-  // Foto im Browser quadratisch auf 256 px zuschneiden, dann hochladen –
-  // der Pi braucht so keine Bildbibliothek.
+  // Foto im Browser zuschneiden (rund, Ausschnitt und Zoom frei wählbar,
+  // cropper.js) und als 256 × 256 JPEG hochladen – der Pi braucht so keine
+  // Bildbibliothek.
   function uploadPhoto(m, file) {
     if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { ctx.toast("Bitte ein PNG-, JPG- oder WebP-Bild wählen"); return; }
     if (dirtyMembers()) { ctx.toast("Bitte zuerst die anderen Änderungen speichern"); return; }
-    var reader = new FileReader();
-    reader.onload = function () {
-      var img = new Image();
-      img.onload = function () {
-        var s = Math.min(img.width, img.height);
-        var c = document.createElement("canvas"); c.width = c.height = 256;
-        c.getContext("2d").drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 256, 256);
-        c.toBlob(function (blob) {
-          if (!blob) { ctx.toast("Bild konnte nicht verarbeitet werden"); return; }
-          var form = new FormData();
-          form.append("avatar", blob, "avatar.jpg");
-          api("/api/familyplan/avatar/" + m.id, { method: "POST", form: form })
-            .then(function (p) { openPicker = null; apply(p); ctx.toast("Foto gespeichert"); }).catch(fail);
-        }, "image/jpeg", 0.85);
-      };
-      img.onerror = function () { ctx.toast("Bild konnte nicht gelesen werden"); };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
+    window.LumiraCrop.open({ file: file, aspect: 1, round: true, out: { width: 256, height: 256 }, quality: 0.88, title: "Profilbild für " + (m.name || "Mitglied") })
+      .then(function (blob) {
+        if (!blob) return; // abgebrochen
+        var form = new FormData();
+        form.append("avatar", blob, "avatar.jpg");
+        return api("/api/familyplan/avatar/" + m.id, { method: "POST", form: form })
+          .then(function (p) { openPicker = null; apply(p); ctx.toast("Foto gespeichert"); });
+      })
+      .catch(fail);
   }
 
   // ----- Dienste -----
@@ -445,7 +449,7 @@
   function dutyRow(d, i) {
     var row = el("div", "fp-drow");
     var preview = el("span", "fp-dprev");
-    function refresh() { preview.replaceChildren(pill({ name: d.name || "Neuer Dienst", color: d.color, icon: d.icon })); }
+    function refresh() { preview.replaceChildren(pill({ name: d.name || "Neuer Dienst", color: d.color, icon: d.icon, days: d.days })); }
     refresh();
     row.appendChild(preview);
 
@@ -466,6 +470,24 @@
     who.addEventListener("change", function () { d.roles = FOR_WHOM.filter(function (f) { return f.v === who.value; })[0].roles.slice(); });
     row.appendChild(who);
 
+    // Feste Wochentage (leer = ganze Woche)
+    var daysBox = el("div", "fp-days");
+    daysBox.setAttribute("role", "group");
+    daysBox.setAttribute("aria-label", "Wochentage, leer = ganze Woche");
+    daysBox.title = "Feste Tage – ohne Auswahl gilt der Dienst die ganze Woche";
+    if (!Array.isArray(d.days)) d.days = [];
+    [1, 2, 3, 4, 5, 6, 0].forEach(function (n) {
+      var b = el("button", "fp-day", DAY_SHORT[n]); b.type = "button";
+      b.setAttribute("aria-pressed", d.days.indexOf(n) !== -1 ? "true" : "false");
+      b.addEventListener("click", function () {
+        var k = d.days.indexOf(n);
+        if (k === -1) d.days.push(n); else d.days.splice(k, 1);
+        b.setAttribute("aria-pressed", k === -1 ? "true" : "false");
+        refresh();
+      });
+      daysBox.appendChild(b);
+    });
+    row.appendChild(daysBox);
     row.appendChild(swBtn(d.active !== false, "Aktiv", function (v) { d.active = v; }));
     row.appendChild(moveButtons(draftDuties, i));
     var del = el("button", "btn-x", "✕"); del.type = "button"; del.title = "Entfernen"; del.setAttribute("aria-label", "Entfernen");

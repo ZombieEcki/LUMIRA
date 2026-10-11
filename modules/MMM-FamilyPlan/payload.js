@@ -89,11 +89,15 @@ function buildPayload(raw, now) {
 				duties: assign[m.id].filter((id) => duties[id]).map((id) => {
 					const d = duties[id];
 					const dc = HEX_RE.test(d.color) ? d.color : "#9ca3af";
+					const days = dutyDays(d.days);
 					return {
 						name: String(d.name || "").slice(0, 30),
 						color: dc,
 						textColor: textOn(dc),
-						icon: ICON_RE.test(d.icon) ? d.icon : "house"
+						icon: ICON_RE.test(d.icon) ? d.icon : "house",
+						// feste Wochentage: Kurztext und „heute fällig“
+						days: daysText(days),
+						today: days.length > 0 && days.indexOf(now.getDay()) !== -1
 					};
 				})
 			};
@@ -101,4 +105,25 @@ function buildPayload(raw, now) {
 	};
 }
 
-module.exports = { buildPayload, textOn, isoWeek };
+const DAY_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
+function dutyDays(days) {
+	if (!Array.isArray(days)) return [];
+	return days.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+}
+
+// [1,2,3,4,5] → "Mo–Fr", [2] → "Di", [1,4] → "Mo, Do", alle/keine → ""
+function daysText(days) {
+	if (!days.length || days.length === 7) return "";
+	const order = [1, 2, 3, 4, 5, 6, 0].filter((n) => days.indexOf(n) !== -1);
+	const idx = order.map((n) => (n + 6) % 7); // Mo = 0 … So = 6
+	const runs = [];
+	idx.forEach((i) => {
+		const last = runs[runs.length - 1];
+		if (last && i === last[1] + 1) last[1] = i; else runs.push([i, i]);
+	});
+	const name = (i) => DAY_SHORT[(i + 1) % 7];
+	return runs.map((r) => (r[1] - r[0] >= 2 ? name(r[0]) + "–" + name(r[1]) : r[0] === r[1] ? name(r[0]) : name(r[0]) + ", " + name(r[1]))).join(", ");
+}
+
+module.exports = { buildPayload, textOn, isoWeek, daysText };

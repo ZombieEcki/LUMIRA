@@ -130,6 +130,14 @@ function cleanMember(m) {
 	};
 }
 
+// Wochentage eines Dienstes (0 = Sonntag … 6 = Samstag, wie Date#getDay).
+// Leer = ganze Woche. Nur Anzeige/Hervorhebung – die Rotation bleibt wöchentlich.
+function cleanDays(days) {
+	if (!Array.isArray(days)) return [];
+	const set = new Set(days.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6));
+	return [1, 2, 3, 4, 5, 6, 0].filter((n) => set.has(n));
+}
+
 function cleanDuty(d) {
 	const roles = Array.isArray(d.roles) ? d.roles.filter((r) => ROLES.indexOf(r) !== -1) : ROLES.slice();
 	return {
@@ -138,6 +146,7 @@ function cleanDuty(d) {
 		color: HEX_RE.test(d.color) ? d.color : "#9ca3af",
 		icon: ICONS.indexOf(d.icon) !== -1 ? d.icon : "house",
 		roles: roles.length ? roles : ROLES.slice(),
+		days: cleanDays(d.days),
 		active: d.active !== false,
 		deleted: d.deleted === true
 	};
@@ -579,6 +588,7 @@ function setDuties(revision, list, now) {
 				color: checkColor(field, item.color),
 				icon: item.icon,
 				roles: ROLES.filter((r) => roles.indexOf(r) !== -1),
+				days: cleanDays(item.days),
 				active: item.active !== false,
 				deleted: false
 			};

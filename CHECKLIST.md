@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 83 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 85 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -132,6 +132,14 @@ um den aktuellen Stand zu sehen.
 - [x] Kopfzeile zeigt die **Familienmitglieder** (Avatare + Anzahl, Klick →
       Familienplan → Mitglieder) statt der Edition; Edition nur noch unter Info
 - [ ] Live-Bild auf echter Pi-Hardware prüfen (Electron-Aufnahme, Last auf dem Pi 3)
+
+### Familienplan: Dienste an Wochentagen & Bilder zuschneiden
+- [x] Dienste können feste Wochentage haben (z. B. Müll Di, Do); Rotation bleibt
+      wöchentlich und fair (Tage ändern den Zyklus nicht). Spiegel und Startseite zeigen
+      die Tage („Mo–Fr“, „Di, Do“) und heben den Dienst am Tag selbst hervor („heute“)
+- [x] Eigenes Zuschneide-Fenster (`public/cropper.js`): Ziehen, Zoom per Regler/Mausrad/
+      zwei Finger, Tastatur. Profilbilder rund 256 × 256, Hintergrundbilder hochkant/quer/
+      Original (Vorauswahl nach dem Format des Spiegels aus dem Live-Bild), max. 1920 px
 
 ### Raspberry Pi 3: Electron-Fix (MagicMirror #4287)
 - [x] MagicMirror 2.38.0 liefert Electron 44.4.5 → schwarzer Bildschirm auf dem Pi 3.

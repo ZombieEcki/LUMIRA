@@ -36,6 +36,11 @@ mit, ist aber zunächst ausgeschaltet.
    kombiniert werden oder feste Paare zusammenbleiben (z. B. Kochen +
    Küche).
 
+Dienste können **feste Wochentage** bekommen (Familienplan → Dienste, Schalter
+Mo–So, z. B. Mülldienst Di + Do). Die Verteilung bleibt wöchentlich; der Spiegel
+zeigt die Tage am Dienst und hebt ihn am Tag selbst mit „heute“ hervor. Eigene
+Profilfotos lassen sich beim Hochladen zuschneiden (Ausschnitt verschieben, zoomen).
+
 Geburtstage, Jahrestage (Hochzeitstag, Kennenlerntag, Einzug oder ein eigener
 Anlass) und Countdowns für die Familienbotschaften stehen auf der Seite
 **Familie → Termine**. Geburtstage werden dort mit den

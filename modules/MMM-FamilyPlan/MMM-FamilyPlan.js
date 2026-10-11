@@ -125,6 +125,14 @@ Module.register("MMM-FamilyPlan", {
 				icon.setAttribute("aria-hidden", "true");
 				pill.appendChild(icon);
 				pill.appendChild(this.el("span", "fp-pill-text", d.name));
+				// Feste Tage: am Tag selbst hervorheben, sonst die Tage klein dahinter
+				if (d.today) {
+					pill.classList.add("fp-today");
+					pill.appendChild(this.el("span", "fp-pill-days", "heute"));
+				} else if (d.days) {
+					pill.classList.add("fp-later");
+					pill.appendChild(this.el("span", "fp-pill-days", d.days));
+				}
 				pills.appendChild(pill);
 			});
 			if (!m.duties.length) pills.appendChild(this.el("div", "fp-pill fp-free", "Diese Woche frei"));

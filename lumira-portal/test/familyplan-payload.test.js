@@ -61,3 +61,23 @@ test("Textfarbe: dunkel auf hellen, hell auf dunklen Farben", () => {
 	assert.equal(textOn("#facc15"), "#14161a");
 	assert.equal(textOn("#1e3a8a"), "#ffffff");
 });
+
+test("Dienste an Wochentagen: Kurztext und „heute“", () => {
+	const { daysText } = require("../../modules/MMM-FamilyPlan/payload");
+	assert.equal(daysText([1, 2, 3, 4, 5]), "Mo–Fr");
+	assert.equal(daysText([2]), "Di");
+	assert.equal(daysText([1, 4]), "Mo, Do");
+	assert.equal(daysText([6, 0]), "Sa, So");
+	assert.equal(daysText([]), "");
+	assert.equal(daysText([0, 1, 2, 3, 4, 5, 6]), "");
+	const raw = JSON.parse(JSON.stringify(RAW));
+	raw.duties[0].days = [3];   // Garten: Mittwoch
+	raw.duties[1].days = [1, 5]; // Tisch: Mo, Fr
+	const p = buildPayload(raw, new Date(2026, 6, 8, 12)); // Mittwoch
+	const garten = p.members[0].duties[0];
+	assert.equal(garten.today, true);
+	assert.equal(garten.days, "Mi");
+	const tisch = p.members[1].duties[0];
+	assert.equal(tisch.today, false);
+	assert.equal(tisch.days, "Mo, Fr");
+});
