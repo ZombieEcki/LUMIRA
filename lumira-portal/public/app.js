@@ -204,6 +204,10 @@
       }
       wireTheme();
       wireLogout();
+      $("#reload-btn").addEventListener("click", function () {
+        this.classList.add("is-spinning");
+        location.reload();
+      });
       $("#member-chip").addEventListener("click", function () {
         goPage("familienplan");
         if (window.LumiraFamilyPlan && window.LumiraFamilyPlan.showTab) window.LumiraFamilyPlan.showTab("mitglieder");
