@@ -575,6 +575,10 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
   .page.cols > .card { grid-column:auto; margin:0; }
   .page.cols > .card.wide { grid-column:1 / -1; }
   .page.cols > .card.tall { grid-row:span 2; }
+  /* Überhöhe einer zweizeiligen Karte in die letzte ihrer Zeilen, sonst entsteht
+     eine Lücke unter der Nachbarkarte (Info: Updates, Termine: Geburtstage) */
+  .page.cols.active[data-page="info"] { grid-template-rows:auto 1fr; }
+  .page.cols.active[data-page="familie"] { grid-template-rows:auto auto 1fr auto; }
   .page.cols > .page-lead, .page.cols > .save-row { margin-bottom:0; }
   .card-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:18px; align-items:start; margin-bottom:16px; }
   .card-grid > .card { margin:0; }
