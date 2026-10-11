@@ -215,7 +215,7 @@
       renderGreeting();
       renderStartNext();
       loadWeather();
-      renderModuleList();
+      applyModuleState();
       renderModulePreview();
       wireMirrorLive();
       refreshStatus();
@@ -843,6 +843,11 @@
   // Speichern
   // ---------------------------------------------------------------------
   function wireSaves() {
+    $("#sw-alarm-on").addEventListener("click", function () {
+      // Umschalten übernimmt setSwitch, hier nur der Hinweis
+      var hint = $('[data-savehint="alarm"]');
+      if (hint) hint.textContent = "Zum Übernehmen unten speichern.";
+    });
     $all("[data-save]").forEach(function (btn) {
       btn.addEventListener("click", function () { save(btn.getAttribute("data-save"), btn); });
     });
@@ -866,6 +871,17 @@
         rainRadar: { enabled: switchOn($("#sw-rain")) }
       };
     }
+    if (section === "module") {
+      var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {});
+      var patch = {};
+      $all("#module-list-extra [data-module]").forEach(function (sw) {
+        var m = MODULE_LIST.filter(function (x) { return x.key === sw.getAttribute("data-module"); })[0];
+        if (!m) return;
+        if (m.where) patch[m.where] = { enabled: switchOn(sw) }; else mods[m.key] = switchOn(sw);
+      });
+      patch.modules = mods;
+      return patch;
+    }
     if (section === "kalender") {
       return { calendar: { urls: collectCalUrls() } };
     }
@@ -876,6 +892,7 @@
     }
     if (section === "alarm") {
       return {
+        modules: Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { alarm: switchOn($("#sw-alarm-on")) }),
         person: { name: $("#personName").value.trim() },
         alarm: {
           title: $("#alarmTitle").value.trim(),
@@ -897,6 +914,7 @@
     api("/api/settings", { method: "POST", body: patchFor(section) }).then(function (settings) {
       SETTINGS = settings;
       btn.disabled = false;
+      applyModuleState();
       renderStartNext();
       renderGreeting();
       if (hint) hint.textContent = "Gespeichert – MagicMirror startet neu.";
@@ -934,14 +952,30 @@
   // ---------------------------------------------------------------------
   // Steuerung der Module: Platzhalter-Liste + rein visuelle Vorschau
   // ---------------------------------------------------------------------
+  // Spiegel → Module: was auf den Spiegel kommt (lib/generate-config.js).
+  // where: "modules" = settings.modules[key], sonst eigenes enabled-Feld
   var MODULE_LIST = [
-    { need: "hasAlarm", label: "Alarmierung" },
-    { need: "hasCal", label: "Kalender" },
-    { need: null, label: "Nachrichten" },
-    { need: null, label: "Wetter" },
-    { need: "hasRain", label: "Regenradar" },
-    { need: null, label: "Uhr" }
+    { key: "clock", label: "Uhr", desc: "oben links" },
+    { key: "weather", label: "Wetter", desc: "aktuell und Vorhersage" },
+    { key: "rainRadar", where: "rainRadar", need: "hasRain", label: "Regenradar", desc: "Regen in den nächsten 2 Stunden" },
+    { key: "calendar", need: "hasCal", label: "Kalender", desc: "Termine aus euren Kalendern" },
+    { key: "news", label: "Nachrichten", desc: "Ticker am unteren Rand" },
+    { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste" },
+    { key: "compliments", need: "hasFamily", label: "Familienbotschaften", desc: "Sprüche, Geburtstage, Hinweise" },
+    { key: "alarm", need: "hasAlarm", label: "Alarmierung", desc: "aPager – aus: kein Alarm auf dem Spiegel" },
+    { key: "statusHint", label: "Portal-Hinweis", desc: "kleine Zeile mit der Portal-Adresse" }
   ];
+
+  function moduleOn(m) {
+    if (!SETTINGS) return true;
+    if (m.where) return !!(SETTINGS[m.where] && SETTINGS[m.where].enabled);
+    return !(SETTINGS.modules && SETTINGS.modules[m.key] === false);
+  }
+
+  function alarmEnabled() {
+    return !!STATUS.edition.flags.hasAlarm && !(SETTINGS && SETTINGS.modules && SETTINGS.modules.alarm === false);
+  }
+
   function renderModuleList() {
     var wrap = $("#module-list-extra");
     wrap.innerHTML = "";
@@ -950,10 +984,29 @@
       if (m.need && !flags[m.need]) return;
       var row = document.createElement("div");
       row.className = "toggle";
-      row.innerHTML = '<span class="tl2">' + m.label + '<small>bald verfügbar</small></span>' +
-        '<button class="sw" aria-checked="false" aria-disabled="true" tabindex="-1"></button>';
+      var tl = document.createElement("span"); tl.className = "tl2"; tl.textContent = m.label;
+      var small = document.createElement("small"); small.textContent = m.desc; tl.appendChild(small);
+      var sw = document.createElement("button"); sw.type = "button"; sw.className = "sw";
+      sw.setAttribute("role", "switch"); sw.setAttribute("aria-label", m.label);
+      sw.setAttribute("data-module", m.key);
+      setSwitch(sw, moduleOn(m)); // setSwitch schaltet beim Klick selbst um
+      row.appendChild(tl); row.appendChild(sw);
       wrap.appendChild(row);
     });
+  }
+
+  // Alles, was am Modul-Stand hängt, nach dem Laden bzw. Speichern auffrischen
+  function applyModuleState() {
+    var on = alarmEnabled();
+    var flags = STATUS.edition.flags;
+    if (flags.hasAlarm) {
+      $("#tile-alarm").hidden = !on;
+      $("#card-alarm-actions").hidden = !on;
+    }
+    setSwitch($("#sw-alarm-on"), on);
+    if (SETTINGS && SETTINGS.rainRadar) setSwitch($("#sw-rain"), !!SETTINGS.rainRadar.enabled);
+    renderModuleList();
+    renderModulePreview();
   }
 
   // ---------------------------------------------------------------------
@@ -1061,19 +1114,29 @@
 
   function renderModulePreview() {
     var flags = STATUS.edition.flags;
-    var fpOn = flags.hasFamily && SETTINGS && SETTINGS.familyPlan && SETTINGS.familyPlan.enabled;
-    setPreviewCell("top_left", fpOn ? "Uhr · Familienplan" : "Uhr");
-    setPreviewCell("top_center", flags.hasFamily ? "Sprüche" : "");
-    var right = ["Wetter"];
-    if (flags.hasRain) right.push("Regenradar");
+    function mod(key) { return moduleOn(MODULE_LIST.filter(function (x) { return x.key === key; })[0]); }
+    var fpOn = flags.hasFamily && mod("familyPlan");
+    var left = [];
+    if (mod("clock")) left.push("Uhr");
+    if (fpOn) left.push("Familienplan");
+    setPreviewCell("top_left", left.join(" · "));
+    var compOn = flags.hasFamily && mod("compliments");
+    setPreviewCell("top_center", compOn ? "Sprüche" : "");
+    var right = [];
+    if (mod("weather")) right.push("Wetter");
+    var rainOn = flags.hasRain && mod("rainRadar");
+    if (rainOn) right.push("Regenradar");
     setPreviewCell("top_right", right.join(" · "));
-    setPreviewCell("bottom_left", flags.hasCal ? "Kalender" : "");
-    setPreviewCell("bottom_right", "Status");
-    $("#mp-bottombar").textContent = "Nachrichten";
+    var calOn = flags.hasCal && mod("calendar");
+    setPreviewCell("bottom_left", calOn ? "Kalender" : "");
+    setPreviewCell("bottom_right", mod("statusHint") ? "Status" : "");
+    var newsOn = mod("news");
+    $("#mp-bottombar").textContent = newsOn ? "Nachrichten" : "";
+    $("#mp-bottombar").hidden = !newsOn;
     var overlay = $("#mp-overlay");
     overlay.textContent = "Alarmierung – Vollbild bei Alarm";
-    overlay.hidden = !flags.hasAlarm;
-    var visible = 3 + (fpOn ? 1 : 0) + (flags.hasFamily ? 1 : 0) + (flags.hasRain ? 1 : 0) + (flags.hasCal ? 1 : 0);
+    overlay.hidden = !alarmEnabled();
+    var visible = left.length + right.length + (compOn ? 1 : 0) + (calOn ? 1 : 0) + (newsOn ? 1 : 0) + (mod("statusHint") ? 1 : 0);
     $("#mirror-sub").textContent = visible + " Module sichtbar";
   }
   function setPreviewCell(region, text) {
@@ -1104,7 +1167,7 @@
     // (Sprüche-Schalter bzw. Alarm-Webhook laufen im MagicMirror-Prozess).
     var flags = STATUS.edition.flags;
     var checks = [];
-    if (flags.hasAlarm) {
+    if (alarmEnabled()) {
       checks.push(api("/api/proxy/alarm/health").then(function (data) {
         $("#alarm-state-text").textContent = "bereit";
         $("#alarm-sub").textContent = data.module || "MMM-aPagerAlarm";

@@ -88,7 +88,17 @@ const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
 const MM_REGIONS = ["top_left", "top_center", "top_right", "upper_third", "middle_center",
 	"lower_third", "bottom_left", "bottom_center", "bottom_right"];
 
+// Schaltbare Spiegel-Module (Spiegel → Module im Portal)
+const MODULE_KEYS = ["clock", "weather", "calendar", "news", "compliments", "alarm", "statusHint"];
+
 function validate(settings) {
+	if (settings.modules !== undefined) {
+		if (!isPlainObject(settings.modules)) throw new ValidationError("modules", "modules muss ein Objekt sein");
+		for (const k of Object.keys(settings.modules)) {
+			if (MODULE_KEYS.indexOf(k) === -1) throw new ValidationError("modules." + k, "Unbekanntes Modul " + k);
+			if (typeof settings.modules[k] !== "boolean") throw new ValidationError("modules." + k, "Modul-Schalter muss an oder aus sein");
+		}
+	}
 	if (!isValidEdition(settings.edition)) {
 		throw new ValidationError("edition", `Unbekannte Edition "${settings.edition}"`);
 	}

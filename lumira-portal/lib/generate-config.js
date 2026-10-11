@@ -29,15 +29,21 @@ function countdownsFor(family) {
 
 function buildModules(settings) {
 	const edition = getEdition(settings.edition);
+	// Spiegel → Module im Portal: ausgeschaltete Module kommen gar nicht erst
+	// in die config.js, auf dem Spiegel erscheint dann nichts davon
+	const on = (key) => !(settings.modules && settings.modules[key] === false);
+	const alarmOn = edition.hasAlarm && on("alarm");
 	const modules = [
 		{ module: "alert" },
-		{ module: "updatenotification", position: "top_bar" },
-		{
+		{ module: "updatenotification", position: "top_bar" }
+	];
+	if (on("clock")) {
+		modules.push({
 			module: "clock",
 			position: "top_left",
 			config: { displayType: "digital", displaySeconds: false }
-		}
-	];
+		});
+	}
 
 	// Familienplan (concept/familienplan.md) – direkt nach der Uhr, damit er
 	// in top_left unter ihr steht. Inhalte kommen live aus familyplan.json,
@@ -52,12 +58,12 @@ function buildModules(settings) {
 				layout: familyPlan.layout === "inline" ? "inline" : "stacked",
 				showHeader: true,
 				showWeekRange: true,
-				hideOnAlarmPhases: edition.hasAlarm ? [1] : []
+				hideOnAlarmPhases: alarmOn ? [1] : []
 			}
 		});
 	}
 
-	if (edition.hasFamily) {
+	if (edition.hasFamily && on("compliments")) {
 		const moods = (settings.compliments && settings.compliments.moods) || {};
 		modules.push({
 			module: "MMM-SmartCompliments",
@@ -76,9 +82,9 @@ function buildModules(settings) {
 				countdowns: countdownsFor(settings.family),
 				weddingText: "❤️ Alles Gute zum Hochzeitstag!",
 				anniversaryReminderDays: 7,
-				firefighterIntegration: edition.hasAlarm,
-				hideOnAlarmPhases: edition.hasAlarm ? [1] : [],
-				afterDutyEnabled: edition.hasAlarm,
+				firefighterIntegration: alarmOn,
+				hideOnAlarmPhases: alarmOn ? [1] : [],
+				afterDutyEnabled: alarmOn,
 				afterDutyExclusive: false,
 				afterDutyDurationMinutes: 0,
 				manualControlEnabled: true,
@@ -87,7 +93,7 @@ function buildModules(settings) {
 		});
 	}
 
-	if (edition.hasAlarm) {
+	if (alarmOn) {
 		modules.push({
 			module: "MMM-aPagerAlarm",
 			position: "fullscreen_above",
@@ -110,7 +116,7 @@ function buildModules(settings) {
 	}
 
 	const calUrls = (settings.calendar.urls || []).filter(Boolean);
-	if (edition.hasCal && calUrls.length) {
+	if (edition.hasCal && on("calendar") && calUrls.length) {
 		modules.push({
 			module: "calendar",
 			header: edition.hasFamily ? "Familienkalender" : "Kalender",
@@ -126,27 +132,29 @@ function buildModules(settings) {
 		});
 	}
 
-	modules.push({
-		module: "weather",
-		position: "top_right",
-		config: {
-			weatherProvider: "openmeteo",
-			type: "current",
-			lat: settings.location.lat,
-			lon: settings.location.lon
-		}
-	});
-	modules.push({
-		module: "weather",
-		position: "top_right",
-		header: "Wettervorhersage",
-		config: {
-			weatherProvider: "openmeteo",
-			type: "forecast",
-			lat: settings.location.lat,
-			lon: settings.location.lon
-		}
-	});
+	if (on("weather")) {
+		modules.push({
+			module: "weather",
+			position: "top_right",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "current",
+				lat: settings.location.lat,
+				lon: settings.location.lon
+			}
+		});
+		modules.push({
+			module: "weather",
+			position: "top_right",
+			header: "Wettervorhersage",
+			config: {
+				weatherProvider: "openmeteo",
+				type: "forecast",
+				lat: settings.location.lat,
+				lon: settings.location.lon
+			}
+		});
+	}
 
 	if (edition.hasRain && settings.rainRadar.enabled) {
 		modules.push({
@@ -175,7 +183,7 @@ function buildModules(settings) {
 		});
 	}
 
-	if (settings.news.url) {
+	if (on("news") && settings.news.url) {
 		modules.push({
 			module: "newsfeed",
 			position: "bottom_bar",
@@ -203,7 +211,7 @@ function buildModules(settings) {
 			portalUrl: `http://${settings.hostname}.local:8092`,
 			statusUrl: "http://127.0.0.1:8092/api/status",
 			pollInterval: 5000,
-			showStatusHint: true
+			showStatusHint: on("statusHint")
 		}
 	});
 
@@ -212,7 +220,7 @@ function buildModules(settings) {
 	modules.push({
 		module: "MMM-Ambient",
 		config: {
-			interruptOnAlarmPhases: edition.hasAlarm ? [1] : []
+			interruptOnAlarmPhases: alarmOn ? [1] : []
 		}
 	});
 

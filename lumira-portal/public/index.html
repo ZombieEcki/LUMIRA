@@ -349,11 +349,13 @@
 
       <!-- ================= SPIEGEL ================= -->
       <section class="page" data-page="module">
-        <p class="page-lead">Was der Spiegel anzeigt. Einzelne Module lassen sich nach und nach ein- und ausblenden.</p>
+        <p class="page-lead">Was der Spiegel anzeigt. Ausgeschaltete Module verschwinden ganz vom Spiegel.</p>
         <div class="card">
           <h2>Module</h2>
-          <p class="sub">Aktuell ist „Familienbotschaften“ schaltbar (auf der Startseite), der Rest folgt.</p>
+          <p class="sub">Ein- und ausschalten, dann speichern – MagicMirror startet dabei einmal neu.</p>
           <div id="module-list-extra" class="toggle-grid"></div>
+          <div class="save-row"><button class="btn primary" data-save="module" type="button">Speichern</button>
+            <span class="save-hint" data-savehint="module"></span></div>
         </div>
       </section>
 
@@ -481,6 +483,12 @@
       <!-- ================= ALARM ================= -->
       <section class="page" data-page="alarm">
         <p class="page-lead">Einstellungen für MMM-aPagerAlarm.</p>
+        <div class="card">
+          <div class="toggle">
+            <span class="tl2">Alarmierung auf dem Spiegel<small id="alarm-on-sub">Aus: kein Alarm auf dem Spiegel, Alarm-Bereich auf der Startseite ausgeblendet</small></span>
+            <button class="sw" id="sw-alarm-on" role="switch" aria-label="Alarmierung auf dem Spiegel"></button>
+          </div>
+        </div>
         <div class="card form-cols">
           <div class="field first">
             <label id="lbl-personname" for="personName">Name der Person</label>

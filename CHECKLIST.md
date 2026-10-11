@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 86 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 90 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -132,6 +132,14 @@ um den aktuellen Stand zu sehen.
 - [x] Kopfzeile zeigt die **Familienmitglieder** (Avatare + Anzahl, Klick →
       Familienplan → Mitglieder) statt der Edition; Edition nur noch unter Info
 - [ ] Live-Bild auf echter Pi-Hardware prüfen (Electron-Aufnahme, Last auf dem Pi 3)
+
+### Spiegel: Module ein-/ausschalten
+- [x] Spiegel → Module: echte Schalter für Uhr, Wetter, Regenradar, Kalender, Nachrichten,
+      Familienplan, Familienbotschaften, Alarmierung und Portal-Hinweis (`settings.modules`).
+      Ausgeschaltete Module kommen nicht in die config.js – auf dem Spiegel erscheint nichts
+- [x] Alarmierung zusätzlich oben auf der Alarm-Seite schaltbar; aus = kein aPager-Modul,
+      Alarm-Kachel/-Karte auf der Startseite ausgeblendet, Familienplan/Sprüche/Dauerschleife
+      reagieren nicht mehr auf Alarm-Zustände
 
 ### Familienplan: Dienste an Wochentagen & Bilder zuschneiden
 - [x] Dienste können feste Wochentage haben (z. B. Müll Di, Do); Rotation bleibt
