@@ -575,6 +575,10 @@ app.post("/api/updates/:id/apply", requireAuth, (req, res) => {
 	}
 });
 
+app.post("/api/updates/:id/repair-electron", requireAuth, (req, res) => {
+	try { res.json(updater.repairElectron(req.params.id)); } catch (err) { updateError(res, err); }
+});
+
 app.post("/api/updates/:id/rollback", requireAuth, (req, res) => {
 	try {
 		res.status(202).json(updater.rollback(req.params.id));

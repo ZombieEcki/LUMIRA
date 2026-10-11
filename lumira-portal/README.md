@@ -93,6 +93,7 @@ Zustand in `~/.lumira/updates.json`.
 | `POST /api/updates/check` | jetzt prüfen (läuft im Hintergrund, `checking: true`) |
 | `POST /api/updates/:id/apply` | aktualisieren: `git pull --ff-only`, Abhängigkeiten (`npm run install-mm` bzw. `npm install --omit=dev`), `pm2 restart MagicMirror` |
 | `POST /api/updates/lumira/apply` | LUMIRA: `git pull --ff-only` im Repo, dann `./install.sh --update` (eigene Module, Portal-Dateien, config.js, `pm2 restart MagicMirror` – ohne sudo), danach startet sich das Portal neu (Exit-Code 75 → systemd). Geänderte Systemdienste meldet der Job als Hinweis (`notice`) |
+| `POST /api/updates/magicmirror/repair-electron` | fehlerhafte Electron-Version tauschen (`lib/electron-fix.js`, z. B. 44.4.5 → 44.5.1 wegen schwarzem Bildschirm auf dem Pi 3, MagicMirror #4287), danach Neustart. Passiert nach jedem MagicMirror-Update ohnehin automatisch |
 | `POST /api/updates/:id/rollback` | zurück auf den Stand vor dem letzten Update (`git reset --hard <vorher>`, Abhängigkeiten, Neustart) |
 
 `:id` ist `lumira`, `magicmirror` oder der Modulordner-Name. Bei lokalen Änderungen im

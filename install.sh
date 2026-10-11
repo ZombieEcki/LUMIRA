@@ -111,6 +111,14 @@ regen_config() {
   ok "config.js aus settings.json aktualisiert"
 }
 
+# Bekannte fehlerhafte Electron-Version in MagicMirror austauschen
+# (z. B. 44.4.5 → schwarzer Bildschirm auf dem Pi 3, siehe lumira-portal/lib/electron-fix.js)
+fix_electron() {
+  [ -d "$MM_DIR/node_modules/electron" ] || return 0
+  step "Electron prüfen"
+  node "$SCRIPT_DIR/lumira-portal/bin/electron-fix-cli.js" --mm-root="$MM_DIR" || warn "Electron konnte nicht getauscht werden – bei schwarzem Bildschirm: Portal → Info → „Electron reparieren“"
+}
+
 # Merkt sich, wo das LUMIRA-Repo liegt – das Portal zeigt darüber unter Info
 # „LUMIRA“ als Update an und startet ./install.sh --update.
 write_install_info() {
@@ -355,6 +363,7 @@ if [ "$UPDATE_ONLY" -eq 1 ]; then
   fi
   step "config.js"
   if [ -f "$LUMIRA_DATA/settings.json" ]; then regen_config; else warn "kein settings.json – config.js bleibt unverändert"; fi
+  fix_electron
   step "MagicMirror neu starten"
   if command -v pm2 >/dev/null 2>&1 && pm2 describe MagicMirror >/dev/null 2>&1; then
     pm2 restart MagicMirror >/dev/null && ok "MagicMirror neu gestartet"
@@ -416,6 +425,7 @@ else
   ok "installiert"
 fi
 mkdir -p "$MM_DIR/modules"
+fix_electron
 
 # --- 3: Eigene Module + eigener Alarmton -----------------------------------
 install_own_modules

@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 78 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 83 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -132,6 +132,15 @@ um den aktuellen Stand zu sehen.
 - [x] Kopfzeile zeigt die **Familienmitglieder** (Avatare + Anzahl, Klick →
       Familienplan → Mitglieder) statt der Edition; Edition nur noch unter Info
 - [ ] Live-Bild auf echter Pi-Hardware prüfen (Electron-Aufnahme, Last auf dem Pi 3)
+
+### Raspberry Pi 3: Electron-Fix (MagicMirror #4287)
+- [x] MagicMirror 2.38.0 liefert Electron 44.4.5 → schwarzer Bildschirm auf dem Pi 3.
+      LUMIRA tauscht bekannte fehlerhafte Versionen aus (`lib/electron-fix.js`, vorerst
+      44.4.5 → 44.5.1): nach Neuinstallation und `install.sh --update`, nach jedem
+      MagicMirror-Update/„Zurück“ im Portal, und per Knopf „Electron reparieren“ unter Info.
+      Mit `--no-save --package-lock=false`, damit git sauber bleibt. Greift nicht mehr,
+      sobald MagicMirror eine andere Version ausliefert
+- [ ] Auf dem Pi 3 prüfen (Familien-Spiegel)
 
 ### Portal: LUMIRA-Updates
 - [x] LUMIRA selbst unter Info → Updates: prüfen (automatisch alle 12 h und auf

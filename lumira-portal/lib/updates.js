@@ -25,6 +25,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFile, spawn } = require("child_process");
+const electronFix = require("./electron-fix");
 
 const CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 3 * 60 * 1000;
@@ -194,6 +195,11 @@ function createUpdater(opts) {
 					return { hash, subject: (subject || "").slice(0, 160), date };
 				});
 			}
+			if (c.kind === "core") {
+				info.electron = electronFix.installedElectron(c.dir);
+				const fx = electronFix.needsFix(c.dir);
+				if (fx) info.electronFix = fx;
+			}
 			info.updateAvailable = info.behind > 0;
 			info.canUpdate = info.behind > 0 && !info.dirty && info.ahead === 0;
 			if (c.kind === "lumira" && info.behind > 0 && !info.dirty && info.ahead === 0) info.note = "Aktualisiert die eigenen Module und das Portal. MagicMirror und das Portal starten dabei kurz neu.";
@@ -300,6 +306,7 @@ function createUpdater(opts) {
 			persist();
 			if (c.kind === "lumira") return finishLumira(c);
 			await installDeps(c);
+			if (c.kind === "core") await electronFix.applyFix(c.dir, { npm, log });
 			log("MagicMirror wird neu gestartet …");
 			await restart();
 			log("Fertig.");
@@ -332,6 +339,20 @@ function createUpdater(opts) {
 			persist();
 			if (c.kind === "lumira") return finishLumira(c);
 			await installDeps(c);
+			if (c.kind === "core") await electronFix.applyFix(c.dir, { npm, log });
+			log("MagicMirror wird neu gestartet …");
+			await restart();
+			log("Fertig.");
+		});
+	}
+
+	// Nur die fehlerhafte Electron-Version austauschen (Portal → Info → „Reparieren“)
+	function repairElectron(id) {
+		const c = findComponent(id);
+		if (!c || c.kind !== "core") throw Object.assign(new Error("Nur für MagicMirror möglich"), { code: "NOT_FOUND" });
+		return startJob(id, "repair", async (comp) => {
+			const r = await electronFix.applyFix(comp.dir, { npm, log });
+			if (!r.fixed) { log("Electron ist in Ordnung – nichts zu tun."); return; }
 			log("MagicMirror wird neu gestartet …");
 			await restart();
 			log("Fertig.");
@@ -357,7 +378,7 @@ function createUpdater(opts) {
 		timer.unref();
 	}
 
-	return { discover, check, apply, rollback, status, startSchedule };
+	return { discover, check, apply, rollback, repairElectron, status, startSchedule };
 }
 
 module.exports = { createUpdater };

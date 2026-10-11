@@ -99,6 +99,7 @@
     info.appendChild(el("b", null, c.name));
     info.appendChild(el("span", "upd-ver", versionText(c)));
     if (c.remote) info.appendChild(el("span", "upd-remote mono-in", c.remote.replace(/^https?:\/\//, "").replace(/\.git$/, "")));
+    if (c.electron) info.appendChild(el("span", "upd-remote", "Electron " + c.electron));
     top.appendChild(info);
 
     var state = el("span", "upd-state");
@@ -110,6 +111,10 @@
 
     if (c.error) box.appendChild(el("p", "save-hint", c.error));
     if (c.note) box.appendChild(el("p", "upd-note", c.note));
+    if (c.electronFix) {
+      box.appendChild(el("p", "upd-note warn", "Electron " + c.electronFix.from + " ist fehlerhaft: " + c.electronFix.reason +
+        ". LUMIRA tauscht es gegen " + c.electronFix.to + " – bei jedem MagicMirror-Update automatisch, hier sofort per Knopf."));
+    }
 
     if (c.changes && c.changes.length) {
       var det = el("details", "upd-changes");
@@ -134,6 +139,12 @@
       up.addEventListener("click", function () { startUpdate(c); });
       actions.appendChild(up);
     }
+    if (c.electronFix) {
+      var fx = el("button", "btn primary", "Electron reparieren (" + c.electronFix.from + " → " + c.electronFix.to + ")");
+      fx.type = "button"; fx.disabled = busy();
+      fx.addEventListener("click", function () { startRepair(c); });
+      actions.appendChild(fx);
+    }
     if (c.rollback) {
       var rb = el("button", "btn", "↺ Zurück zu " + (c.rollback.fromVersion ? "Version " + c.rollback.fromVersion : "vorherigem Stand"));
       rb.type = "button"; rb.disabled = busy();
@@ -151,7 +162,7 @@
     var job = shownJob();
     if (!job) return;
     var box = el("div", "upd-job " + job.status);
-    var label = job.action === "rollback" ? "Zurücksetzen" : "Update";
+    var label = job.action === "rollback" ? "Zurücksetzen" : job.action === "repair" ? "Reparatur" : "Update";
     var head = job.status === "running"
         ? (job.kind === "lumira"
           ? label + " läuft: LUMIRA … das dauert einige Minuten. Am Ende startet das Portal kurz neu, die Seite lädt dann von selbst."
@@ -182,6 +193,13 @@
     if (!confirm(msg)) return;
     api("/api/updates/" + encodeURIComponent(c.id) + "/apply", "POST")
       .then(function (s) { noteJob(s); S = s; render(); poll(); ctx.toast("Update gestartet"); })
+      .catch(function (err) { ctx.toast(err.message); });
+  }
+
+  function startRepair(c) {
+    if (!confirm("Electron " + c.electronFix.from + " gegen " + c.electronFix.to + " tauschen?\n\nDas lädt rund 100 MB und dauert auf dem Raspberry Pi einige Minuten. Danach startet MagicMirror neu.")) return;
+    api("/api/updates/" + encodeURIComponent(c.id) + "/repair-electron", "POST")
+      .then(function (s) { S = s; render(); poll(); ctx.toast("Reparatur gestartet"); })
       .catch(function (err) { ctx.toast(err.message); });
   }
 
