@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 85 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 86 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -169,6 +169,10 @@ um den aktuellen Stand zu sehen.
 - [x] Portal: Spiegel → **Bildschirm** (Schalter, Darstellung, Timer, Mediathek
       mit Hochladen/Löschen und Vorschau), Schnellschalter in der Karte „Spiegel“
 - [x] Uploads geprüft (Dateityp an den ersten Bytes, max. 300 MB, max. 20 Medien)
+- [x] **Diashow**: Bilder per Haken auswählen (nur JPG/PNG/WebP, keine GIFs/Videos), Wechsel
+      10 s–10 min, der Reihe nach oder zufällig, weiche Überblendung; Mehrfach- und
+      **Ordner-Upload** (Bilder werden im Browser auf max. 1920 px verkleinert, nach Namen
+      sortiert, direkt in die Diashow); Mediathek jetzt bis 300 Medien
 - [x] **YouTube-Videos** als Medium (Link einfügen, Titel automatisch, Startzeit aus dem
       Link), auf dem Spiegel per youtube-nocookie.com eingebettet, stumm, Endlosschleife
 - [x] Ruckeln behoben: YouTube-Player klein (Qualität wählbar 360p–1080p, Standard 480p)

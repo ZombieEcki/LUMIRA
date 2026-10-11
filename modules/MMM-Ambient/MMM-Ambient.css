@@ -31,6 +31,10 @@ body.lumira-ambient-bg { background: transparent !important; }
 	object-fit: cover;
 }
 
+/* Diashow: zwei Ebenen, weiche Überblendung */
+.lumira-slide { opacity: 0; transition: opacity 1.6s ease; }
+.lumira-slide.is-shown { opacity: 1; }
+
 /* Lagerfeuer: unten, im Seitenverhältnis, mit warmem Schein darüber */
 .lumira-ambient.is-campfire {
 	background: radial-gradient(ellipse 70% 45% at 50% 100%, rgba(255, 110, 30, 0.22), rgba(0, 0, 0, 0) 70%), #000;

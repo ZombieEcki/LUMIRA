@@ -374,6 +374,22 @@
               <option value="background">Hintergrund – Module bleiben sichtbar</option>
             </select></div>
           <div class="field"><label for="amb-timer">Ausschalten</label><select id="amb-timer"></select></div>
+          <div class="amb-ss-rows" id="amb-ss-row" hidden>
+            <div class="field"><label for="amb-ss-interval">Bild wechseln</label>
+              <select id="amb-ss-interval">
+                <option value="10">alle 10 Sekunden</option>
+                <option value="30">alle 30 Sekunden</option>
+                <option value="60">jede Minute</option>
+                <option value="300">alle 5 Minuten</option>
+                <option value="600">alle 10 Minuten</option>
+              </select></div>
+            <div class="field"><label for="amb-ss-order">Reihenfolge</label>
+              <select id="amb-ss-order">
+                <option value="0">der Reihe nach</option>
+                <option value="1">zufällig</option>
+              </select></div>
+            <p class="save-hint" id="amb-ss-count"></p>
+          </div>
           <div class="field" id="amb-ytq-row" hidden><label for="amb-ytq">YouTube-Qualität</label>
             <select id="amb-ytq">
               <option value="360">360p – sehr sparsam</option>
@@ -389,9 +405,11 @@
         <div class="card">
           <div class="card-head"><h2>Mediathek</h2>
             <button type="button" class="btn small" id="amb-yt-btn">+ YouTube</button>
+            <label class="btn small" id="amb-folder-btn" for="amb-folder" title="Alle Bilder eines Ordners in die Diashow">+ Ordner</label>
             <label class="btn small" id="amb-file-btn" for="amb-file">+ Hochladen</label>
-            <input type="file" id="amb-file" accept="video/mp4,video/webm,image/jpeg,image/png,image/gif,image/webp" hidden></div>
-          <p class="sub">Videos (MP4, WebM) und YouTube-Links laufen in Dauerschleife, Bilder bleiben stehen. GIFs werden automatisch in ein
+            <input type="file" id="amb-file" accept="video/mp4,video/webm,image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+            <input type="file" id="amb-folder" webkitdirectory directory multiple hidden></div>
+          <p class="sub">Videos (MP4, WebM) und YouTube-Links laufen in Dauerschleife, Bilder bleiben stehen – oder wechseln als Diashow (Haken an den Bildern). GIFs werden automatisch in ein
             Video umgewandelt, das läuft auf dem Spiegel flüssiger. Für den Raspberry Pi 3 am besten Videos in 720p (H.264), höchstens 300 MB.</p>
           <form class="amb-yt-form" id="amb-yt-form" hidden>
             <label for="amb-yt-url">YouTube-Link</label>

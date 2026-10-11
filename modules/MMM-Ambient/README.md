@@ -13,6 +13,15 @@ der Startseite).
   danach läuft die Schleife weiter, falls sie noch eingeschaltet ist.
 - **Live:** Änderungen im Portal wirken sofort, kein MagicMirror-Neustart.
 
+## Diashow
+
+Eingebauter Eintrag „Diashow“ in der Mediathek: Bilder per Haken auswählen
+(nur Standbilder JPG/PNG/WebP – GIFs und Videos nicht), Wechsel alle 10 s bis
+10 min, der Reihe nach oder zufällig (ohne dasselbe Bild zweimal hintereinander).
+Zwei Bild-Ebenen blenden weich über, das nächste Bild wird vorher geladen.
+Mehrere Bilder oder ein ganzer Ordner lassen sich auf einmal hochladen; der
+Browser verkleinert sie vorher auf höchstens 1920 px (schont den Pi).
+
 ## YouTube
 
 Im Portal unter Mediathek → „+ YouTube“ einen Link einfügen (watch?v=…,

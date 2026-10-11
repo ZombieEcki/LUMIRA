@@ -30,7 +30,7 @@ test("Grundzustand: aus, Lagerfeuer, Vollbild", () => {
 	assert.equal(v.enabled, false);
 	assert.equal(v.mediaId, "campfire");
 	assert.equal(v.mode, "fullscreen");
-	assert.deepEqual(v.media.map((m) => m.id), ["campfire"]);
+	assert.deepEqual(v.media.map((m) => m.id), ["campfire", "slideshow"]);
 });
 
 test("Einschalten mit Timer, Ablauf, expire", () => {
@@ -206,4 +206,44 @@ test("Kaputte YouTube-Einträge in ambient.json werden ignoriert", () => {
 	const now = new Date("2026-10-11T20:00:00Z");
 	const raw = { enabled: true, mediaId: "md_0a1b2c3d", media: [{ id: "md_0a1b2c3d", type: "youtube", youtubeId: "\"><script>" }] };
 	assert.equal(toPayload(raw, now).enabled, false);
+});
+
+// Diashow
+test("Diashow: nur Standbilder, Intervall/Reihenfolge, Löschen, Spiegel-Zustand", () => {
+	const { home, amb } = setup();
+	const img1 = amb.addMedia({ tmpPath: tmpFile(home, PNG), originalName: "a.png", size: 10 });
+	const img2 = amb.addMedia({ tmpPath: tmpFile(home, [0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]), originalName: "b.jpg", size: 10 });
+	const gif = amb.addMedia({ tmpPath: tmpFile(home, [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0, 0, 0, 0, 0, 0]), originalName: "c.gif", size: 10 });
+	const vid = amb.addMedia({ tmpPath: tmpFile(home, MP4), originalName: "d.mp4", size: 10 });
+
+	let v = amb.view();
+	assert.ok(v.media.find((m) => m.id === "slideshow"), "eingebaute Diashow");
+	assert.equal(v.media.find((m) => m.id === img1.id).slideable, true);
+	assert.equal(v.media.find((m) => m.id === gif.id).slideable, false, "GIF nicht");
+	assert.equal(v.media.find((m) => m.id === vid.id).slideable, false, "Video nicht");
+
+	// ohne Bilder lässt sich die Diashow nicht einschalten
+	assert.throws(() => amb.setState({ mediaId: "slideshow", enabled: true }), /erst Bilder auswählen/);
+
+	v = amb.setState({ slideshow: { ids: [img2.id, gif.id, img1.id, img2.id, "md_00000000", vid.id], interval: 60, shuffle: true } });
+	assert.deepEqual(v.slideshow.ids, [img2.id, img1.id], "GIF/Video/Unbekannt/Doppelt raus, Reihenfolge bleibt");
+	assert.equal(v.slideshow.interval, 60);
+	assert.equal(v.slideshow.shuffle, true);
+	assert.throws(() => amb.setState({ slideshow: { interval: 7 } }), /Wechsel-Intervall/);
+
+	v = amb.setState({ mediaId: "slideshow", enabled: true });
+	assert.equal(v.enabled, true);
+	const p = toPayload(amb.load(), new Date("2026-10-11T20:00:00Z"));
+	assert.equal(p.media.kind, "slideshow");
+	assert.deepEqual(p.media.urls, ["/MMM-Ambient/media/" + img2.file, "/MMM-Ambient/media/" + img1.file]);
+	assert.equal(p.media.interval, 60);
+	assert.equal(p.media.shuffle, true);
+
+	// Bild löschen → aus der Diashow; letztes Bild weg → Diashow aus
+	v = amb.removeMedia(img2.id);
+	assert.deepEqual(v.slideshow.ids, [img1.id]);
+	assert.equal(v.enabled, true);
+	v = amb.removeMedia(img1.id);
+	assert.deepEqual(v.slideshow.ids, []);
+	assert.equal(v.enabled, false);
 });

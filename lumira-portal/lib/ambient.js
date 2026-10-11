@@ -11,12 +11,17 @@ const path = require("path");
 const crypto = require("crypto");
 const { execFile } = require("child_process");
 
-const BUILTINS = [{ id: "campfire", name: "Lagerfeuer", type: "builtin" }];
+// Eingebaut: Lagerfeuer (gezeichnet) und Diashow (wechselt die ausgewählten Bilder)
+const BUILTINS = [
+	{ id: "campfire", name: "Lagerfeuer", type: "builtin" },
+	{ id: "slideshow", name: "Diashow", type: "slideshow" }
+];
+const SLIDE_INTERVALS = [10, 30, 60, 300, 600]; // Sekunden
 const MODES = ["fullscreen", "background"];
 // YouTube-Auflösung: der Player läuft so groß und wird nur optisch
 // hochskaliert – sonst liefert YouTube für Spiegelgröße 1440p/4K, und der Pi ruckelt
 const YT_QUALITIES = ["360", "480", "720", "1080"];
-const MAX_MEDIA = 20;
+const MAX_MEDIA = 300; // Fotoordner für die Diashow
 const MAX_BYTES = 300 * 1024 * 1024;
 const MAX_MINUTES = 12 * 60;
 const MEDIA_ID_RE = /^md_[a-f0-9]{8}$/;
@@ -28,6 +33,7 @@ const DEFAULT_STATE = {
 	mode: "fullscreen",
 	sound: false,
 	ytQuality: "480",
+	slideshow: { ids: [], interval: 30, shuffle: false },
 	until: null,
 	media: []
 };
@@ -144,6 +150,19 @@ function cleanName(name, fallback) {
 	return s || fallback;
 }
 
+// Bild, das in die Diashow darf: echtes Standbild (kein GIF, kein Video)
+function isSlideImage(m) {
+	return !!m && m.type === "image" && /\.(jpg|png|webp)$/.test(m.file || "");
+}
+
+function cleanSlideshow(raw, media) {
+	const r = raw && typeof raw === "object" ? raw : {};
+	const ok = new Set(media.filter(isSlideImage).map((m) => m.id));
+	const ids = Array.isArray(r.ids) ? r.ids.filter((id, i, a) => ok.has(id) && a.indexOf(id) === i) : [];
+	const interval = SLIDE_INTERVALS.indexOf(Number(r.interval)) === -1 ? 30 : Number(r.interval);
+	return { ids, interval, shuffle: !!r.shuffle };
+}
+
 function createAmbient({ home, now = () => new Date() } = {}) {
 	home = path.resolve(home); // absolut, sonst lehnt res.sendFile ab
 	const statePath = path.join(home, "ambient.json");
@@ -155,6 +174,7 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 			const st = Object.assign({}, DEFAULT_STATE, raw);
 			st.media = Array.isArray(raw.media) ? raw.media.filter(validEntry) : [];
 			if (MODES.indexOf(st.mode) === -1) st.mode = "fullscreen";
+			st.slideshow = cleanSlideshow(raw.slideshow, st.media);
 			if (!findMedia(st, st.mediaId)) st.mediaId = "campfire";
 			return st;
 		} catch (e) {
@@ -191,9 +211,11 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 			sound: !!st.sound,
 			ytQuality: YT_QUALITIES.indexOf(String(st.ytQuality)) === -1 ? "480" : String(st.ytQuality),
 			until: enabled ? st.until : null,
+			slideshow: { ids: st.slideshow.ids.slice(), interval: st.slideshow.interval, shuffle: st.slideshow.shuffle, intervals: SLIDE_INTERVALS.slice() },
 			limits: { maxMedia: MAX_MEDIA, maxBytes: MAX_BYTES },
 			media: BUILTINS.map((b) => Object.assign({}, b))
-				.concat(st.media.map((m) => ({ id: m.id, name: m.name, type: m.type, size: m.size, addedAt: m.addedAt, youtubeId: m.youtubeId, start: m.start })))
+				.concat(st.media.map((m) => ({ id: m.id, name: m.name, type: m.type, size: m.size, addedAt: m.addedAt, youtubeId: m.youtubeId, start: m.start,
+					slideable: isSlideImage(m), inSlideshow: st.slideshow.ids.indexOf(m.id) !== -1 })))
 		};
 	}
 
@@ -214,6 +236,14 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 			if (YT_QUALITIES.indexOf(String(p.ytQuality)) === -1) throw new AmbientError("YouTube-Qualität: 360, 480, 720 oder 1080");
 			st.ytQuality = String(p.ytQuality);
 		}
+		if (p.slideshow !== undefined) {
+			const sp = p.slideshow || {};
+			if (sp.interval !== undefined && SLIDE_INTERVALS.indexOf(Number(sp.interval)) === -1) throw new AmbientError("Wechsel-Intervall: 10 s, 30 s, 1, 5 oder 10 min");
+			if (sp.ids !== undefined && !Array.isArray(sp.ids)) throw new AmbientError("Diashow-Bilder müssen eine Liste sein");
+			st.slideshow = cleanSlideshow(Object.assign({}, st.slideshow, sp), st.media);
+		}
+		// Ohne Bilder läuft keine Diashow
+		if (st.mediaId === "slideshow" && p.enabled && !st.slideshow.ids.length) throw new AmbientError("Für die Diashow erst Bilder auswählen (Haken an den Bildern in der Mediathek)");
 		if (p.enabled !== undefined) st.enabled = !!p.enabled;
 		if (p.minutes !== undefined) {
 			const m = p.minutes === null ? 0 : Number(p.minutes);
@@ -269,6 +299,8 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 		const entry = st.media.find((m) => m.id === id);
 		if (!entry) throw new AmbientError("Medium nicht gefunden", 404);
 		st.media = st.media.filter((m) => m.id !== id);
+		st.slideshow.ids = st.slideshow.ids.filter((x) => x !== id);
+		if (st.mediaId === "slideshow" && !st.slideshow.ids.length) { st.enabled = false; st.until = null; }
 		if (st.mediaId === id) {
 			// Lief gerade: zurück aufs Lagerfeuer, ausgeschaltet
 			st.mediaId = "campfire";
@@ -329,4 +361,4 @@ async function prepareUpload({ tmpPath, originalName, size }, opts = {}) {
 	}
 }
 
-module.exports = { YT_QUALITIES, createAmbient, sniff, parseYouTube, prepareUpload, hasFfmpeg, gifToMp4, AmbientError, BUILTINS, MAX_BYTES, MAX_MEDIA, MEDIA_ID_RE };
+module.exports = { SLIDE_INTERVALS, isSlideImage, YT_QUALITIES, createAmbient, sniff, parseYouTube, prepareUpload, hasFfmpeg, gifToMp4, AmbientError, BUILTINS, MAX_BYTES, MAX_MEDIA, MEDIA_ID_RE };

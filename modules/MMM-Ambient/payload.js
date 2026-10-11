@@ -4,6 +4,7 @@
 
 const FILE_RE = /^md_[a-f0-9]{8}\.(mp4|webm|gif|png|jpg|webp)$/;
 const YT_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+const SLIDE_RE = /^md_[a-f0-9]{8}\.(jpg|png|webp)$/;
 
 function toPayload(raw, now) {
 	const off = { enabled: false };
@@ -13,6 +14,16 @@ function toPayload(raw, now) {
 	let media;
 	if (!raw.mediaId || raw.mediaId === "campfire") {
 		media = { kind: "campfire" };
+	} else if (raw.mediaId === "slideshow") {
+		// Diashow: nur echte Standbilder, in der gewählten Reihenfolge
+		const list = Array.isArray(raw.media) ? raw.media : [];
+		const ss = raw.slideshow || {};
+		const urls = (Array.isArray(ss.ids) ? ss.ids : []).map((id) => list.find((m) => m && m.id === id))
+			.filter((m) => m && m.type === "image" && SLIDE_RE.test(m.file || ""))
+			.map((m) => "/MMM-Ambient/media/" + m.file);
+		if (!urls.length) return off;
+		const interval = [10, 30, 60, 300, 600].indexOf(Number(ss.interval)) === -1 ? 30 : Number(ss.interval);
+		media = { kind: "slideshow", urls, interval, shuffle: !!ss.shuffle };
 	} else {
 		const entry = (Array.isArray(raw.media) ? raw.media : []).find((m) => m && m.id === raw.mediaId);
 		if (!entry) return off;

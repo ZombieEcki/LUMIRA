@@ -6,7 +6,7 @@
  *
  *  - „Vollbild“: nur das Medium, über allem.
  *  - „Hintergrund“: Medium abgedunkelt hinter den Modulen.
- *  - Medien: Lagerfeuer (gezeichnet), eigenes Video/Bild oder YouTube-Video.
+ *  - Medien: Lagerfeuer (gezeichnet), Diashow, eigenes Video/Bild oder YouTube-Video.
  *  - Ein Alarm (MMM-aPagerAlarm, APAGER_STATE) unterbricht sofort; danach
  *    läuft die Schleife weiter, falls sie noch eingeschaltet ist.
  *
@@ -63,7 +63,8 @@ Module.register("MMM-Ambient", {
 	render: function () {
 		const s = this.state || {};
 		const active = !!s.enabled && !this.alarm;
-		const key = active ? [s.mode, s.media.kind, s.media.url || s.media.embedUrl || "", s.media.quality || "", s.sound ? 1 : 0].join("|") : "";
+		const key = active ? [s.mode, s.media.kind, s.media.url || s.media.embedUrl || (s.media.urls || []).join(","), s.media.quality || "",
+			s.media.interval || "", s.media.shuffle ? 1 : 0, s.sound ? 1 : 0].join("|") : "";
 		if (key === this.key) return;
 		this.key = key;
 		this.teardown();
@@ -81,6 +82,8 @@ Module.register("MMM-Ambient", {
 			canvas.className = "lumira-ambient-media";
 			stage.appendChild(canvas);
 			this.stopFire = window.LumiraFire ? window.LumiraFire.start(canvas) : null;
+		} else if (s.media.kind === "slideshow") {
+			this.startSlideshow(stage, s.media);
 		} else if (s.media.kind === "youtube") {
 			// YouTube braucht Internet; die Fläche „füllt“ den Spiegel wie ein Video
 			// (16:9 hochskaliert, Ränder abgeschnitten), Bedienung ist abgeschaltet
@@ -146,7 +149,53 @@ Module.register("MMM-Ambient", {
 		requestAnimationFrame(() => stage.classList.add("is-on"));
 	},
 
+	// Diashow: zwei Bild-Ebenen, die weich überblenden; das nächste Bild wird
+	// vorab geladen, damit nie ein halb geladenes Bild erscheint
+	startSlideshow: function (stage, media) {
+		const layers = [0, 1].map(() => {
+			const img = document.createElement("img");
+			img.className = "lumira-ambient-media lumira-slide";
+			img.alt = "";
+			stage.appendChild(img);
+			return img;
+		});
+		const urls = media.urls.slice();
+		let order = [], pos = -1, front = 0;
+		const nextUrl = () => {
+			if (urls.length === 1) return urls[0];
+			pos++;
+			if (pos >= order.length) {
+				const last = order[order.length - 1];
+				order = urls.slice();
+				if (media.shuffle) {
+					for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+					if (order[0] === last) order.push(order.shift()); // nicht zweimal hintereinander
+				}
+				pos = 0;
+			}
+			return order[pos];
+		};
+		const show = () => {
+			const url = nextUrl();
+			const back = layers[1 - front];
+			const pre = new Image();
+			pre.onload = pre.onerror = () => {
+				if (this.slideTimer === null) return; // inzwischen beendet
+				back.src = url;
+				back.classList.add("is-shown");
+				layers[front].classList.remove("is-shown");
+				front = 1 - front;
+			};
+			pre.src = url;
+		};
+		this.slideTimer = 0;
+		show();
+		if (urls.length > 1) this.slideTimer = setInterval(show, Math.max(5, media.interval) * 1000);
+	},
+
 	teardown: function () {
+		if (this.slideTimer) clearInterval(this.slideTimer);
+		this.slideTimer = null;
 		if (this.stopFire) { this.stopFire(); this.stopFire = null; }
 		if (this.fitFrame) { window.removeEventListener("resize", this.fitFrame); this.fitFrame = null; }
 		document.body.classList.remove("lumira-ambient-bg");
