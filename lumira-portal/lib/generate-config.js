@@ -207,6 +207,15 @@ function buildModules(settings) {
 		}
 	});
 
+	// Dauerschleife (Spiegel → Bildschirm im Portal): immer geladen, zeigt nur
+	// etwas, wenn sie eingeschaltet ist. Steuerung live über ambient.json.
+	modules.push({
+		module: "MMM-Ambient",
+		config: {
+			interruptOnAlarmPhases: edition.hasAlarm ? [1] : []
+		}
+	});
+
 	return modules;
 }
 

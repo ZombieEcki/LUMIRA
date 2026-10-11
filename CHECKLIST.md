@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 60 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 68 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -132,6 +132,15 @@ um den aktuellen Stand zu sehen.
 - [x] Kopfzeile zeigt die **Familienmitglieder** (Avatare + Anzahl, Klick →
       Familienplan → Mitglieder) statt der Edition; Edition nur noch unter Info
 - [ ] Live-Bild auf echter Pi-Hardware prüfen (Electron-Aufnahme, Last auf dem Pi 3)
+
+### Spiegel: Dauerschleife (MMM-Ambient)
+- [x] Neues Modul `MMM-Ambient`: gezeichnetes Lagerfeuer oder eigenes Video/Bild
+      als Dauerschleife, Vollbild oder Hintergrund, Timer, Ton wählbar, Alarm
+      unterbricht sofort; live über `~/.lumira/ambient.json` (kein Neustart)
+- [x] Portal: Spiegel → **Bildschirm** (Schalter, Darstellung, Timer, Mediathek
+      mit Hochladen/Löschen und Vorschau), Schnellschalter in der Karte „Spiegel“
+- [x] Uploads geprüft (Dateityp an den ersten Bytes, max. 300 MB, max. 20 Medien)
+- [ ] Auf echter Pi-Hardware prüfen (Video-Wiedergabe Pi 3, Ton, Alarm-Unterbrechung)
 
 ### Portal: eigene Bedienelemente & Jahrestage
 - [x] Eigene Auswahlfelder statt Browser-Dropdowns (`public/select.js`, für

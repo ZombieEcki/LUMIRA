@@ -1,0 +1,197 @@
+// LUMIRA Self-Service-Portal – Dauerschleife auf dem Spiegel (Spiegel →
+// Bildschirm). Siehe lib/ambient.js und modules/MMM-Ambient.
+// Vanilla-JS, Texte nur per textContent.
+(function () {
+  "use strict";
+
+  var ctx = null;     // { toast }
+  var S = null;       // letzter Stand von GET /api/ambient
+  var fireStops = [];
+  var TIMERS = [[0, "Erst wenn ich es ausschalte"], [15, "nach 15 Minuten"], [30, "nach 30 Minuten"], [60, "nach 1 Stunde"],
+    [120, "nach 2 Stunden"], [180, "nach 3 Stunden"]];
+
+  function $(sel) { return document.querySelector(sel); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+
+  function api(path, method, body) {
+    var init = { method: method || "GET", credentials: "same-origin", headers: { "Content-Type": "application/json" } };
+    if (body !== undefined) init.body = JSON.stringify(body);
+    return fetch(path, init).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+        return data;
+      });
+    });
+  }
+
+  function sizeText(n) {
+    if (!n) return "";
+    return n >= 1048576 ? (n / 1048576).toFixed(n >= 104857600 ? 0 : 1).replace(".", ",") + " MB" : Math.round(n / 1024) + " KB";
+  }
+
+  function timeText(iso) {
+    var d = new Date(iso);
+    return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+
+  function current() {
+    return (S.media || []).filter(function (m) { return m.id === S.mediaId; })[0] || { name: "Lagerfeuer" };
+  }
+
+  // ---------------------------------------------------------------------
+  // Anzeige
+  // ---------------------------------------------------------------------
+  function render() {
+    if (!S) return;
+    $("#amb-switch").setAttribute("aria-checked", S.enabled ? "true" : "false");
+    $("#amb-status").textContent = S.enabled
+      ? "läuft: " + current().name + " · " + (S.mode === "background" ? "Hintergrund" : "Vollbild") + (S.until ? " · aus um " + timeText(S.until) : "")
+      : "aus";
+    $("#amb-mode").value = S.mode;
+    $("#amb-sound").setAttribute("aria-checked", S.sound ? "true" : "false");
+    $("#amb-sound-row").hidden = current().type !== "video";
+    renderGrid();
+    if (ctx && ctx.onStatus) ctx.onStatus(S, current());
+  }
+
+  function renderGrid() {
+    fireStops.forEach(function (stop) { stop(); });
+    fireStops = [];
+    var grid = $("#amb-grid");
+    grid.replaceChildren();
+    (S.media || []).forEach(function (m) {
+      var tile = el("div", "amb-tile" + (m.id === S.mediaId ? " sel" : ""));
+      var pick = el("button", "amb-pick");
+      pick.type = "button";
+      pick.setAttribute("aria-pressed", m.id === S.mediaId ? "true" : "false");
+      pick.setAttribute("aria-label", m.name + " auswählen");
+      var prev = el("span", "amb-prev");
+      if (m.type === "builtin") {
+        var c = el("canvas");
+        prev.appendChild(c);
+        if (window.LumiraFire) fireStops.push(window.LumiraFire.start(c, { width: 96, height: 60, fps: 18 }));
+        prev.classList.add("is-fire");
+      } else if (m.type === "video") {
+        var v = el("video");
+        v.src = "/api/ambient/media/" + m.id + "/file";
+        v.muted = true; v.loop = true; v.playsInline = true; v.preload = "metadata";
+        // Vorschau bewegt sich nur unter dem Mauszeiger bzw. wenn ausgewählt
+        if (m.id === S.mediaId) v.autoplay = true;
+        tile.addEventListener("mouseenter", function () { v.play().catch(function () {}); });
+        tile.addEventListener("mouseleave", function () { if (m.id !== S.mediaId) v.pause(); });
+        prev.appendChild(v);
+      } else {
+        var img = el("img");
+        img.alt = ""; img.loading = "lazy";
+        img.src = "/api/ambient/media/" + m.id + "/file";
+        prev.appendChild(img);
+      }
+      pick.appendChild(prev);
+      var meta = el("span", "amb-meta");
+      meta.appendChild(el("b", null, m.name));
+      meta.appendChild(el("span", null, m.type === "builtin" ? "eingebaut · gezeichnet" : (m.type === "video" ? "Video" : "Bild") + (m.size ? " · " + sizeText(m.size) : "")));
+      pick.appendChild(meta);
+      pick.addEventListener("click", function () { if (m.id !== S.mediaId) send({ mediaId: m.id }); });
+      tile.appendChild(pick);
+      if (m.type !== "builtin") {
+        var del = el("button", "amb-del", "✕");
+        del.type = "button"; del.title = "Löschen"; del.setAttribute("aria-label", m.name + " löschen");
+        del.addEventListener("click", function () {
+          if (!confirm("„" + m.name + "“ löschen?" + (m.id === S.mediaId && S.enabled ? " Die Dauerschleife wird dabei ausgeschaltet." : ""))) return;
+          api("/api/ambient/media/" + m.id, "DELETE").then(function (s) { S = s; render(); ctx.toast("Gelöscht"); }).catch(fail);
+        });
+        tile.appendChild(del);
+      }
+      grid.appendChild(tile);
+    });
+  }
+
+  function fail(err) { ctx.toast(err.message); }
+
+  function send(patch, okText) {
+    return api("/api/ambient", "PUT", patch).then(function (s) {
+      S = s; render();
+      if (okText) ctx.toast(okText);
+    }).catch(function (err) { fail(err); load(); });
+  }
+
+  function load() {
+    return api("/api/ambient").then(function (s) { S = s; render(); }).catch(function () {});
+  }
+
+  // ---------------------------------------------------------------------
+  // Hochladen mit Fortschritt (fetch kennt keinen Upload-Fortschritt)
+  // ---------------------------------------------------------------------
+  function upload(file) {
+    var hint = $("#amb-upload");
+    if (S && file.size > S.limits.maxBytes) { hint.textContent = "Die Datei ist zu groß (höchstens 300 MB)."; return; }
+    var fd = new FormData();
+    fd.append("name", file.name);
+    fd.append("file", file);
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/ambient/media");
+    xhr.withCredentials = true;
+    var bar = $("#amb-progress");
+    bar.hidden = false; bar.value = 0;
+    $("#amb-file-btn").classList.add("disabled");
+    xhr.upload.onprogress = function (e) {
+      if (!e.lengthComputable) return;
+      bar.value = e.loaded / e.total;
+      hint.textContent = "Lade hoch … " + Math.round(e.loaded / e.total * 100) + " % von " + sizeText(e.total);
+    };
+    xhr.onload = function () {
+      bar.hidden = true;
+      $("#amb-file-btn").classList.remove("disabled");
+      var data = {};
+      try { data = JSON.parse(xhr.responseText); } catch (e) { /* leer */ }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        hint.textContent = "";
+        S = data; render();
+        ctx.toast("Hochgeladen");
+        if (data.added) send({ mediaId: data.added });
+      } else {
+        hint.textContent = data.error || "Hochladen fehlgeschlagen (" + xhr.status + ")";
+      }
+    };
+    xhr.onerror = function () {
+      bar.hidden = true;
+      $("#amb-file-btn").classList.remove("disabled");
+      hint.textContent = "Hochladen fehlgeschlagen – Verbindung unterbrochen.";
+    };
+    xhr.send(fd);
+  }
+
+  window.LumiraAmbient = {
+    init: function (context) {
+      ctx = context;
+      var timer = $("#amb-timer");
+      TIMERS.forEach(function (t) { var o = el("option", null, t[1]); o.value = t[0]; timer.appendChild(o); });
+      $("#amb-switch").addEventListener("click", function () {
+        var on = !(S && S.enabled);
+        send({ enabled: on, mode: $("#amb-mode").value, minutes: on ? Number(timer.value) : 0 }, on ? "Dauerschleife läuft" : "Dauerschleife aus");
+      });
+      $("#amb-mode").addEventListener("change", function () { send({ mode: $("#amb-mode").value }); });
+      timer.addEventListener("change", function () {
+        // Nur bei laufender Schleife sofort neu stellen, sonst gilt es beim Einschalten
+        if (S && S.enabled) send({ minutes: Number(timer.value) });
+      });
+      $("#amb-sound").addEventListener("click", function () { send({ sound: !(S && S.sound) }); });
+      $("#amb-file").addEventListener("change", function () {
+        var f = this.files && this.files[0];
+        this.value = "";
+        if (f) upload(f);
+      });
+      load();
+      // Stand gelegentlich auffrischen (Timer abgelaufen, anderes Gerät)
+      setInterval(load, 60 * 1000);
+    },
+    reload: load,
+    // Für die Startseite: schnell an/aus
+    setEnabled: function (on) { return send({ enabled: on, minutes: on ? Number($("#amb-timer").value) : 0 }); }
+  };
+})();

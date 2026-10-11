@@ -19,7 +19,7 @@ Self-Service-Portal ein – nicht mehr interaktiv im Terminal.
 
 | Ordner | Inhalt |
 |--------|--------|
-| [`modules/`](modules) | Die eigenen Module (MMM-aPagerAlarm, MMM-SmartCompliments, MMM-LumiraStatus, MMM-FamilyPlan) |
+| [`modules/`](modules) | Die eigenen Module (MMM-aPagerAlarm, MMM-SmartCompliments, MMM-LumiraStatus, MMM-FamilyPlan, MMM-Ambient) |
 | [`lumira-portal/`](lumira-portal) | Self-Service-Portal – Ersteinrichtung per Access Point & laufende Konfiguration im Heimnetz |
 | [`version/`](version) | Basis-`config.js`-Vorlage je Edition, für die manuelle Grundinstallation |
 | [`docs/`](docs) | Geräte-/Installationsdokumentation |
@@ -74,6 +74,7 @@ keine Terminal-Eingabe mehr nötig.
 | **`MMM-SmartCompliments`** | intelligente Familien-/Motivationssprüche | **Eigen** |
 | **`MMM-LumiraStatus`** | Setup-Anleitung/QR-Code bzw. dezenter Status-Hinweis auf dem Spiegel | **Eigen** |
 | **`MMM-FamilyPlan`** | Familienplan: Wochendienste mit fairer automatischer Rotation, im Portal gepflegt (nur Home/Fire/Rescue, im Portal einschaltbar) | **Eigen** |
+| **`MMM-Ambient`** | Dauerschleife: gezeichnetes Lagerfeuer oder eigenes Video/Bild, Vollbild oder Hintergrund, im Portal unter Spiegel → Bildschirm | **Eigen** |
 
 ## 🧙 Was im Self-Service-Portal einzutragen ist
 
@@ -166,6 +167,7 @@ pm2 stop MagicMirror      # anhalten
 - [modules/MMM-SmartCompliments](modules/MMM-SmartCompliments) – Familienassistent
 - [modules/MMM-LumiraStatus](modules/MMM-LumiraStatus) – Setup-/Status-Anzeige auf dem Spiegel
 - [modules/MMM-FamilyPlan](modules/MMM-FamilyPlan) – Familienplan (Wochendienste)
+- [modules/MMM-Ambient](modules/MMM-Ambient) – Dauerschleife (Lagerfeuer, eigene Videos)
 
 ## ⚠️ Worauf achten
 

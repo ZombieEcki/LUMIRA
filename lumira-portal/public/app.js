@@ -196,6 +196,12 @@
       if (window.LumiraUpdates) {
         window.LumiraUpdates.init({ toast: toast, goPage: goPage, onStatus: renderUpdateTile });
       }
+      if (window.LumiraAmbient) {
+        window.LumiraAmbient.init({ toast: toast, onStatus: renderAmbientStart });
+        $("#start-amb-sw").addEventListener("click", function () {
+          window.LumiraAmbient.setEnabled($("#start-amb-sw").getAttribute("aria-checked") !== "true");
+        });
+      }
       wireTheme();
       wireLogout();
       $("#member-chip").addEventListener("click", function () {
@@ -704,7 +710,7 @@
   var AREAS = [
     { id: "start", label: "Start", icon: "home", pages: [["start", "Übersicht"]] },
     { id: "familie", label: "Familie", icon: "users", need: "hasFamily", pages: [["familienplan", "Familienplan"], ["familie", "Termine"], ["spruche", "Sprüche"]] },
-    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
+    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
     { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarmierung"]] },
     { id: "mehr", label: "Mehr", icon: "more", pages: [["info", "Info & Updates"], ["app", "Als App"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit"]] }
   ];
@@ -1041,6 +1047,12 @@
     $("#mirror-age").textContent = MIRROR.failing ? "Verbindung unterbrochen · Stand " + age
       : mirrorActive() ? "Live · " + age : "Pausiert · Stand " + age;
     $("#mirror-dot").className = "dot" + (fresh ? " live" : "");
+  }
+
+  // Startseite, Karte Spiegel: Schnellschalter für die Dauerschleife
+  function renderAmbientStart(s, media) {
+    $("#start-amb-sw").setAttribute("aria-checked", s.enabled ? "true" : "false");
+    $("#start-amb-sub").textContent = s.enabled ? media.name + (s.mode === "background" ? " · Hintergrund" : " · Vollbild") : "aus · " + media.name;
   }
 
   function renderModulePreview() {

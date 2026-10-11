@@ -27,6 +27,7 @@ const { generateConfig } = require("./lib/generate-config");
 const { getEdition } = require("./lib/editions");
 const { createUpdater } = require("./lib/updates");
 const { createSessionStore } = require("./lib/sessions");
+const ambientLib = require("./lib/ambient");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -516,7 +517,7 @@ app.use("/avatar-uploads", requireAuth, express.static(familyplanLib.AVATAR_UPLO
 // Updates für MagicMirror² und externe Module (Portal → Info), siehe
 // lib/updates.js. Prüfen automatisch alle 12 h, aktualisieren nur manuell.
 // ---------------------------------------------------------------------------
-const OWN_MODULES = ["MMM-aPagerAlarm", "MMM-SmartCompliments", "MMM-LumiraStatus", "MMM-FamilyPlan"];
+const OWN_MODULES = ["MMM-aPagerAlarm", "MMM-SmartCompliments", "MMM-LumiraStatus", "MMM-FamilyPlan", "MMM-Ambient"];
 const updater = createUpdater({
 	mmRoot: MM_ROOT,
 	statePath: path.join(settingsLib.LUMIRA_HOME, "updates.json"),
@@ -704,10 +705,69 @@ app.use((req, res, next) => {
 	next();
 });
 
+// ---------------------------------------------------------------------------
+// Dauerschleife auf dem Spiegel (Spiegel → Bildschirm), siehe lib/ambient.js.
+// Wirkt live über ~/.lumira/ambient.json – kein MagicMirror-Neustart.
+// ---------------------------------------------------------------------------
+const ambient = ambientLib.createAmbient({ home: settingsLib.LUMIRA_HOME });
+const ambientUpload = multer({
+	storage: multer.diskStorage({
+		destination: (req, file, cb) => {
+			const dir = path.join(ambient.mediaDir, ".incoming");
+			fs.mkdir(dir, { recursive: true }, (err) => cb(err, dir));
+		},
+		filename: (req, file, cb) => cb(null, Date.now() + "-" + Math.random().toString(16).slice(2))
+	}),
+	limits: { fileSize: ambientLib.MAX_BYTES, files: 1 }
+});
+
+function ambientAction(res, fn) {
+	try {
+		res.json(fn());
+	} catch (err) {
+		if (err instanceof ambientLib.AmbientError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] Dauerschleife:", err);
+		res.status(500).json({ error: "Interner Fehler" });
+	}
+}
+
+app.get("/api/ambient", requireAuth, (req, res) => ambientAction(res, () => ambient.view()));
+
+app.put("/api/ambient", requireAuth, (req, res) => {
+	const b = req.body || {};
+	ambientAction(res, () => ambient.setState({ enabled: b.enabled, mediaId: b.mediaId, mode: b.mode, sound: b.sound, minutes: b.minutes }));
+});
+
+app.post("/api/ambient/media", requireAuth, ambientUpload.single("file"), (req, res) => {
+	if (!req.file) return res.status(400).json({ error: "Keine Datei erhalten" });
+	ambientAction(res, () => {
+		const entry = ambient.addMedia({ tmpPath: req.file.path, originalName: req.file.originalname, name: req.body && req.body.name, size: req.file.size });
+		return Object.assign(ambient.view(), { added: entry.id });
+	});
+});
+
+app.delete("/api/ambient/media/:id", requireAuth, (req, res) => {
+	ambientAction(res, () => ambient.removeMedia(req.params.id));
+});
+
+// Vorschau im Portal (Video mit Spulen per Range-Anfragen, das macht sendFile)
+app.get("/api/ambient/media/:id/file", requireAuth, (req, res) => {
+	const f = ambient.mediaFile(req.params.id);
+	if (!f || !fs.existsSync(f.path)) return res.status(404).json({ error: "Medium nicht gefunden" });
+	res.type(f.mime).sendFile(f.path, { maxAge: "1d" });
+});
+
+function expireAmbientSafe() {
+	try { ambient.expire(); } catch (err) { console.error("[lumira-portal] Dauerschleife-Timer:", err.message); }
+}
+
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+	if (err && err.code === "LIMIT_FILE_SIZE") {
+		return res.status(413).json({ error: "Die Datei ist zu groß (höchstens 300 MB)" });
+	}
 	if (err && err.type === "entity.too.large") {
 		return res.status(413).json({ error: "Die Datei ist zu groß" });
 	}
@@ -725,6 +785,8 @@ if (require.main === module) {
 	// Wochenwechsel Familienplan: beim Start und dann jede Minute prüfen.
 	ensureWeekSafe();
 	setInterval(ensureWeekSafe, 60 * 1000);
+	// Timer der Dauerschleife: abgelaufen → wirklich aus
+	setInterval(expireAmbientSafe, 60 * 1000);
 	// Update-Prüfung: erstmals 3 Minuten nach dem Start, dann alle 12 Stunden.
 	updater.startSchedule();
 }

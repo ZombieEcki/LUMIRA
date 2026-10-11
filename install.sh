@@ -51,7 +51,7 @@ set -euo pipefail
 MM_DIR="${MM_DIR:-$HOME/MagicMirror}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
 MM_REPO="https://github.com/MagicMirrorOrg/MagicMirror"
-OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan")
+OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan" "MMM-Ambient")
 
 WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0
 EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1

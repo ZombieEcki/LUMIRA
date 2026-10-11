@@ -238,7 +238,11 @@
                     <span class="tl2">Sprüche anzeigen</span>
                     <button class="btn small" id="compliments-toggle" type="button"><span id="compliments-state">–</span></button>
                   </div>
-                  <a href="#spruche" class="btn ghost small" data-need="hasFamily">Sprüche bearbeiten</a>
+                  <div class="toggle" id="start-amb">
+                  <span class="tl2">Dauerschleife<small id="start-amb-sub">aus</small></span>
+                  <button class="sw" id="start-amb-sw" role="switch" aria-label="Dauerschleife zeigen"></button>
+                </div>
+                <a href="#spruche" class="btn ghost small" data-need="hasFamily">Sprüche bearbeiten</a>
                 </div>
               </div>
             </section>
@@ -350,6 +354,39 @@
       </section>
 
       <!-- Standort -->
+      <!-- Bildschirm: Dauerschleife auf dem Spiegel (ambient.js, MMM-Ambient) -->
+      <section class="page cols" data-page="bildschirm">
+        <p class="page-lead">Eine Dauerschleife auf dem Spiegel – zum Beispiel ein Lagerfeuer am Abend oder ein eigenes Video.
+          Wirkt sofort, ohne Neustart. Ein Alarm unterbricht sie immer.</p>
+        <div class="card">
+          <h2>Dauerschleife</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Spiegel zeigen<small id="amb-status">aus</small></span>
+            <button class="sw" id="amb-switch" role="switch" aria-label="Dauerschleife zeigen"></button>
+          </div>
+          <div class="field"><label for="amb-mode">Darstellung</label>
+            <select id="amb-mode">
+              <option value="fullscreen">Vollbild – nur das Medium</option>
+              <option value="background">Hintergrund – Module bleiben sichtbar</option>
+            </select></div>
+          <div class="field"><label for="amb-timer">Ausschalten</label><select id="amb-timer"></select></div>
+          <div class="toggle" id="amb-sound-row" hidden>
+            <span class="tl2">Ton<small>nur bei Videos mit Tonspur</small></span>
+            <button class="sw" id="amb-sound" role="switch" aria-label="Ton"></button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Mediathek</h2>
+            <label class="btn small" id="amb-file-btn" for="amb-file">+ Hochladen</label>
+            <input type="file" id="amb-file" accept="video/mp4,video/webm,image/jpeg,image/png,image/gif,image/webp" hidden></div>
+          <p class="sub">Videos (MP4, WebM) laufen in Dauerschleife, Bilder bleiben stehen, GIFs bewegen sich.
+            Für den Raspberry Pi 3 am besten Videos in 720p (H.264), höchstens 300 MB.</p>
+          <progress id="amb-progress" max="1" value="0" hidden></progress>
+          <p class="save-hint" id="amb-upload"></p>
+          <div class="amb-grid" id="amb-grid"></div>
+        </div>
+      </section>
+
       <section class="page" data-page="standort">
         <p class="page-lead">Für Wettervorhersage und Regenradar.</p>
         <div class="card form-cols">
@@ -578,6 +615,8 @@
 <script src="select.js"></script>
 <script src="familyplan.js"></script>
 <script src="updates.js"></script>
+<script src="ambient-fire.js"></script>
+<script src="ambient.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
