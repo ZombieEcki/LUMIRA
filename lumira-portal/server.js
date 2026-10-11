@@ -755,7 +755,7 @@ app.get("/api/ambient", requireAuth, (req, res) => ambientAction(res, () => ambi
 
 app.put("/api/ambient", requireAuth, (req, res) => {
 	const b = req.body || {};
-	ambientAction(res, () => ambient.setState({ enabled: b.enabled, mediaId: b.mediaId, mode: b.mode, sound: b.sound, minutes: b.minutes }));
+	ambientAction(res, () => ambient.setState({ enabled: b.enabled, mediaId: b.mediaId, mode: b.mode, sound: b.sound, ytQuality: b.ytQuality, minutes: b.minutes }));
 });
 
 app.post("/api/ambient/media", requireAuth, ambientUpload.single("file"), async (req, res) => {

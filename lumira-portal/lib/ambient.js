@@ -13,6 +13,9 @@ const { execFile } = require("child_process");
 
 const BUILTINS = [{ id: "campfire", name: "Lagerfeuer", type: "builtin" }];
 const MODES = ["fullscreen", "background"];
+// YouTube-Auflösung: der Player läuft so groß und wird nur optisch
+// hochskaliert – sonst liefert YouTube für Spiegelgröße 1440p/4K, und der Pi ruckelt
+const YT_QUALITIES = ["360", "480", "720", "1080"];
 const MAX_MEDIA = 20;
 const MAX_BYTES = 300 * 1024 * 1024;
 const MAX_MINUTES = 12 * 60;
@@ -24,6 +27,7 @@ const DEFAULT_STATE = {
 	mediaId: "campfire",
 	mode: "fullscreen",
 	sound: false,
+	ytQuality: "480",
 	until: null,
 	media: []
 };
@@ -185,6 +189,7 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 			mediaId: st.mediaId,
 			mode: st.mode,
 			sound: !!st.sound,
+			ytQuality: YT_QUALITIES.indexOf(String(st.ytQuality)) === -1 ? "480" : String(st.ytQuality),
 			until: enabled ? st.until : null,
 			limits: { maxMedia: MAX_MEDIA, maxBytes: MAX_BYTES },
 			media: BUILTINS.map((b) => Object.assign({}, b))
@@ -205,6 +210,10 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 			st.mode = p.mode;
 		}
 		if (p.sound !== undefined) st.sound = !!p.sound;
+		if (p.ytQuality !== undefined) {
+			if (YT_QUALITIES.indexOf(String(p.ytQuality)) === -1) throw new AmbientError("YouTube-Qualität: 360, 480, 720 oder 1080");
+			st.ytQuality = String(p.ytQuality);
+		}
 		if (p.enabled !== undefined) st.enabled = !!p.enabled;
 		if (p.minutes !== undefined) {
 			const m = p.minutes === null ? 0 : Number(p.minutes);
@@ -320,4 +329,4 @@ async function prepareUpload({ tmpPath, originalName, size }, opts = {}) {
 	}
 }
 
-module.exports = { createAmbient, sniff, parseYouTube, prepareUpload, hasFfmpeg, gifToMp4, AmbientError, BUILTINS, MAX_BYTES, MAX_MEDIA, MEDIA_ID_RE };
+module.exports = { YT_QUALITIES, createAmbient, sniff, parseYouTube, prepareUpload, hasFfmpeg, gifToMp4, AmbientError, BUILTINS, MAX_BYTES, MAX_MEDIA, MEDIA_ID_RE };

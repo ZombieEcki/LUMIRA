@@ -20,7 +20,17 @@ youtu.be/…, shorts/…, live/…; eine Startzeit wie `&t=90` wird übernommen)
 Ohne eigenen Namen holt das Portal den Videotitel. Auf dem Spiegel läuft das
 Video über `youtube-nocookie.com` eingebettet: stumm (außer „Ton“ ist an),
 Endlosschleife, ohne Bedienelemente, auf Spiegelgröße gezoomt. Braucht
-Internet; auf dem Raspberry Pi 3 kann YouTube ruckeln, ab Pi 4 läuft es flüssig.
+Internet.
+
+**Qualität (Portal → YouTube-Qualität, Standard 480p):** YouTube wählt die
+Auflösung nach der Größe des Players. Auf voller Spiegelgröße wären das
+1440p/4K – zu viel für den Pi. Deshalb läuft der Player klein (z. B. 640 × 360,
+YouTube liefert dann 480p) und wird per `transform` hochskaliert, was die
+Grafikeinheit fast umsonst erledigt. 480p für den Pi 3, 720p ab Pi 4, 1080p ab Pi 5.
+
+Im Hintergrund-Modus wird mit einer halbdurchsichtigen schwarzen Fläche
+abgedunkelt, nicht mit einem CSS-Filter – der würde für jedes Videobild neu
+berechnet und ruckelt.
 
 ## So funktioniert es
 

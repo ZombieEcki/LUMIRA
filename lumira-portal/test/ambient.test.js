@@ -183,7 +183,11 @@ test("YouTube in der Mediathek: anlegen, auswählen, Spiegel-Zustand, löschen",
 	assert.equal(amb.mediaFile(e.id), null);
 
 	const p = toPayload(amb.load(), new Date("2026-10-11T20:00:00Z"));
-	assert.deepEqual(p.media, { kind: "youtube", videoId: "L_LUpnjgPso", start: 30 });
+	assert.deepEqual(p.media, { kind: "youtube", videoId: "L_LUpnjgPso", start: 30, quality: "480" });
+	// Qualität wählbar (Player-Größe auf dem Spiegel), Unsinn wird abgelehnt
+	assert.equal(amb.setState({ ytQuality: "720" }).ytQuality, "720");
+	assert.equal(toPayload(amb.load(), new Date("2026-10-11T20:00:00Z")).media.quality, "720");
+	assert.throws(() => amb.setState({ ytQuality: "4k" }), /YouTube-Qualität/);
 	const url = new URL(youtubeEmbedUrl(p.media, false));
 	assert.equal(url.hostname, "www.youtube-nocookie.com");
 	assert.equal(url.pathname, "/embed/L_LUpnjgPso");

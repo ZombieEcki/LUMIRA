@@ -18,7 +18,8 @@ function toPayload(raw, now) {
 		if (!entry) return off;
 		if (entry.type === "youtube") {
 			if (!YT_ID_RE.test(entry.youtubeId)) return off;
-			media = { kind: "youtube", videoId: entry.youtubeId, start: Math.max(0, Math.floor(Number(entry.start) || 0)) };
+			const q = ["360", "480", "720", "1080"].indexOf(String(raw.ytQuality)) === -1 ? "480" : String(raw.ytQuality);
+			media = { kind: "youtube", videoId: entry.youtubeId, start: Math.max(0, Math.floor(Number(entry.start) || 0)), quality: q };
 		} else {
 			if (!FILE_RE.test(entry.file)) return off;
 			media = { kind: entry.type === "video" ? "video" : "image", url: "/MMM-Ambient/media/" + entry.file };

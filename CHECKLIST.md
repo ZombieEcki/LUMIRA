@@ -154,6 +154,8 @@ um den aktuellen Stand zu sehen.
 - [x] Uploads geprüft (Dateityp an den ersten Bytes, max. 300 MB, max. 20 Medien)
 - [x] **YouTube-Videos** als Medium (Link einfügen, Titel automatisch, Startzeit aus dem
       Link), auf dem Spiegel per youtube-nocookie.com eingebettet, stumm, Endlosschleife
+- [x] Ruckeln behoben: YouTube-Player klein (Qualität wählbar 360p–1080p, Standard 480p)
+      und hochskaliert statt in Spiegelgröße (vorher 1440p); Abdunkeln per Fläche statt Filter
 - [x] GIFs werden beim Hochladen per ffmpeg in MP4 (H.264, max. 1280 px) umgewandelt –
       GIFs ruckeln auf dem Pi 3; ohne ffmpeg bleibt es beim GIF mit Hinweis.
       `install.sh` installiert ffmpeg mit (bestehende Geräte: einmal `sudo apt install ffmpeg`)

@@ -19,7 +19,7 @@ Module.register("MMM-Ambient", {
 
 	defaults: {
 		interruptOnAlarmPhases: [1],  // aPager-Zustände, in denen die Schleife pausiert
-		backgroundBrightness: 0.45,   // Helligkeit im Hintergrund-Modus (0–1)
+		backgroundBrightness: 0.45,   // Helligkeit im Hintergrund-Modus (0–1), per Abdunkel-Fläche
 		fadeMs: 1200
 	},
 
@@ -63,7 +63,7 @@ Module.register("MMM-Ambient", {
 	render: function () {
 		const s = this.state || {};
 		const active = !!s.enabled && !this.alarm;
-		const key = active ? [s.mode, s.media.kind, s.media.url || s.media.embedUrl || "", s.sound ? 1 : 0].join("|") : "";
+		const key = active ? [s.mode, s.media.kind, s.media.url || s.media.embedUrl || "", s.media.quality || "", s.sound ? 1 : 0].join("|") : "";
 		if (key === this.key) return;
 		this.key = key;
 		this.teardown();
@@ -74,7 +74,6 @@ Module.register("MMM-Ambient", {
 		const stage = document.createElement("div");
 		stage.className = "lumira-ambient " + (s.mode === "background" ? "is-background" : "is-fullscreen");
 		stage.style.transitionDuration = this.config.fadeMs + "ms";
-		if (s.mode === "background") stage.style.filter = "brightness(" + this.config.backgroundBrightness + ")";
 
 		if (s.media.kind === "campfire") {
 			stage.classList.add("is-campfire");
@@ -88,6 +87,23 @@ Module.register("MMM-Ambient", {
 			stage.classList.add("is-youtube");
 			const frame = document.createElement("iframe");
 			frame.className = "lumira-ambient-yt";
+			// Kleiner Player → YouTube liefert eine kleine Auflösung;
+			// hochskaliert wird per transform, das kostet den Pi fast nichts
+			// YouTube wählt eine Stufe über der Player-Größe (gemessen: 640 × 360 → 480p,
+			// 854 × 480 → 720p), daher hier jeweils eine Stufe kleiner. Durch die
+			// Pixeldichte geteilt, weil YouTube sie bei der Qualitätswahl einrechnet.
+			const base = { 360: [426, 240], 480: [640, 360], 720: [854, 480], 1080: [1280, 720] }[s.media.quality] || [640, 360];
+			const dpr = window.devicePixelRatio || 1;
+			const size = [Math.round(base[0] / dpr), Math.round(base[1] / dpr)];
+			frame.width = size[0]; frame.height = size[1];
+			frame.style.width = size[0] + "px"; frame.style.height = size[1] + "px";
+			this.fitFrame = () => {
+				// wie object-fit: cover, plus 20 % – Titelzeile/„Weitere Videos“ fallen weg
+				const k = Math.max(window.innerWidth / size[0], window.innerHeight / size[1]) * 1.2;
+				frame.style.transform = "translate(-50%, -50%) scale(" + k.toFixed(4) + ")";
+			};
+			this.fitFrame();
+			window.addEventListener("resize", this.fitFrame);
 			frame.src = s.media.embedUrl;
 			frame.setAttribute("allow", "autoplay; encrypted-media");
 			frame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
@@ -115,6 +131,13 @@ Module.register("MMM-Ambient", {
 			stage.appendChild(img);
 		}
 
+		if (s.mode === "background") {
+			const dim = document.createElement("div");
+			dim.className = "lumira-ambient-dim";
+			dim.style.opacity = String(Math.min(1, Math.max(0, 1 - this.config.backgroundBrightness)));
+			stage.appendChild(dim);
+		}
+
 		// Hintergrund-Modus: der schwarze <body>-Hintergrund würde die Fläche
 		// sonst verdecken (sie liegt unter den Modulen, z-index -1)
 		if (s.mode === "background") document.body.classList.add("lumira-ambient-bg");
@@ -125,6 +148,7 @@ Module.register("MMM-Ambient", {
 
 	teardown: function () {
 		if (this.stopFire) { this.stopFire(); this.stopFire = null; }
+		if (this.fitFrame) { window.removeEventListener("resize", this.fitFrame); this.fitFrame = null; }
 		document.body.classList.remove("lumira-ambient-bg");
 		const old = this.stage;
 		this.stage = null;

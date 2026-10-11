@@ -55,6 +55,8 @@
     $("#amb-mode").value = S.mode;
     $("#amb-sound").setAttribute("aria-checked", S.sound ? "true" : "false");
     $("#amb-sound-row").hidden = current().type !== "video" && current().type !== "youtube";
+    $("#amb-ytq-row").hidden = current().type !== "youtube";
+    $("#amb-ytq").value = S.ytQuality || "480";
     renderGrid();
     if (ctx && ctx.onStatus) ctx.onStatus(S, current());
   }
@@ -191,6 +193,7 @@
         if (S && S.enabled) send({ minutes: Number(timer.value) });
       });
       $("#amb-sound").addEventListener("click", function () { send({ sound: !(S && S.sound) }); });
+      $("#amb-ytq").addEventListener("change", function () { send({ ytQuality: $("#amb-ytq").value }, "Qualität geändert"); });
       // YouTube-Link hinzufügen
       $("#amb-yt-btn").addEventListener("click", function () {
         var f = $("#amb-yt-form");

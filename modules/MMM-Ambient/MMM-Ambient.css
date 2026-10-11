@@ -19,6 +19,10 @@
 .lumira-ambient.is-background { z-index: -1; }
 body.lumira-ambient-bg { background: transparent !important; }
 
+/* Abdunkeln im Hintergrund-Modus: schwarze Fläche statt CSS-Filter – der
+   Filter müsste für jedes Videobild neu berechnet werden (ruckelt auf dem Pi) */
+.lumira-ambient-dim { position: absolute; inset: 0; background: #000; z-index: 2; pointer-events: none; }
+
 .lumira-ambient-media {
 	position: absolute;
 	inset: 0;
@@ -37,15 +41,15 @@ body.lumira-ambient-bg { background: transparent !important; }
 	filter: blur(1.5px) saturate(1.15);
 }
 
-/* YouTube: 16:9 so groß, dass es den Spiegel füllt (wie object-fit: cover),
-   plus 20 % – so fallen Titelzeile und „Weitere Videos“ am Rand weg */
+/* YouTube: kleiner Player in der gewählten Auflösung, per transform auf
+   Spiegelgröße gezoomt (siehe MMM-Ambient.js) */
 .lumira-ambient-yt {
 	position: absolute;
 	top: 50%;
 	left: 50%;
-	width: max(100vw, 177.78vh);
-	height: max(100vh, 56.25vw);
-	transform: translate(-50%, -50%) scale(1.2);
+	/* Größe und Zoom setzt MMM-Ambient.js (kleiner Player, hochskaliert) */
+	transform-origin: 50% 50%;
+	transform: translate(-50%, -50%);
 	border: 0;
 	pointer-events: none;
 }

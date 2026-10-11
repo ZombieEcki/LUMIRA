@@ -370,6 +370,13 @@
               <option value="background">Hintergrund – Module bleiben sichtbar</option>
             </select></div>
           <div class="field"><label for="amb-timer">Ausschalten</label><select id="amb-timer"></select></div>
+          <div class="field" id="amb-ytq-row" hidden><label for="amb-ytq">YouTube-Qualität</label>
+            <select id="amb-ytq">
+              <option value="360">360p – sehr sparsam</option>
+              <option value="480">480p – flüssig, empfohlen für Raspberry Pi 3</option>
+              <option value="720">720p – schärfer, ab Raspberry Pi 4</option>
+              <option value="1080">1080p – am schärfsten, ab Raspberry Pi 5</option>
+            </select></div>
           <div class="toggle" id="amb-sound-row" hidden>
             <span class="tl2">Ton<small>nur bei Videos mit Tonspur</small></span>
             <button class="sw" id="amb-sound" role="switch" aria-label="Ton"></button>
