@@ -6,7 +6,7 @@
 #   - Node.js (falls fehlend/zu alt)
 #   - MagicMirror²
 #   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments,
-#     modules/MMM-LumiraStatus, modules/MMM-FamilyPlan)
+#     modules/MMM-LumiraStatus, modules/MMM-FamilyPlan, modules/MMM-Ambient)
 #   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD)
 #   - eine lauffähige config.js mit Platzhalter-Werten für die gewählte Edition
 #   - optional Autostart per pm2
@@ -23,7 +23,9 @@
 #   chmod +x install.sh
 #   ./install.sh                    # volle Installation (inkl. Autostart)
 #   ./install.sh --reconfigure      # config.js aus dem aktuellen settings.json neu erzeugen
-#   ./install.sh --no-wizard        # config.js.sample statt settings.json-Pipeline nutzen
+#   ./install.sh --update           # nach git pull: Module, Portal, config.js aktualisieren
+#                                   #   (ohne sudo/apt – so startet es auch das Portal unter Info)
+#   ./install.sh --no-wizard       # config.js.sample statt settings.json-Pipeline nutzen
 #   ./install.sh --no-pm2           # ohne Autostart installieren
 #   ./install.sh --edition=fire     # Edition der Grundinstallation (home|fire|rescue|business|station, Standard: fire)
 #   ./install.sh --hostname=lumira  # Hostname für http://<name>.local:8092 (Standard: lumira)
@@ -53,7 +55,7 @@ NODE_MAJOR="${NODE_MAJOR:-22}"
 MM_REPO="https://github.com/MagicMirrorOrg/MagicMirror"
 OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan" "MMM-Ambient")
 
-WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0
+WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0; UPDATE_ONLY=0
 EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1
 RAINRADAR_URL_DEFAULT="https://github.com/realoliwer/MMM-RainRadarDWD"
 RAINRADAR_URL="$RAINRADAR_URL_DEFAULT"
@@ -63,13 +65,14 @@ for arg in "$@"; do
     --no-pm2) WITH_PM2=0 ;;
     --force-config) FORCE_CONFIG=1 ;;
     --reconfigure) RECONFIGURE=1 ;;
+    --update) UPDATE_ONLY=1 ;;
     --no-wizard) NO_WIZARD=1 ;;
     --edition=*) EDITION="${arg#*=}" ;;
     --hostname=*) HOSTNAME_NEW="${arg#*=}" ;;
     --no-selfservice) WITH_SELFSERVICE=0 ;;
     --no-rainradar) RAINRADAR_URL="" ;;
     --rainradar-url=*) RAINRADAR_URL="${arg#*=}" ;;
-    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//' | head -n 44; exit 0 ;;
+    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//' | head -n 46; exit 0 ;;
     *) echo "Unbekannte Option: $arg"; exit 1 ;;
   esac
 done
@@ -93,6 +96,49 @@ ok()   { echo "  ${GRN}✓${RST} $*"; }
 warn() { echo "  ${YLW}!${RST} $*"; }
 die()  { echo "${RED}${BOLD}Fehler:${RST} $*" >&2; exit 1; }
 
+LUMIRA_DATA="${LUMIRA_HOME:-$HOME/.lumira}"
+
+# config.js aus dem vorhandenen settings.json neu erzeugen (Sicherung vorher,
+# die letzten 5 bleiben). Edition/Hostname bleiben, wie sie im Portal stehen.
+regen_config() {
+  local CONFIG="$MM_DIR/config/config.js"
+  mkdir -p "$MM_DIR/config"
+  if [ -f "$CONFIG" ]; then
+    cp "$CONFIG" "$CONFIG.backup.$(date +%Y%m%d-%H%M%S)"
+    ls -1t "$CONFIG".backup.* 2>/dev/null | tail -n +6 | xargs -r rm -f
+  fi
+  node "$SCRIPT_DIR/lumira-portal/bin/generate-config-cli.js" --out="$CONFIG"
+  ok "config.js aus settings.json aktualisiert"
+}
+
+# Merkt sich, wo das LUMIRA-Repo liegt – das Portal zeigt darüber unter Info
+# „LUMIRA“ als Update an und startet ./install.sh --update.
+write_install_info() {
+  mkdir -p "$LUMIRA_DATA"
+  local COMMIT
+  COMMIT="$(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || true)"
+  node -e '
+    const [file, repo, mmDir, commit, mode] = process.argv.slice(1);
+    const data = { repo, mmDir, commit, mode, at: new Date().toISOString() };
+    require("fs").writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
+  ' "$LUMIRA_DATA/install.json" "$SCRIPT_DIR" "$MM_DIR" "$COMMIT" "$1"
+}
+
+# Haben sich systemd-Dienste, polkit-Regeln oder die dnsmasq-Datei geändert?
+# Die kann nur eine normale Installation (mit sudo) übernehmen.
+system_files_changed() {
+  [ "$WITH_SELFSERVICE" -eq 1 ] || return 1
+  command -v systemctl >/dev/null 2>&1 || return 1
+  local SRC="$SCRIPT_DIR/lumira-portal/systemd" f
+  for f in lumira-portal.service lumira-provision.service lumira-provision.timer; do
+    sed -e "s#@USER@#$USER#g" -e "s#@HOME@#$HOME#g" "$SRC/$f" | cmp -s - "/etc/systemd/system/$f" || return 0
+  done
+  sed "s#@USER@#$USER#g" "$SRC/polkit-lumira-nmcli.rules" | cmp -s - /etc/polkit-1/rules.d/49-lumira-nmcli.rules || return 0
+  sed "s#@USER@#$USER#g" "$SRC/polkit-lumira-reboot.rules" | cmp -s - /etc/polkit-1/rules.d/50-lumira-reboot.rules || return 0
+  cmp -s "$SRC/dnsmasq-shared-captive.conf" /etc/NetworkManager/dnsmasq-shared.d/lumira-captive.conf || return 0
+  return 1
+}
+
 # ---------------------------------------------------------------------------
 # config.js schreiben
 #
@@ -108,7 +154,13 @@ write_config() {
   mkdir -p "$MM_DIR/config"
 
   if [ -f "$CONFIG" ] && [ "$FORCE_CONFIG" -eq 0 ] && [ "$RECONFIGURE" -eq 0 ]; then
-    warn "config.js existiert bereits – bleibt unverändert (--force-config zum Überschreiben)"
+    # Mit settings.json (Portal) ist config.js nur abgeleitet: neu erzeugen,
+    # damit neue Module eines Updates auch ankommen. Kundendaten bleiben.
+    if [ -f "$LUMIRA_DATA/settings.json" ]; then
+      regen_config
+    else
+      warn "config.js existiert bereits – bleibt unverändert (--force-config zum Überschreiben)"
+    fi
     return 0
   fi
   if [ -f "$CONFIG" ]; then
@@ -191,7 +243,12 @@ install_lumira_portal() {
     return 0
   fi
   step "LUMIRA Self-Service-Portal (lumira-portal, Port 8092)"
+  sync_lumira_portal || return 0
+  install_portal_services
+}
 
+# Portal-Dateien nach ~/lumira-portal (ohne sudo, auch für --update)
+sync_lumira_portal() {
   local DEST="$HOME/lumira-portal"
   mkdir -p "$DEST"
   if command -v rsync >/dev/null 2>&1; then
@@ -201,8 +258,12 @@ install_lumira_portal() {
     ( cd "$SCRIPT_DIR/lumira-portal" && tar --exclude=node_modules -cf - . ) | ( cd "$DEST" && tar -xf - )
   fi
   ( cd "$DEST" && npm install --no-audit --no-fund --omit=dev ) && ok "lumira-portal installiert" \
-    || { warn "npm install für lumira-portal fehlgeschlagen"; return 0; }
+    || { warn "npm install für lumira-portal fehlgeschlagen"; return 1; }
+}
 
+# systemd-Dienste, polkit-Regeln, dnsmasq (braucht sudo)
+install_portal_services() {
+  local DEST="$HOME/lumira-portal"
   if ! command -v systemctl >/dev/null 2>&1; then
     warn "systemd nicht verfügbar – Dienste übersprungen (manueller Start: node $DEST/server.js)"
     return 0
@@ -232,6 +293,44 @@ install_lumira_portal() {
   ok "Dienste eingerichtet: lumira-portal (Port 8092), lumira-provision (Watchdog, alle 2 Min)"
 }
 
+# ---------------------------------------------------------------------------
+# Eigene Module nach ~/MagicMirror/modules kopieren
+# ---------------------------------------------------------------------------
+find_module() {
+  local name="$1"
+  for c in "$SCRIPT_DIR/modules/$name" "$SCRIPT_DIR/$name" "$SCRIPT_DIR/../$name"; do
+    [ -f "$c/package.json" ] && { echo "$c"; return 0; }
+  done
+  return 1
+}
+install_own_modules() {
+  local mod SRC DEST
+  for mod in "${OWN_MODULES[@]}"; do
+    step "Modul $mod"
+    SRC="$(find_module "$mod")" || die "Modulordner '$mod' nicht gefunden."
+    DEST="$MM_DIR/modules/$mod"; mkdir -p "$DEST"
+    if command -v rsync >/dev/null 2>&1; then
+      rsync -a --delete --exclude node_modules "$SRC"/ "$DEST"/
+    else
+      rm -rf "$DEST"; mkdir -p "$DEST"
+      ( cd "$SRC" && tar --exclude=node_modules -cf - . ) | ( cd "$DEST" && tar -xf - )
+    fi
+    if grep -q '"dependencies"' "$DEST/package.json"; then
+      ( cd "$DEST" && npm install --no-audit --no-fund ); ok "installiert (mit Abhängigkeiten)"
+    else ok "installiert"; fi
+  done
+}
+
+# Ein per Portal hochgeladener eigener Alarmton liegt dauerhaft unter
+# ~/.lumira/sounds/ (siehe lumira-portal/lib/alarm-sound.js) und muss nach
+# dem rsync --delete auf MMM-aPagerAlarm/ IMMER neu hineinkopiert werden -
+# unabhängig davon, ob config.js neu erzeugt wird.
+sync_alarm_sound() {
+  if [ -f "$SCRIPT_DIR/lumira-portal/bin/sync-alarm-sound-cli.js" ] && [ -d "$LUMIRA_DATA/sounds" ]; then
+    node "$SCRIPT_DIR/lumira-portal/bin/sync-alarm-sound-cli.js" --mm-root="$MM_DIR" || true
+  fi
+}
+
 # ===========================================================================
 # Ablauf
 # ===========================================================================
@@ -240,6 +339,37 @@ echo "${BOLD}MagicMirror² – Feuerwehr & Familie · Setup${RST}"
 echo "Ziel: ${MM_DIR}"
 
 [ "$(id -u)" -eq 0 ] && die "Bitte NICHT als root/sudo starten. Das Skript nutzt sudo nur dort, wo nötig."
+
+# --- Nur aktualisieren (Portal → Info → LUMIRA, oder per SSH nach git pull) --
+# Kein sudo, kein apt: eigene Module, Portal-Dateien, config.js, Neustart von
+# MagicMirror. Das Portal startet sich danach selbst neu.
+if [ "$UPDATE_ONLY" -eq 1 ]; then
+  command -v node >/dev/null 2>&1 || die "Node.js fehlt – bitte einmal normal ./install.sh ausführen."
+  [ -f "$MM_DIR/package.json" ] || die "MagicMirror nicht gefunden ($MM_DIR) – bitte einmal normal ./install.sh ausführen."
+  step "LUMIRA-Update (Stand $(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || echo '?'))"
+  install_own_modules
+  sync_alarm_sound
+  if [ "$WITH_SELFSERVICE" -eq 1 ]; then
+    step "Portal-Dateien"
+    sync_lumira_portal || die "Portal konnte nicht aktualisiert werden"
+  fi
+  step "config.js"
+  if [ -f "$LUMIRA_DATA/settings.json" ]; then regen_config; else warn "kein settings.json – config.js bleibt unverändert"; fi
+  step "MagicMirror neu starten"
+  if command -v pm2 >/dev/null 2>&1 && pm2 describe MagicMirror >/dev/null 2>&1; then
+    pm2 restart MagicMirror >/dev/null && ok "MagicMirror neu gestartet"
+  else
+    warn "pm2-Prozess 'MagicMirror' nicht gefunden – bitte MagicMirror selbst neu starten"
+  fi
+  if system_files_changed; then
+    warn "Systemdienste/Regeln haben sich geändert – einmal per SSH ausführen: cd $SCRIPT_DIR && ./install.sh"
+    echo "LUMIRA_NEEDS_FULL_INSTALL"
+  fi
+  write_install_info update
+  echo; echo "${GRN}${BOLD}LUMIRA-Update fertig.${RST}"
+  exit 0
+fi
+
 command -v sudo >/dev/null 2>&1 || die "sudo wird benötigt."
 
 # --- Nur neu konfigurieren? -------------------------------------------------
@@ -254,10 +384,10 @@ if [ "$RECONFIGURE" -eq 1 ]; then
 fi
 
 # --- 0/1: System & Node -----------------------------------------------------
-step "System-Pakete (git, curl, build-essential, Emoji-Font)"
+step "System-Pakete (git, curl, build-essential, Emoji-Font, ffmpeg)"
 sudo apt-get update -y
 sudo apt-get install -y git curl ca-certificates build-essential \
-  fonts-noto-color-emoji fontconfig
+  fonts-noto-color-emoji fontconfig ffmpeg
 sudo fc-cache -f >/dev/null 2>&1 || true
 ok "Basis-Pakete & Farb-Emoji-Schrift vorhanden"
 
@@ -287,37 +417,9 @@ else
 fi
 mkdir -p "$MM_DIR/modules"
 
-# --- 3: Eigene Module -------------------------------------------------------
-find_module() {
-  local name="$1"
-  for c in "$SCRIPT_DIR/modules/$name" "$SCRIPT_DIR/$name" "$SCRIPT_DIR/../$name"; do
-    [ -f "$c/package.json" ] && { echo "$c"; return 0; }
-  done
-  return 1
-}
-for mod in "${OWN_MODULES[@]}"; do
-  step "Modul $mod"
-  SRC="$(find_module "$mod")" || die "Modulordner '$mod' nicht gefunden."
-  DEST="$MM_DIR/modules/$mod"; mkdir -p "$DEST"
-  if command -v rsync >/dev/null 2>&1; then
-    rsync -a --delete --exclude node_modules "$SRC"/ "$DEST"/
-  else
-    rm -rf "$DEST"; mkdir -p "$DEST"
-    ( cd "$SRC" && tar --exclude=node_modules -cf - . ) | ( cd "$DEST" && tar -xf - )
-  fi
-  if grep -q '"dependencies"' "$DEST/package.json"; then
-    ( cd "$DEST" && npm install --no-audit --no-fund ); ok "installiert (mit Abhängigkeiten)"
-  else ok "installiert"; fi
-done
-
-# Ein per Portal hochgeladener eigener Alarmton liegt dauerhaft unter
-# ~/.lumira/sounds/ (siehe lumira-portal/lib/alarm-sound.js) und muss nach
-# obigem rsync --delete auf MMM-aPagerAlarm/ IMMER neu hineinkopiert werden -
-# unabhängig davon, ob unten write_config() läuft (die überspringt sich bei
-# vorhandener config.js ohne --reconfigure/--force-config).
-if [ -f "$SCRIPT_DIR/lumira-portal/bin/sync-alarm-sound-cli.js" ] && [ -d "$HOME/.lumira/sounds" ]; then
-  node "$SCRIPT_DIR/lumira-portal/bin/sync-alarm-sound-cli.js" --mm-root="$MM_DIR" || true
-fi
+# --- 3: Eigene Module + eigener Alarmton -----------------------------------
+install_own_modules
+sync_alarm_sound
 
 install_lumira_portal
 
@@ -362,6 +464,8 @@ EOS
     warn "Autostart konnte nicht automatisch registriert werden – einmalig: pm2 startup"
   fi
 fi
+
+write_install_info install
 
 echo
 echo "${GRN}${BOLD}Grundinstallation fertig!${RST}"

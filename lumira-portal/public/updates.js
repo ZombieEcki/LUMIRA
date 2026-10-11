@@ -1,4 +1,4 @@
-// LUMIRA Self-Service-Portal – Updates für MagicMirror² und externe Module
+// LUMIRA Self-Service-Portal – Updates für LUMIRA, MagicMirror² und externe Module
 // (Seite „Info“, Hinweis-Punkt im Menü, Banner auf „Steuerung“).
 // Siehe lumira-portal/lib/updates.js. Vanilla-JS, Texte nur per textContent.
 (function () {
@@ -28,6 +28,8 @@
   }
 
   function busy() { return S && (S.checking || (S.job && S.job.status === "running")); }
+  // Während eines LUMIRA-Updates (oder kurz danach) schnell abfragen, um den Neustart mitzubekommen
+  function fastPoll() { return busy() || waitingForRestart; }
 
   function when(iso) {
     if (!iso) return "";
@@ -35,8 +37,21 @@
   }
 
   function versionText(c) {
+    if (c.kind === "lumira") {
+      var d = c.headDate ? new Date(c.headDate).toLocaleDateString("de-DE", { dateStyle: "medium" }) + " · " : "";
+      return "Stand " + d + (c.head || "?");
+    }
     if (c.currentVersion && c.latestVersion && c.currentVersion !== c.latestVersion) return c.currentVersion + " → " + c.latestVersion;
     return (c.currentVersion ? "Version " + c.currentVersion : "Stand " + (c.head || "?"));
+  }
+
+  // Nach einem LUMIRA-Update startet das Portal neu – das Ergebnis steht
+  // dann nur noch in lastJob. Bis zu 30 Minuten danach weiter anzeigen.
+  function shownJob() {
+    if (S.job) return S.job;
+    var lj = S.lastJob;
+    if (lj && lj.kind === "lumira" && lj.finishedAt && Date.now() - Date.parse(lj.finishedAt) < 30 * 60 * 1000) return lj;
+    return null;
   }
 
   // ---------------------------------------------------------------------
@@ -74,9 +89,13 @@
   }
 
   function row(c) {
-    var box = el("div", "upd-row");
+    var box = el("div", "upd-row" + (c.kind === "lumira" ? " is-lumira" : ""));
     var top = el("div", "upd-top");
     var info = el("div", "upd-info");
+    if (c.kind === "lumira") {
+      var logo = el("img", "upd-logo"); logo.src = "img/icon-192.png"; logo.alt = "";
+      top.appendChild(logo);
+    }
     info.appendChild(el("b", null, c.name));
     info.appendChild(el("span", "upd-ver", versionText(c)));
     if (c.remote) info.appendChild(el("span", "upd-remote mono-in", c.remote.replace(/^https?:\/\//, "").replace(/\.git$/, "")));
@@ -129,14 +148,18 @@
   function renderJob() {
     var wrap = $("#upd-job");
     wrap.replaceChildren();
-    var job = S.job || null;
+    var job = shownJob();
     if (!job) return;
     var box = el("div", "upd-job " + job.status);
     var label = job.action === "rollback" ? "Zurücksetzen" : "Update";
-    var head = job.status === "running" ? "⏳ " + label + " läuft: " + job.name + " … (Seite kann offen bleiben, der Spiegel ist kurz dunkel)"
+    var head = job.status === "running"
+        ? (job.kind === "lumira"
+          ? label + " läuft: LUMIRA … das dauert einige Minuten. Am Ende startet das Portal kurz neu, die Seite lädt dann von selbst."
+          : label + " läuft: " + job.name + " … (Seite kann offen bleiben, der Spiegel ist kurz dunkel)")
       : job.status === "success" ? label + " abgeschlossen: " + job.name
       : label + " fehlgeschlagen: " + job.name + (job.error ? " – " + job.error : "");
     box.appendChild(el("b", null, head));
+    if (job.notice) box.appendChild(el("p", "upd-note warn", job.notice));
     if (job.log && job.log.length) {
       var det = el("details");
       if (job.status !== "success") det.open = true;
@@ -151,24 +174,35 @@
   // Aktionen
   // ---------------------------------------------------------------------
   function startUpdate(c) {
-    var msg = c.kind === "core"
+    var msg = c.kind === "lumira"
+      ? "LUMIRA aktualisieren?\n\nDabei werden die eigenen Module, das Portal und die Spiegel-Einstellungen (config.js) erneuert. Das dauert einige Minuten. MagicMirror und das Portal starten kurz neu – deine Einstellungen bleiben erhalten."
+      : c.kind === "core"
       ? "MagicMirror² aktualisieren (" + versionText(c) + ")?\n\nDas dauert auf dem Raspberry Pi einige Minuten, der Spiegel ist währenddessen kurz dunkel. Neue MagicMirror-Versionen können ältere Hardware (z. B. Raspberry Pi 3) oder Module beeinträchtigen – bei Problemen hier „Zurück“ wählen."
       : c.name + " aktualisieren (" + versionText(c) + ")? Der Spiegel startet danach einmal neu.";
     if (!confirm(msg)) return;
     api("/api/updates/" + encodeURIComponent(c.id) + "/apply", "POST")
-      .then(function (s) { S = s; render(); poll(); ctx.toast("Update gestartet"); })
+      .then(function (s) { noteJob(s); S = s; render(); poll(); ctx.toast("Update gestartet"); })
       .catch(function (err) { ctx.toast(err.message); });
   }
 
   function startRollback(c) {
     if (!confirm(c.name + " auf " + (c.rollback.fromVersion ? "Version " + c.rollback.fromVersion : "den Stand vor dem letzten Update") + " zurücksetzen? Der Spiegel startet danach einmal neu.")) return;
     api("/api/updates/" + encodeURIComponent(c.id) + "/rollback", "POST")
-      .then(function (s) { S = s; render(); poll(); ctx.toast("Zurücksetzen gestartet"); })
+      .then(function (s) { noteJob(s); S = s; render(); poll(); ctx.toast("Zurücksetzen gestartet"); })
       .catch(function (err) { ctx.toast(err.message); });
   }
 
+  var waitingForRestart = false;
+  // Ein LUMIRA-Job (laufend oder gerade fertig) heißt: gleich startet das Portal neu
+  function noteJob(s) { if (s && s.job && s.job.kind === "lumira") waitingForRestart = true; }
   function load() {
-    return api("/api/updates").then(function (s) { S = s; render(); }).catch(function () {});
+    return api("/api/updates").then(function (s) {
+      // Portal war wegen LUMIRA-Update weg und ist wieder da: Seite neu laden,
+      // damit auch im Browser der neue Stand läuft
+      if (waitingForRestart && !s.job) { location.reload(); return; }
+      noteJob(s);
+      S = s; render();
+    }).catch(function () {});
   }
 
   // Schnell abfragen, solange etwas läuft, sonst alle 5 Minuten (für Menü-Punkt/Banner).
@@ -176,7 +210,7 @@
     clearTimeout(pollTimer);
     pollTimer = setTimeout(function () {
       load().then(function () { poll(); });
-    }, busy() ? 3000 : 5 * 60 * 1000);
+    }, fastPoll() ? 3000 : 5 * 60 * 1000);
   }
 
   window.LumiraUpdates = {

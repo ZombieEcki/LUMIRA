@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 68 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 78 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -133,6 +133,18 @@ um den aktuellen Stand zu sehen.
       Familienplan → Mitglieder) statt der Edition; Edition nur noch unter Info
 - [ ] Live-Bild auf echter Pi-Hardware prüfen (Electron-Aufnahme, Last auf dem Pi 3)
 
+### Portal: LUMIRA-Updates
+- [x] LUMIRA selbst unter Info → Updates: prüfen (automatisch alle 12 h und auf
+      Knopfdruck), „Was ist neu?“, **Aktualisieren** per Knopf, „Zurück“
+- [x] `./install.sh --update`: ohne sudo/apt – eigene Module, Portal-Dateien,
+      config.js aus settings.json, `pm2 restart MagicMirror`; danach startet
+      sich das Portal neu; geänderte Systemdienste werden als Hinweis gemeldet
+- [x] Fix: ein normales `./install.sh` erzeugt eine vorhandene config.js jetzt
+      aus settings.json neu (vorher kamen neue Module wie MMM-Ambient erst nach
+      dem nächsten Speichern im Portal an)
+- [x] `install.sh` merkt sich den Repo-Pfad in `~/.lumira/install.json`
+- [ ] Auf echter Pi-Hardware prüfen (Update über das Portal, Portal-Neustart per systemd)
+
 ### Spiegel: Dauerschleife (MMM-Ambient)
 - [x] Neues Modul `MMM-Ambient`: gezeichnetes Lagerfeuer oder eigenes Video/Bild
       als Dauerschleife, Vollbild oder Hintergrund, Timer, Ton wählbar, Alarm
@@ -140,6 +152,11 @@ um den aktuellen Stand zu sehen.
 - [x] Portal: Spiegel → **Bildschirm** (Schalter, Darstellung, Timer, Mediathek
       mit Hochladen/Löschen und Vorschau), Schnellschalter in der Karte „Spiegel“
 - [x] Uploads geprüft (Dateityp an den ersten Bytes, max. 300 MB, max. 20 Medien)
+- [x] **YouTube-Videos** als Medium (Link einfügen, Titel automatisch, Startzeit aus dem
+      Link), auf dem Spiegel per youtube-nocookie.com eingebettet, stumm, Endlosschleife
+- [x] GIFs werden beim Hochladen per ffmpeg in MP4 (H.264, max. 1280 px) umgewandelt –
+      GIFs ruckeln auf dem Pi 3; ohne ffmpeg bleibt es beim GIF mit Hinweis.
+      `install.sh` installiert ffmpeg mit (bestehende Geräte: einmal `sudo apt install ffmpeg`)
 - [ ] Auf echter Pi-Hardware prüfen (Video-Wiedergabe Pi 3, Ton, Alarm-Unterbrechung)
 
 ### Portal: eigene Bedienelemente & Jahrestage

@@ -1,9 +1,14 @@
-// LUMIRA – Updates für MagicMirror² und externe Module.
+// LUMIRA – Updates für LUMIRA selbst, MagicMirror² und externe Module.
 //
-// Überwacht ~/MagicMirror selbst und alle per git installierten Module in
+// Überwacht das LUMIRA-Repo (~/LUMIRA, Pfad aus ~/.lumira/install.json),
+// ~/MagicMirror selbst und alle per git installierten Module in
 // ~/MagicMirror/modules (z. B. MMM-RainRadarDWD). Die eigenen LUMIRA-Module
 // sind per rsync installiert (kein .git) und kommen mit dem LUMIRA-Update,
-// sie werden hier übersprungen.
+// sie werden in der Modul-Liste übersprungen.
+//
+// LUMIRA-Update: git pull --ff-only im Repo, dann ./install.sh --update
+// (eigene Module, Portal-Dateien, config.js, Neustart von MagicMirror – ohne
+// sudo). Danach startet sich das Portal selbst neu, damit der neue Code läuft.
 //
 //  - Prüfen: git fetch + Vergleich mit dem Upstream-Branch, automatisch alle
 //    12 Stunden und auf Knopfdruck im Portal.
@@ -19,7 +24,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execFile } = require("child_process");
+const { execFile, spawn } = require("child_process");
 
 const CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 3 * 60 * 1000;
@@ -50,6 +55,40 @@ function git(dir, args, timeout) {
 	return run("git", ["-C", dir].concat(args), { timeout }).then((r) => r.stdout.trim());
 }
 
+// ./install.sh --update im LUMIRA-Repo, Ausgabe Zeile für Zeile ins Protokoll
+function runInstallScript(dir, onLine) {
+	return new Promise((resolve, reject) => {
+		// LUMIRA_BASH: nur für die Entwicklung unter Windows (Git Bash statt WSL)
+		const child = spawn(process.env.LUMIRA_BASH || "bash", [path.join(dir, "install.sh"), "--update"], {
+			cwd: dir,
+			env: Object.assign({}, process.env, { TERM: "dumb", LC_ALL: "C.UTF-8" }),
+			windowsHide: true
+		});
+		const lines = [];
+		let buf = "";
+		const feed = (chunk) => {
+			buf += String(chunk);
+			let i;
+			while ((i = buf.indexOf("\n")) >= 0) {
+				const line = buf.slice(0, i).replace(/\x1b\[[0-9;]*m/g, "");
+				buf = buf.slice(i + 1);
+				lines.push(line);
+				if (line.indexOf("LUMIRA_NEEDS_FULL_INSTALL") === -1) onLine(line); // Markierung nur intern
+			}
+		};
+		child.stdout.on("data", feed);
+		child.stderr.on("data", feed);
+		const timer = setTimeout(() => child.kill("SIGTERM"), 30 * 60 * 1000);
+		child.on("error", (err) => { clearTimeout(timer); reject(err); });
+		child.on("close", (code) => {
+			clearTimeout(timer);
+			if (buf) { lines.push(buf); onLine(buf); }
+			if (code !== 0) return reject(new Error(`install.sh --update ist fehlgeschlagen (Code ${code})`));
+			resolve({ needsFullInstall: lines.some((l) => l.indexOf("LUMIRA_NEEDS_FULL_INSTALL") !== -1) });
+		});
+	});
+}
+
 function readJson(file) {
 	try {
 		return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -73,6 +112,9 @@ function shortError(err) {
  * @param {string[]} [opts.ownModules] eigene LUMIRA-Module (werden übersprungen)
  * @param {Function} [opts.restart]  startet MagicMirror neu (Promise oder sync)
  * @param {Function} [opts.npm]      ersetzt den npm-Aufruf (Tests)
+ * @param {string|Function} [opts.lumiraRepo]  Pfad zum LUMIRA-Repo (oder Funktion, die ihn liefert)
+ * @param {Function} [opts.runInstaller]       ersetzt ./install.sh --update (Tests)
+ * @param {Function} [opts.selfRestart]        startet das Portal nach einem LUMIRA-Update neu
  */
 function createUpdater(opts) {
 	const mmRoot = opts.mmRoot;
@@ -80,6 +122,9 @@ function createUpdater(opts) {
 	const ownModules = new Set(opts.ownModules || []);
 	const restart = opts.restart || (() => {});
 	const npm = opts.npm || ((args, cwd) => run(process.platform === "win32" ? "npm.cmd" : "npm", args, { cwd, timeout: 30 * 60 * 1000 }));
+	const lumiraRepo = typeof opts.lumiraRepo === "function" ? opts.lumiraRepo : () => opts.lumiraRepo || null;
+	const runInstaller = opts.runInstaller || runInstallScript;
+	const selfRestart = opts.selfRestart || (() => {});
 
 	let state = readJson(statePath) || {};
 	state = { checkedAt: state.checkedAt || "", components: state.components || [], lastUpdate: state.lastUpdate || {}, lastJob: state.lastJob || null };
@@ -101,6 +146,10 @@ function createUpdater(opts) {
 	// MagicMirror + alle Modulordner mit eigenem git-Repo.
 	function discover() {
 		const list = [];
+		const repo = lumiraRepo() ? path.resolve(lumiraRepo()) : null;
+		if (repo && fs.existsSync(path.join(repo, ".git")) && fs.existsSync(path.join(repo, "install.sh"))) {
+			list.push({ id: "lumira", name: "LUMIRA", kind: "lumira", dir: repo });
+		}
 		if (fs.existsSync(path.join(mmRoot, ".git"))) {
 			list.push({ id: "magicmirror", name: "MagicMirror²", kind: "core", dir: mmRoot });
 		}
@@ -128,6 +177,7 @@ function createUpdater(opts) {
 			const upstream = await git(c.dir, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]).catch(() => "");
 			if (!upstream) throw new Error("Kein Upstream-Branch eingerichtet – Updates nicht prüfbar");
 			info.head = await git(c.dir, ["rev-parse", "--short", "HEAD"]);
+			info.headDate = await git(c.dir, ["log", "-1", "--format=%cI"]).catch(() => "");
 			info.behind = Number(await git(c.dir, ["rev-list", "--count", "HEAD..@{u}"]));
 			info.ahead = Number(await git(c.dir, ["rev-list", "--count", "@{u}..HEAD"]));
 			info.dirty = (await git(c.dir, ["status", "--porcelain", "--untracked-files=no"])) !== "";
@@ -146,6 +196,7 @@ function createUpdater(opts) {
 			}
 			info.updateAvailable = info.behind > 0;
 			info.canUpdate = info.behind > 0 && !info.dirty && info.ahead === 0;
+			if (c.kind === "lumira" && info.behind > 0 && !info.dirty && info.ahead === 0) info.note = "Aktualisiert die eigenen Module und das Portal. MagicMirror und das Portal starten dabei kurz neu.";
 			if (info.dirty) info.note = "Im Ordner gibt es lokale Änderungen – Update nur per SSH möglich.";
 			else if (info.ahead > 0) info.note = "Der Ordner hat eigene, nicht veröffentlichte Änderungen – Update nur per SSH möglich.";
 		} catch (err) {
@@ -204,8 +255,9 @@ function createUpdater(opts) {
 		if (checking) throw Object.assign(new Error("Die Update-Prüfung läuft noch. Bitte kurz warten."), { code: "BUSY" });
 		const c = findComponent(id);
 		if (!c) throw Object.assign(new Error("Unbekannte Komponente"), { code: "NOT_FOUND" });
-		job = { id, name: c.name, action, status: "running", startedAt: new Date().toISOString(), finishedAt: "", log: [], error: "" };
+		job = { id, name: c.name, kind: c.kind, action, status: "running", startedAt: new Date().toISOString(), finishedAt: "", log: [], error: "" };
 		const current = job;
+		const c0 = c;
 		let result = "success";
 		Promise.resolve()
 			.then(() => work(c))
@@ -221,6 +273,9 @@ function createUpdater(opts) {
 				current.finishedAt = new Date().toISOString();
 				state.lastJob = Object.assign({}, current, { log: current.log.slice(-40) });
 				persist();
+				// Neuer Portal-Code ist installiert → neu starten (auch nach Fehlern
+				// mitten in install.sh, damit nicht alter Code mit neuen Dateien läuft)
+				if (current.restartPortal || (c0.kind === "lumira" && current.pulled)) selfRestart();
 			});
 		return status();
 	}
@@ -235,6 +290,7 @@ function createUpdater(opts) {
 			const out = await git(c.dir, ["pull", "--ff-only"], 5 * 60 * 1000);
 			log(out);
 			const to = await git(c.dir, ["rev-parse", "HEAD"]);
+			job.pulled = to !== from;
 			// Ab hier ist der Stand geändert: "Zurück" muss möglich sein, auch wenn npm scheitert
 			state.lastUpdate[c.id] = {
 				from, to, fromVersion,
@@ -242,11 +298,24 @@ function createUpdater(opts) {
 				at: new Date().toISOString()
 			};
 			persist();
+			if (c.kind === "lumira") return finishLumira(c);
 			await installDeps(c);
 			log("MagicMirror wird neu gestartet …");
 			await restart();
 			log("Fertig.");
 		});
+	}
+
+	// Nach git pull/reset im LUMIRA-Repo: install.sh --update, danach Portal-Neustart
+	async function finishLumira(c) {
+		log("$ ./install.sh --update   (eigene Module, Portal, config.js – dauert einige Minuten)");
+		const r = await runInstaller(c.dir, (line) => log(line));
+		if (r && r.needsFullInstall) {
+			job.notice = "Systemdienste haben sich geändert – bitte einmal per SSH „./install.sh“ ausführen.";
+			log("Hinweis: " + job.notice);
+		}
+		log("Fertig. Das Portal startet jetzt neu – die Seite lädt gleich von selbst.");
+		job.restartPortal = true;
 	}
 
 	function rollback(id) {
@@ -258,8 +327,10 @@ function createUpdater(opts) {
 			await git(c.dir, ["cat-file", "-e", `${last.from}^{commit}`]);
 			log(`$ git reset --hard ${last.from.slice(0, 7)}   (${c.name}, zurück auf ${last.fromVersion || "vorherigen Stand"})`);
 			log(await git(c.dir, ["reset", "--hard", last.from]));
+			job.pulled = true;
 			delete state.lastUpdate[id];
 			persist();
+			if (c.kind === "lumira") return finishLumira(c);
 			await installDeps(c);
 			log("MagicMirror wird neu gestartet …");
 			await restart();

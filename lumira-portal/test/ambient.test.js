@@ -122,3 +122,84 @@ test("config.js lädt MMM-Ambient in jeder Edition", () => {
 		assert.equal(m.position, undefined);
 	}
 });
+
+// GIF → MP4 beim Hochladen (prepareUpload, braucht ffmpeg – sonst übersprungen)
+const { execFileSync } = require("child_process");
+const { prepareUpload } = require("../lib/ambient");
+let ffmpegOk = true;
+try { execFileSync(process.env.LUMIRA_FFMPEG || "ffmpeg", ["-version"], { stdio: "ignore" }); } catch (e) { ffmpegOk = false; }
+
+test("GIF wird in ein MP4 umgewandelt", { skip: !ffmpegOk }, async () => {
+	const { home, amb } = setup();
+	const gif = path.join(home, "upload-gif");
+	// 2 Sekunden Testbild, 321 px breit (ungerade → muss auf gerade Maße kommen)
+	execFileSync(process.env.LUMIRA_FFMPEG || "ffmpeg", ["-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=321x181:rate=10:duration=2", "-f", "gif", gif]);
+	const prepared = await prepareUpload({ tmpPath: gif, originalName: "Kamin.gif", size: fs.statSync(gif).size });
+	assert.equal(prepared.converted, true);
+	assert.equal(prepared.originalName, "Kamin.mp4");
+	assert.equal(fs.existsSync(gif), false, "GIF wird nach dem Umwandeln gelöscht");
+	const entry = amb.addMedia({ tmpPath: prepared.tmpPath, originalName: prepared.originalName, size: prepared.size });
+	assert.equal(entry.type, "video");
+	assert.equal(entry.name, "Kamin");
+	assert.match(entry.file, /\.mp4$/);
+});
+
+test("Kein GIF → unverändert; GIF ohne ffmpeg → Hinweis", async () => {
+	const { home } = setup();
+	const png = tmpFile(home, PNG);
+	assert.deepEqual(await prepareUpload({ tmpPath: png, originalName: "a.png", size: 1 }), { tmpPath: png, originalName: "a.png", size: 1, converted: false });
+	const gif = tmpFile(home, [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0, 0, 0, 0, 0, 0]);
+	const r = await prepareUpload({ tmpPath: gif, originalName: "a.gif", size: 1 }, { ffmpeg: "gibt-es-nicht-ffmpeg" });
+	assert.equal(r.converted, false);
+	assert.equal(r.tmpPath, gif);
+	assert.match(r.note, /ruckelig/);
+});
+
+// YouTube als Medium
+const { parseYouTube } = require("../lib/ambient");
+const { youtubeEmbedUrl } = require("../../modules/MMM-Ambient/payload");
+
+test("YouTube-Links erkennen (inkl. Startzeit), fremde Adressen ablehnen", () => {
+	assert.deepEqual(parseYouTube("https://www.youtube.com/watch?v=L_LUpnjgPso&t=90s"), { id: "L_LUpnjgPso", start: 90 });
+	assert.deepEqual(parseYouTube("https://youtu.be/L_LUpnjgPso?t=1h2m3s"), { id: "L_LUpnjgPso", start: 3723 });
+	assert.deepEqual(parseYouTube("https://m.youtube.com/shorts/L_LUpnjgPso"), { id: "L_LUpnjgPso", start: 0 });
+	assert.deepEqual(parseYouTube("https://www.youtube.com/live/L_LUpnjgPso?si=abc"), { id: "L_LUpnjgPso", start: 0 });
+	assert.equal(parseYouTube("https://evil.example/watch?v=L_LUpnjgPso"), null);
+	assert.equal(parseYouTube("javascript:alert(1)"), null);
+	assert.equal(parseYouTube("https://www.youtube.com/watch?v=zu-kurz"), null);
+	assert.equal(parseYouTube(""), null);
+});
+
+test("YouTube in der Mediathek: anlegen, auswählen, Spiegel-Zustand, löschen", () => {
+	const { amb } = setup();
+	const e = amb.addYouTube({ url: "https://youtu.be/L_LUpnjgPso?t=30", name: "Kaminfeuer 10 Stunden" });
+	assert.equal(e.type, "youtube");
+	assert.equal(e.youtubeId, "L_LUpnjgPso");
+	assert.equal(e.start, 30);
+	assert.throws(() => amb.addYouTube({ url: "https://example.com/x" }), /kein YouTube-Link/);
+	// bleibt beim Neuladen erhalten (keine Datei nötig)
+	const v = amb.setState({ enabled: true, mediaId: e.id, sound: false });
+	assert.equal(v.media.find((m) => m.id === e.id).youtubeId, "L_LUpnjgPso");
+	assert.equal(amb.mediaFile(e.id), null);
+
+	const p = toPayload(amb.load(), new Date("2026-10-11T20:00:00Z"));
+	assert.deepEqual(p.media, { kind: "youtube", videoId: "L_LUpnjgPso", start: 30 });
+	const url = new URL(youtubeEmbedUrl(p.media, false));
+	assert.equal(url.hostname, "www.youtube-nocookie.com");
+	assert.equal(url.pathname, "/embed/L_LUpnjgPso");
+	assert.equal(url.searchParams.get("mute"), "1");
+	assert.equal(url.searchParams.get("loop"), "1");
+	assert.equal(url.searchParams.get("playlist"), "L_LUpnjgPso");
+	assert.equal(url.searchParams.get("start"), "30");
+	assert.equal(new URL(youtubeEmbedUrl(p.media, true)).searchParams.get("mute"), "0");
+
+	const after = amb.removeMedia(e.id);
+	assert.equal(after.enabled, false);
+	assert.equal(after.mediaId, "campfire");
+});
+
+test("Kaputte YouTube-Einträge in ambient.json werden ignoriert", () => {
+	const now = new Date("2026-10-11T20:00:00Z");
+	const raw = { enabled: true, mediaId: "md_0a1b2c3d", media: [{ id: "md_0a1b2c3d", type: "youtube", youtubeId: "\"><script>" }] };
+	assert.equal(toPayload(raw, now).enabled, false);
+});

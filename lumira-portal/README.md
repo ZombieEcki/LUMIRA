@@ -80,9 +80,10 @@ temporäres `LUMIRA_HOME`, nie gegen `~/.lumira`.
 
 ## Update-API (Portal → Info)
 
-Überwacht `~/MagicMirror` und alle per git installierten Module in
-`~/MagicMirror/modules` (die eigenen LUMIRA-Module kommen mit dem
-LUMIRA-Update und werden übersprungen). Geprüft wird automatisch 3 Minuten
+Überwacht **LUMIRA selbst** (das Repo, Pfad aus `~/.lumira/install.json`,
+sonst `LUMIRA_REPO` bzw. `~/LUMIRA`), `~/MagicMirror` und alle per git
+installierten Module in `~/MagicMirror/modules` (die eigenen LUMIRA-Module
+kommen mit dem LUMIRA-Update und werden dort übersprungen). Geprüft wird automatisch 3 Minuten
 nach dem Start und dann alle 12 Stunden, aktualisiert wird nur manuell.
 Zustand in `~/.lumira/updates.json`.
 
@@ -91,9 +92,10 @@ Zustand in `~/.lumira/updates.json`.
 | `GET /api/updates` | Stand je Komponente: Version alt/neu, Anzahl neuer Änderungen, „Was ist neu“, Hinweise (lokale Änderungen), laufender/letzter Job |
 | `POST /api/updates/check` | jetzt prüfen (läuft im Hintergrund, `checking: true`) |
 | `POST /api/updates/:id/apply` | aktualisieren: `git pull --ff-only`, Abhängigkeiten (`npm run install-mm` bzw. `npm install --omit=dev`), `pm2 restart MagicMirror` |
+| `POST /api/updates/lumira/apply` | LUMIRA: `git pull --ff-only` im Repo, dann `./install.sh --update` (eigene Module, Portal-Dateien, config.js, `pm2 restart MagicMirror` – ohne sudo), danach startet sich das Portal neu (Exit-Code 75 → systemd). Geänderte Systemdienste meldet der Job als Hinweis (`notice`) |
 | `POST /api/updates/:id/rollback` | zurück auf den Stand vor dem letzten Update (`git reset --hard <vorher>`, Abhängigkeiten, Neustart) |
 
-`:id` ist `magicmirror` oder der Modulordner-Name. Bei lokalen Änderungen im
+`:id` ist `lumira`, `magicmirror` oder der Modulordner-Name. Bei lokalen Änderungen im
 Ordner bietet das Portal kein Update an (nur per SSH), es läuft immer nur ein
 Update gleichzeitig. `GET /api/status` liefert zusätzlich
 `network.ipv4` (IPv4-Adressen ohne virtuelle Adapter) für die Info-Seite.

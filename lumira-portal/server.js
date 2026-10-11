@@ -528,8 +528,28 @@ const updater = createUpdater({
 			if (err) console.warn("[lumira-portal] pm2 restart MagicMirror fehlgeschlagen (läuft pm2?):", err.message);
 			resolve(); // Update ist trotzdem durch – Neustart notfalls per "Pi neu starten"
 		});
-	})
+	}),
+	lumiraRepo: findLumiraRepo,
+	// Nach einem LUMIRA-Update läuft noch der alte Portal-Code: beenden mit
+	// Code 75, systemd (Restart=on-failure) startet das Portal mit dem neuen
+	// Code neu. Im Entwicklungsaufbau abschaltbar.
+	selfRestart: () => {
+		if (process.env.LUMIRA_NO_SELF_RESTART === "1") {
+			console.log("[lumira-portal] LUMIRA-Update fertig – Neustart übersprungen (LUMIRA_NO_SELF_RESTART=1)");
+			return;
+		}
+		console.log("[lumira-portal] LUMIRA-Update fertig – Portal startet neu");
+		setTimeout(() => process.exit(75), 1500);
+	}
 });
+
+// Wo liegt das LUMIRA-Repo? install.sh merkt es sich in ~/.lumira/install.json.
+function findLumiraRepo() {
+	let fromInstall = "";
+	try { fromInstall = JSON.parse(fs.readFileSync(path.join(settingsLib.LUMIRA_HOME, "install.json"), "utf8")).repo || ""; } catch (e) { /* noch nie installiert */ }
+	const candidates = [process.env.LUMIRA_REPO, fromInstall, path.join(os.homedir(), "LUMIRA")].filter(Boolean);
+	return candidates.find((d) => fs.existsSync(path.join(d, ".git")) && fs.existsSync(path.join(d, "install.sh"))) || null;
+}
 
 function updateError(res, err) {
 	const status = err.code === "BUSY" ? 409 : err.code === "NOT_FOUND" ? 404 : 500;
@@ -738,10 +758,41 @@ app.put("/api/ambient", requireAuth, (req, res) => {
 	ambientAction(res, () => ambient.setState({ enabled: b.enabled, mediaId: b.mediaId, mode: b.mode, sound: b.sound, minutes: b.minutes }));
 });
 
-app.post("/api/ambient/media", requireAuth, ambientUpload.single("file"), (req, res) => {
+app.post("/api/ambient/media", requireAuth, ambientUpload.single("file"), async (req, res) => {
 	if (!req.file) return res.status(400).json({ error: "Keine Datei erhalten" });
+	// GIF → MP4 (flüssiger auf dem Pi), sonst unverändert
+	const prepared = await ambientLib.prepareUpload({ tmpPath: req.file.path, originalName: req.file.originalname, size: req.file.size });
+	const name = req.body && req.body.name ? String(req.body.name) : ""; // Endung entfernt lib/ambient.js
 	ambientAction(res, () => {
-		const entry = ambient.addMedia({ tmpPath: req.file.path, originalName: req.file.originalname, name: req.body && req.body.name, size: req.file.size });
+		const entry = ambient.addMedia({ tmpPath: prepared.tmpPath, originalName: prepared.originalName, name, size: prepared.size });
+		return Object.assign(ambient.view(), { added: entry.id, converted: prepared.converted, note: prepared.note || "" });
+	});
+});
+
+// YouTube-Link als Medium. Ohne Namen wird der Videotitel per oEmbed geholt
+// (öffentlich, ohne Schlüssel); klappt das nicht, heißt es „YouTube-Video“.
+function youtubeTitle(url) {
+	return new Promise((resolve) => {
+		const q = "https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent(url);
+		const req = https.get(q, { timeout: 4000 }, (r) => {
+			let body = "";
+			r.on("data", (c) => { if (body.length < 20000) body += c; });
+			r.on("end", () => {
+				try { resolve(r.statusCode === 200 ? String(JSON.parse(body).title || "") : ""); } catch (e) { resolve(""); }
+			});
+		});
+		req.on("timeout", () => req.destroy());
+		req.on("error", () => resolve(""));
+	});
+}
+
+app.post("/api/ambient/youtube", requireAuth, async (req, res) => {
+	const b = req.body || {};
+	const yt = ambientLib.parseYouTube(b.url);
+	if (!yt) return res.status(400).json({ error: "Das ist kein YouTube-Link (z. B. https://www.youtube.com/watch?v=… oder https://youtu.be/…)" });
+	const name = String(b.name || "").trim() || await youtubeTitle("https://www.youtube.com/watch?v=" + yt.id);
+	ambientAction(res, () => {
+		const entry = ambient.addYouTube({ url: b.url, name });
 		return Object.assign(ambient.view(), { added: entry.id });
 	});
 });

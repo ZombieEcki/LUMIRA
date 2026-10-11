@@ -6,6 +6,7 @@
  *
  *  - „Vollbild“: nur das Medium, über allem.
  *  - „Hintergrund“: Medium abgedunkelt hinter den Modulen.
+ *  - Medien: Lagerfeuer (gezeichnet), eigenes Video/Bild oder YouTube-Video.
  *  - Ein Alarm (MMM-aPagerAlarm, APAGER_STATE) unterbricht sofort; danach
  *    läuft die Schleife weiter, falls sie noch eingeschaltet ist.
  *
@@ -62,7 +63,7 @@ Module.register("MMM-Ambient", {
 	render: function () {
 		const s = this.state || {};
 		const active = !!s.enabled && !this.alarm;
-		const key = active ? [s.mode, s.media.kind, s.media.url || "", s.sound ? 1 : 0].join("|") : "";
+		const key = active ? [s.mode, s.media.kind, s.media.url || s.media.embedUrl || "", s.sound ? 1 : 0].join("|") : "";
 		if (key === this.key) return;
 		this.key = key;
 		this.teardown();
@@ -81,6 +82,18 @@ Module.register("MMM-Ambient", {
 			canvas.className = "lumira-ambient-media";
 			stage.appendChild(canvas);
 			this.stopFire = window.LumiraFire ? window.LumiraFire.start(canvas) : null;
+		} else if (s.media.kind === "youtube") {
+			// YouTube braucht Internet; die Fläche „füllt“ den Spiegel wie ein Video
+			// (16:9 hochskaliert, Ränder abgeschnitten), Bedienung ist abgeschaltet
+			stage.classList.add("is-youtube");
+			const frame = document.createElement("iframe");
+			frame.className = "lumira-ambient-yt";
+			frame.src = s.media.embedUrl;
+			frame.setAttribute("allow", "autoplay; encrypted-media");
+			frame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+			frame.setAttribute("tabindex", "-1");
+			frame.setAttribute("title", "YouTube");
+			stage.appendChild(frame);
 		} else if (s.media.kind === "video") {
 			const v = document.createElement("video");
 			v.className = "lumira-ambient-media";

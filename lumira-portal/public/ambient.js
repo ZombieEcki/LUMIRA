@@ -54,7 +54,7 @@
       : "aus";
     $("#amb-mode").value = S.mode;
     $("#amb-sound").setAttribute("aria-checked", S.sound ? "true" : "false");
-    $("#amb-sound-row").hidden = current().type !== "video";
+    $("#amb-sound-row").hidden = current().type !== "video" && current().type !== "youtube";
     renderGrid();
     if (ctx && ctx.onStatus) ctx.onStatus(S, current());
   }
@@ -76,6 +76,12 @@
         prev.appendChild(c);
         if (window.LumiraFire) fireStops.push(window.LumiraFire.start(c, { width: 96, height: 60, fps: 18 }));
         prev.classList.add("is-fire");
+      } else if (m.type === "youtube") {
+        var thumb = el("img");
+        thumb.alt = ""; thumb.loading = "lazy";
+        thumb.src = "https://i.ytimg.com/vi/" + m.youtubeId + "/hqdefault.jpg";
+        prev.appendChild(thumb);
+        prev.appendChild(el("span", "amb-yt-badge", "▶"));
       } else if (m.type === "video") {
         var v = el("video");
         v.src = "/api/ambient/media/" + m.id + "/file";
@@ -94,7 +100,9 @@
       pick.appendChild(prev);
       var meta = el("span", "amb-meta");
       meta.appendChild(el("b", null, m.name));
-      meta.appendChild(el("span", null, m.type === "builtin" ? "eingebaut · gezeichnet" : (m.type === "video" ? "Video" : "Bild") + (m.size ? " · " + sizeText(m.size) : "")));
+      meta.appendChild(el("span", null, m.type === "builtin" ? "eingebaut · gezeichnet"
+        : m.type === "youtube" ? "YouTube · braucht Internet"
+        : (m.type === "video" ? "Video" : "Bild") + (m.size ? " · " + sizeText(m.size) : "")));
       pick.appendChild(meta);
       pick.addEventListener("click", function () { if (m.id !== S.mediaId) send({ mediaId: m.id }); });
       tile.appendChild(pick);
@@ -142,7 +150,9 @@
     xhr.upload.onprogress = function (e) {
       if (!e.lengthComputable) return;
       bar.value = e.loaded / e.total;
-      hint.textContent = "Lade hoch … " + Math.round(e.loaded / e.total * 100) + " % von " + sizeText(e.total);
+      hint.textContent = e.loaded >= e.total
+        ? "Hochgeladen – wird für den Spiegel vorbereitet …"
+        : "Lade hoch … " + Math.round(e.loaded / e.total * 100) + " % von " + sizeText(e.total);
     };
     xhr.onload = function () {
       bar.hidden = true;
@@ -150,9 +160,9 @@
       var data = {};
       try { data = JSON.parse(xhr.responseText); } catch (e) { /* leer */ }
       if (xhr.status >= 200 && xhr.status < 300) {
-        hint.textContent = "";
+        hint.textContent = data.note || "";
         S = data; render();
-        ctx.toast("Hochgeladen");
+        ctx.toast(data.converted ? "Hochgeladen – als Video umgewandelt, läuft flüssiger" : "Hochgeladen");
         if (data.added) send({ mediaId: data.added });
       } else {
         hint.textContent = data.error || "Hochladen fehlgeschlagen (" + xhr.status + ")";
@@ -181,6 +191,26 @@
         if (S && S.enabled) send({ minutes: Number(timer.value) });
       });
       $("#amb-sound").addEventListener("click", function () { send({ sound: !(S && S.sound) }); });
+      // YouTube-Link hinzufügen
+      $("#amb-yt-btn").addEventListener("click", function () {
+        var f = $("#amb-yt-form");
+        f.hidden = !f.hidden;
+        if (!f.hidden) $("#amb-yt-url").focus();
+      });
+      $("#amb-yt-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var url = $("#amb-yt-url").value.trim();
+        if (!url) return;
+        var btn = $("#amb-yt-add");
+        btn.disabled = true;
+        api("/api/ambient/youtube", "POST", { url: url }).then(function (s) {
+          S = s; render();
+          $("#amb-yt-url").value = "";
+          $("#amb-yt-form").hidden = true;
+          ctx.toast("YouTube-Video hinzugefügt");
+          if (s.added) send({ mediaId: s.added });
+        }).catch(fail).then(function () { btn.disabled = false; });
+      });
       $("#amb-file").addEventListener("change", function () {
         var f = this.files && this.files[0];
         this.value = "";

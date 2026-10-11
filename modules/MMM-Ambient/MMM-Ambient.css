@@ -36,3 +36,16 @@ body.lumira-ambient-bg { background: transparent !important; }
 	object-position: center bottom;
 	filter: blur(1.5px) saturate(1.15);
 }
+
+/* YouTube: 16:9 so groß, dass es den Spiegel füllt (wie object-fit: cover),
+   plus 20 % – so fallen Titelzeile und „Weitere Videos“ am Rand weg */
+.lumira-ambient-yt {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: max(100vw, 177.78vh);
+	height: max(100vh, 56.25vw);
+	transform: translate(-50%, -50%) scale(1.2);
+	border: 0;
+	pointer-events: none;
+}

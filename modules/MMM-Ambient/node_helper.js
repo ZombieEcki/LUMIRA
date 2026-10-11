@@ -22,7 +22,7 @@ const LUMIRA_HOME = process.env.LUMIRA_HOME || path.join(os.homedir(), ".lumira"
 const STATE_PATH = path.join(LUMIRA_HOME, "ambient.json");
 const MEDIA_DIR = path.join(LUMIRA_HOME, "media");
 
-const { toPayload } = require("./payload");
+const { toPayload, youtubeEmbedUrl } = require("./payload");
 
 module.exports = NodeHelper.create({
 
@@ -57,6 +57,7 @@ module.exports = NodeHelper.create({
 
 	push: function () {
 		const payload = toPayload(this.read(), new Date());
+		if (payload.enabled && payload.media.kind === "youtube") payload.media.embedUrl = youtubeEmbedUrl(payload.media, payload.sound);
 		this.sendSocketNotification("AMBIENT_STATE", payload);
 		// Timer: zum Ablaufzeitpunkt noch einmal schicken (Portal schaltet
 		// minütlich aus, die Anzeige soll aber pünktlich verschwinden)

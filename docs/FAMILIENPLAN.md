@@ -14,7 +14,7 @@ Verfügbar in den Editionen Home, Fire und Rescue.
 ## 1. Installation
 
 Auf einem LUMIRA-Gerät ist nichts zu installieren. Der Familienplan kommt mit
-`install.sh` (bzw. beim Update mit `git pull && ./install.sh`) automatisch
+`install.sh` (bzw. beim Update über Portal → Info → LUMIRA oder per SSH mit `git pull && ./install.sh --update`) automatisch
 mit, ist aber zunächst ausgeschaltet.
 
 ## 2. Einrichten (einmalig, etwa 5 Minuten)

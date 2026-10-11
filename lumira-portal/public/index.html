@@ -377,10 +377,20 @@
         </div>
         <div class="card">
           <div class="card-head"><h2>Mediathek</h2>
+            <button type="button" class="btn small" id="amb-yt-btn">+ YouTube</button>
             <label class="btn small" id="amb-file-btn" for="amb-file">+ Hochladen</label>
             <input type="file" id="amb-file" accept="video/mp4,video/webm,image/jpeg,image/png,image/gif,image/webp" hidden></div>
-          <p class="sub">Videos (MP4, WebM) laufen in Dauerschleife, Bilder bleiben stehen, GIFs bewegen sich.
-            Für den Raspberry Pi 3 am besten Videos in 720p (H.264), höchstens 300 MB.</p>
+          <p class="sub">Videos (MP4, WebM) und YouTube-Links laufen in Dauerschleife, Bilder bleiben stehen. GIFs werden automatisch in ein
+            Video umgewandelt, das läuft auf dem Spiegel flüssiger. Für den Raspberry Pi 3 am besten Videos in 720p (H.264), höchstens 300 MB.</p>
+          <form class="amb-yt-form" id="amb-yt-form" hidden>
+            <label for="amb-yt-url">YouTube-Link</label>
+            <div class="input-row">
+              <input type="url" id="amb-yt-url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off">
+              <button type="submit" class="btn primary" id="amb-yt-add">Hinzufügen</button>
+            </div>
+            <p class="save-hint">Läuft stumm in Dauerschleife und braucht Internet auf dem Spiegel. Eine Startzeit im Link (z. B. <span class="mono-in">&amp;t=90</span>) wird übernommen.
+              Auf dem Raspberry Pi 3 kann YouTube ruckeln – ab Pi 4 läuft es flüssig.</p>
+          </form>
           <progress id="amb-progress" max="1" value="0" hidden></progress>
           <p class="save-hint" id="amb-upload"></p>
           <div class="amb-grid" id="amb-grid"></div>
@@ -501,14 +511,14 @@
         <div class="card" id="updates-card">
           <div class="upd-head">
             <div><h2>Updates</h2>
-              <p class="sub">MagicMirror² und zusätzlich installierte Module. Geprüft wird automatisch alle 12 Stunden, aktualisiert wird nur, wenn du es hier startest.</p></div>
+              <p class="sub">LUMIRA, MagicMirror² und zusätzlich installierte Module. Geprüft wird automatisch alle 12 Stunden, aktualisiert wird nur, wenn du es hier startest.</p></div>
             <button type="button" class="btn" id="upd-check"><svg class="ic"><use href="#i-refresh"/></svg>Jetzt prüfen</button>
           </div>
           <p class="save-hint" id="upd-checked">–</p>
           <div id="upd-list"></div>
           <div id="upd-job"></div>
-          <p class="save-hint" style="margin-top:12px;">Die eigenen LUMIRA-Module und das Portal kommen mit dem LUMIRA-Update
-            (per SSH: <span class="mono-in">cd ~/LUMIRA &amp;&amp; git pull &amp;&amp; ./install.sh</span>).</p>
+          <p class="save-hint" style="margin-top:12px;">„LUMIRA“ umfasst die eigenen Module und dieses Portal. Ändern sich bei einem Update
+            Systemdienste, kommt ein Hinweis – dann einmal per SSH: <span class="mono-in">cd ~/LUMIRA &amp;&amp; ./install.sh</span>.</p>
         </div>
 
         <div class="card">
