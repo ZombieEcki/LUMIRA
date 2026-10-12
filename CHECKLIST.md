@@ -168,6 +168,9 @@ um den aktuellen Stand zu sehen.
       aus settings.json neu (vorher kamen neue Module wie MMM-Ambient erst nach
       dem nächsten Speichern im Portal an)
 - [x] `install.sh` merkt sich den Repo-Pfad in `~/.lumira/install.json`
+- [x] Info → Updates: aufklappbare Anleitung „Update per SSH“ (eingeklappt) mit den echten
+      Werten des Spiegels (Benutzer, Adresse/IP, Repo-Ordner) und Kopier-Knopf je Befehl:
+      `ssh magic@lumira.local`, dann `cd ~/LUMIRA && git pull && ./install.sh`
 - [ ] Auf echter Pi-Hardware prüfen (Update über das Portal, Portal-Neustart per systemd)
 
 ### Spiegel: Dauerschleife (MMM-Ambient)

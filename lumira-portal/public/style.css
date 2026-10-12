@@ -522,6 +522,16 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
 .upd-state.new { color:var(--warn); border-color:color-mix(in srgb, var(--accent) 60%, var(--line)); }
 .upd-state.err { color:var(--danger); border-color:color-mix(in srgb, var(--danger) 50%, var(--line)); }
 .upd-note { font-size:.82rem; color:var(--warn); }
+/* Anleitung „Update per SSH“ */
+.upd-ssh { margin-top:12px; border-top:1px solid var(--line); padding-top:12px; }
+.upd-ssh > summary { cursor:pointer; font-size:.85rem; font-weight:600; }
+.upd-ssh .sub { margin:8px 0 4px; }
+.ssh-steps { margin:8px 0 10px; padding-left:20px; font-size:.85rem; display:flex; flex-direction:column; gap:10px; }
+.ssh-steps li > .save-hint { display:block; margin-top:6px; }
+.ssh-cmd { display:flex; align-items:center; gap:8px; margin-top:6px; padding:6px 6px 6px 12px; border-radius:10px; background:var(--field); }
+.ssh-cmd[hidden] { display:none; }
+.ssh-cmd code { flex:1; min-width:0; overflow-x:auto; white-space:nowrap; font-size:.8rem; padding:4px 0; }
+.ssh-cmd .btn { flex:none; }
 .upd-changes summary { cursor:pointer; font-size:.82rem; color:var(--muted); font-weight:600; }
 .upd-changes ul { margin:6px 0 0; padding-left:18px; font-size:.82rem; display:flex; flex-direction:column; gap:3px; }
 .upd-actions { display:flex; gap:8px; flex-wrap:wrap; }

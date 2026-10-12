@@ -689,7 +689,20 @@
           <div id="upd-list"></div>
           <div id="upd-job"></div>
           <p class="save-hint" style="margin-top:12px;">„LUMIRA“ umfasst die eigenen Module und dieses Portal. Ändern sich bei einem Update
-            Systemdienste, kommt ein Hinweis – dann einmal per SSH: <span class="mono-in">cd ~/LUMIRA &amp;&amp; ./install.sh</span>.</p>
+            Systemdienste, kommt ein Hinweis – dann einmal per SSH aktualisieren (Anleitung unten).</p>
+          <details class="upd-ssh" id="upd-ssh">
+            <summary>Update per SSH – kurze Anleitung</summary>
+            <ol class="ssh-steps">
+              <li><b>Terminal öffnen</b> – Windows: „Terminal“ bzw. „PowerShell“, Mac/Linux: „Terminal“.</li>
+              <li><b>Mit dem Spiegel verbinden</b> und das Passwort des Raspberry Pi eingeben (beim ersten Mal die Rückfrage mit <span class="mono-in">yes</span> bestätigen):
+                <div class="ssh-cmd" data-cmd="connect"></div>
+                <span class="save-hint" id="ssh-ip-hint" hidden>Klappt <span class="mono-in" data-ssh="host"></span> nicht (oft unter Windows/Android), per IP:</span>
+                <div class="ssh-cmd" data-cmd="connect-ip" hidden></div></li>
+              <li><b>Aktualisieren</b> – holt den neuen Stand und installiert alles neu, MagicMirror und Portal starten neu:
+                <div class="ssh-cmd" data-cmd="update"></div></li>
+              <li><b>Fertig</b> – mit <span class="mono-in">exit</span> abmelden und diese Seite neu laden.</li>
+            </ol>
+          </details>
         </div>
 
         <div class="card">

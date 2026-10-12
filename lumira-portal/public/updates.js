@@ -211,6 +211,72 @@
   }
 
   var waitingForRestart = false;
+  // ---------------------------------------------------------------------
+  // Anleitung „Update per SSH“: Befehle mit den echten Werten des Spiegels,
+  // je mit Kopier-Knopf
+  // ---------------------------------------------------------------------
+  var sshKey = "";
+  function renderSsh(ssh) {
+    if (!ssh) return;
+    var key = [ssh.user, ssh.host, ssh.ip, ssh.repo].join("|");
+    if (key === sshKey) return;
+    sshKey = key;
+    var login = ssh.user + "@" + ssh.host;
+    var cmds = {
+      connect: "ssh " + login,
+      "connect-ip": ssh.ip ? "ssh " + ssh.user + "@" + ssh.ip : "",
+      update: "cd " + ssh.repo + " && git pull && ./install.sh"
+    };
+    Array.prototype.forEach.call(document.querySelectorAll("#upd-ssh [data-cmd]"), function (box) {
+      var cmd = cmds[box.getAttribute("data-cmd")];
+      box.hidden = !cmd;
+      box.innerHTML = "";
+      if (!cmd) return;
+      var code = el("code", null, cmd);
+      box.appendChild(code);
+      var b = el("button", "btn small", "Kopieren");
+      b.type = "button";
+      b.addEventListener("click", function () { copy(cmd, b, code); });
+      box.appendChild(b);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#upd-ssh [data-ssh]"), function (n) { n.textContent = ssh[n.getAttribute("data-ssh")] || ""; });
+    $("#ssh-ip-hint").hidden = !ssh.ip;
+  }
+
+  // Zwischenablage: im Heimnetz läuft das Portal über http – dort gibt es
+  // navigator.clipboard oft nicht, dann der alte Weg über ein Textfeld
+  function copy(text, btn, code) {
+    function done(ok) {
+      // Nicht geklappt: Befehl markieren, dann reicht Strg+C
+      if (!ok && code && window.getSelection) {
+        var range = document.createRange();
+        range.selectNodeContents(code);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+      btn.textContent = ok ? "Kopiert ✓" : "Strg+C drücken";
+      setTimeout(function () { btn.textContent = "Kopieren"; }, 1800);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallback(text)); });
+    } else {
+      done(fallback(text));
+    }
+  }
+  function fallback(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
   // Ein LUMIRA-Job (laufend oder gerade fertig) heißt: gleich startet das Portal neu
   function noteJob(s) { if (s && s.job && s.job.kind === "lumira") waitingForRestart = true; }
   function load() {
@@ -220,6 +286,7 @@
       if (waitingForRestart && !s.job) { location.reload(); return; }
       noteJob(s);
       S = s; render();
+      renderSsh(s.ssh);
     }).catch(function () {});
   }
 

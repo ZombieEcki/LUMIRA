@@ -559,8 +559,21 @@ function updateError(res, err) {
 	res.status(status).json({ error: err.message });
 }
 
+// Werte für die SSH-Anleitung unter Info → Updates (Benutzer, Adresse, Repo-Ordner)
+function sshInfo() {
+	let user = "magic";
+	try { user = os.userInfo().username || user; } catch (e) { /* Standard */ }
+	let repo = "~/LUMIRA";
+	try {
+		const lum = updater.discover().find((c) => c.id === "lumira");
+		if (lum) repo = lum.dir.indexOf(os.homedir()) === 0 ? "~" + lum.dir.slice(os.homedir().length).split(path.sep).join("/") : lum.dir;
+	} catch (e) { /* Standard */ }
+	const ip = localIpv4()[0];
+	return { user, host: (settingsLib.load().hostname || "lumira") + ".local", ip: ip ? ip.address : "", repo };
+}
+
 app.get("/api/updates", requireAuth, (req, res) => {
-	res.json(updater.status());
+	res.json(Object.assign({}, updater.status(), { ssh: sshInfo() }));
 });
 
 // Prüfen dauert (git fetch für jede Komponente) – läuft im Hintergrund,
