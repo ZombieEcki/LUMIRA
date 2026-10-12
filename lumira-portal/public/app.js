@@ -202,6 +202,20 @@
           window.LumiraAmbient.setEnabled($("#start-amb-sw").getAttribute("aria-checked") !== "true");
         });
       }
+      if (window.LumiraDoorbell) {
+        window.LumiraDoorbell.init({
+          toast: toast,
+          currentPage: function () { return currentPage; },
+          // Schalter „Türklingel“: wie Spiegel → Module (MagicMirror startet neu)
+          setModule: function (on) {
+            var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { doorbell: !!on });
+            return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
+              SETTINGS = settings;
+              applyModuleState();
+            });
+          }
+        });
+      }
       wireTheme();
       wireLogout();
       $("#reload-btn").addEventListener("click", function () {
@@ -714,7 +728,7 @@
   var AREAS = [
     { id: "start", label: "Start", icon: "home", pages: [["start", "Übersicht"]] },
     { id: "familie", label: "Familie", icon: "users", need: "hasFamily", pages: [["familienplan", "Familienplan"], ["familie", "Termine"], ["spruche", "Sprüche"]] },
-    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
+    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["klingel", "Klingel"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
     { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarmierung"]] },
     { id: "mehr", label: "Mehr", icon: "more", pages: [["info", "Info & Updates"], ["app", "Als App"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit"]] }
   ];
@@ -746,6 +760,7 @@
     var area = areaOf(name);
     if (!area) { name = "start"; area = areaOf("start"); }
     currentPage = name;
+    if (name === "klingel" && window.LumiraDoorbell) window.LumiraDoorbell.reload();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
       var on = b.getAttribute("data-area-btn") === area.id;
@@ -915,6 +930,7 @@
       SETTINGS = settings;
       btn.disabled = false;
       applyModuleState();
+      if (window.LumiraDoorbell) window.LumiraDoorbell.reload();
       renderStartNext();
       renderGreeting();
       if (hint) hint.textContent = "Gespeichert – MagicMirror startet neu.";
@@ -963,6 +979,7 @@
     { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste" },
     { key: "compliments", need: "hasFamily", label: "Familienbotschaften", desc: "Sprüche, Geburtstage, Hinweise" },
     { key: "alarm", need: "hasAlarm", label: "Alarmierung", desc: "aPager – aus: kein Alarm auf dem Spiegel" },
+    { key: "doorbell", label: "Türklingel", desc: "Ring – Meldung und Live-Video beim Klingeln" },
     { key: "statusHint", label: "Portal-Hinweis", desc: "kleine Zeile mit der Portal-Adresse" }
   ];
 

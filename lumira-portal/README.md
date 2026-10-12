@@ -101,6 +101,25 @@ Ordner bietet das Portal kein Update an (nur per SSH), es läuft immer nur ein
 Update gleichzeitig. `GET /api/status` liefert zusätzlich
 `network.ipv4` (IPv4-Adressen ohne virtuelle Adapter) für die Info-Seite.
 
+## Türklingel-API (Spiegel → Klingel)
+
+Ring-Verbindung in `lib/ring.js`, Ablauf in `lib/doorbell.js`, Anzeige im Modul
+`MMM-Doorbell`. Alle Routen PIN-geschützt, keine startet MagicMirror neu
+(Ausnahme: der Schalter selbst, `modules.doorbell` über `POST /api/settings`).
+Der Ring-Token verlässt `~/.lumira/ring-auth.json` nie. Anleitung:
+[docs/KLINGEL.md](../docs/KLINGEL.md).
+
+| Endpunkt | Wirkung |
+|----------|---------|
+| `GET /api/doorbell` | Einstellungen, laufendes Klingeln (`event`), Klingeln aus Ring (`devices`), Verbindungsstatus (`ring`) |
+| `PUT /api/doorbell/config` | `notify`, `sound`, `video`, `power`, `cameras` ändern (wirkt sofort) |
+| `POST /api/doorbell/test` | Klingeln testen (mit Ring-Video, falls verbunden, sonst Testbild) |
+| `POST /api/doorbell/close` | laufendes Klingeln jetzt schließen |
+| `POST/DELETE /api/doorbell/sound` | eigenen Klingelton hochladen (MP3/WAV/OGG, 5 MB) bzw. löschen |
+| `GET /api/doorbell/live/:event/:datei` | Playlist, Video-Stücke, Standbild des laufenden Klingelns (Portal-Vorschau) |
+| `POST /api/ring/login` → `POST /api/ring/code` | Anmeldung: E-Mail + Passwort, dann Bestätigungscode |
+| `POST /api/ring/cancel` · `/logout` · `/reconnect` | Anmeldung abbrechen, abmelden (Token löschen), neu verbinden |
+
 ## Familienplan-API
 
 Alle Routen PIN-geschützt, keine löst einen MagicMirror-Neustart aus

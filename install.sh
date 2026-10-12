@@ -6,7 +6,8 @@
 #   - Node.js (falls fehlend/zu alt)
 #   - MagicMirror²
 #   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments,
-#     modules/MMM-LumiraStatus, modules/MMM-FamilyPlan, modules/MMM-Ambient)
+#     modules/MMM-LumiraStatus, modules/MMM-FamilyPlan, modules/MMM-Ambient,
+#     modules/MMM-Doorbell)
 #   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD)
 #   - eine lauffähige config.js mit Platzhalter-Werten für die gewählte Edition
 #   - optional Autostart per pm2
@@ -53,7 +54,7 @@ set -euo pipefail
 MM_DIR="${MM_DIR:-$HOME/MagicMirror}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
 MM_REPO="https://github.com/MagicMirrorOrg/MagicMirror"
-OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan" "MMM-Ambient")
+OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan" "MMM-Ambient" "MMM-Doorbell")
 
 WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0; UPDATE_ONLY=0
 EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1
@@ -265,7 +266,10 @@ sync_lumira_portal() {
     rm -rf "$DEST"; mkdir -p "$DEST"
     ( cd "$SCRIPT_DIR/lumira-portal" && tar --exclude=node_modules -cf - . ) | ( cd "$DEST" && tar -xf - )
   fi
-  ( cd "$DEST" && npm install --no-audit --no-fund --omit=dev ) && ok "lumira-portal installiert" \
+  # --ignore-scripts: ring-client-api (Türklingel) zieht sonst per Installskript
+  # ein eigenes, über 100 MB großes ffmpeg aus dem Internet – LUMIRA nutzt das
+  # ffmpeg aus apt. Kein anderes Paket des Portals braucht ein Installskript.
+  ( cd "$DEST" && npm install --no-audit --no-fund --omit=dev --ignore-scripts ) && ok "lumira-portal installiert" \
     || { warn "npm install für lumira-portal fehlgeschlagen"; return 1; }
 }
 

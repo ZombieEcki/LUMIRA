@@ -1,0 +1,15 @@
+{
+  "name": "mmm-doorbell",
+  "version": "1.0.0",
+  "description": "MagicMirror² – Türklingel für LUMIRA: Klingelmeldung, Klingelton und Live-Video der Ring-Klingel in der Bildschirmmitte, gesteuert im LUMIRA-Portal.",
+  "main": "MMM-Doorbell.js",
+  "keywords": [
+    "MagicMirror",
+    "MagicMirror2",
+    "Ring",
+    "Doorbell",
+    "Türklingel"
+  ],
+  "author": "Liam Eckhof",
+  "license": "MIT"
+}

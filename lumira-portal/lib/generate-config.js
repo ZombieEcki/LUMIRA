@@ -224,6 +224,17 @@ function buildModules(settings) {
 		}
 	});
 
+	// Türklingel (Spiegel → Klingel): nur, wenn eingeschaltet (Standard aus).
+	// Meldung/Video in der Mitte, Steuerung live über doorbell.json.
+	if (settings.modules && settings.modules.doorbell === true) {
+		modules.push({
+			module: "MMM-Doorbell",
+			config: {
+				hideOnAlarmPhases: alarmOn ? [1] : []
+			}
+		});
+	}
+
 	return modules;
 }
 

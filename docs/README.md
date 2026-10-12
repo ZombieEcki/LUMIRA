@@ -7,6 +7,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 - [INSTALL.md](INSTALL.md) – ausführliche Installation, Optionen des Setup-Skripts, Fehlerbehebung
 - [HOME_ASSISTANT.md](HOME_ASSISTANT.md) – Home-Assistant-Webhook einrichten (Portal-Anleitung)
 - [FAMILIENPLAN.md](FAMILIENPLAN.md) – Familienplan: Einrichtung, Bedienung, Rotationslogik, Datensicherung, Fehlerbehebung
+- [KLINGEL.md](KLINGEL.md) – Ring-Türklingel: Verbindung, Ton und Videodauer, Installation, Sicherheit, Fehlerbehebung
 - [../CHECKLIST.md](../CHECKLIST.md) – was ist fertig, was ist geplant
 - [../README.md](../README.md) – Projektüberblick & Schnellstart
 
@@ -17,6 +18,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 | MMM-aPagerAlarm | [README](../modules/MMM-aPagerAlarm/README.md) · [CONFIG](../modules/MMM-aPagerAlarm/CONFIG.md) · [WEBHOOK](../modules/MMM-aPagerAlarm/WEBHOOK.md) · [CHANGELOG](../modules/MMM-aPagerAlarm/CHANGELOG.md) |
 | MMM-SmartCompliments | [README](../modules/MMM-SmartCompliments/README.md) · [CONFIG](../modules/MMM-SmartCompliments/CONFIG.md) |
 | MMM-FamilyPlan | [README](../modules/MMM-FamilyPlan/README.md) · [Anleitung](FAMILIENPLAN.md) |
+| MMM-Doorbell | [README](../modules/MMM-Doorbell/README.md) · [Anleitung](KLINGEL.md) |
 
 ## Konzepte & Ideen
 

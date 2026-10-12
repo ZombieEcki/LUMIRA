@@ -10,8 +10,11 @@
     "test": "node --test"
   },
   "dependencies": {
-    "express": "^4.19.2",
     "body-parser": "^1.20.2",
+    "express": "^4.19.2",
     "multer": "^2.1.1"
+  },
+  "optionalDependencies": {
+    "ring-client-api": "^14.3.0"
   }
 }

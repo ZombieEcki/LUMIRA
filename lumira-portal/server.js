@@ -28,6 +28,8 @@ const { getEdition } = require("./lib/editions");
 const { createUpdater } = require("./lib/updates");
 const { createSessionStore } = require("./lib/sessions");
 const ambientLib = require("./lib/ambient");
+const doorbellLib = require("./lib/doorbell");
+const ringLib = require("./lib/ring");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -237,6 +239,7 @@ app.post("/api/settings", requireAuth, async (req, res) => {
 	try {
 		const saved = settingsLib.patch(req.body || {});
 		regenerateAndRestart(saved);
+		syncDoorbell(saved);
 
 		const { portal, ...safe } = saved;
 		res.json(Object.assign({}, safe, { portal: { pinSet: !!(portal && portal.pinHash) }, restarted: true }));
@@ -816,6 +819,120 @@ function expireAmbientSafe() {
 	try { ambient.expire(); } catch (err) { console.error("[lumira-portal] Dauerschleife-Timer:", err.message); }
 }
 
+// ---------------------------------------------------------------------------
+// Türklingel (Spiegel → Klingel), siehe lib/doorbell.js und lib/ring.js.
+// Klingeln → Meldung + Live-Video auf dem Spiegel, live über doorbell.json.
+// Ring-Zugangsdaten verlassen das Portal nie: E-Mail/Passwort werden nur
+// einmal an Ring geschickt, gespeichert wird allein der Token (Datei 0600),
+// und keine Route gibt ihn heraus.
+// ---------------------------------------------------------------------------
+const doorbell = doorbellLib.createDoorbell({ home: settingsLib.LUMIRA_HOME, ring: null });
+const ring = ringLib.createRing({
+	home: settingsLib.LUMIRA_HOME,
+	onDing: (d) => doorbell.trigger({ camera: d.camera, source: "ring", dingId: d.dingId, e2ee: d.e2ee })
+});
+doorbell.setRing(ring);
+
+function doorbellOn(settings) {
+	return !!(settings && settings.modules && settings.modules.doorbell === true);
+}
+
+// Nach dem Speichern der Einstellungen: Ring-Verbindung passend an/aus
+function syncDoorbell(settings) {
+	ring.setEnabled(doorbellOn(settings)).catch((err) => console.error("[lumira-portal] Ring:", err.message));
+	if (!doorbellOn(settings)) doorbell.close();
+}
+
+function doorbellView() {
+	return Object.assign(doorbell.view(), { enabled: doorbellOn(settingsLib.load()), ring: ring.view() });
+}
+
+async function doorbellAction(res, fn) {
+	try {
+		res.json(await fn());
+	} catch (err) {
+		if (err instanceof doorbellLib.DoorbellError || err instanceof ringLib.RingError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] Klingel:", err);
+		res.status(500).json({ error: "Interner Fehler" });
+	}
+}
+
+app.get("/api/doorbell", requireAuth, (req, res) => doorbellAction(res, () => doorbellView()));
+
+app.put("/api/doorbell/config", requireAuth, (req, res) => {
+	const b = req.body || {};
+	doorbellAction(res, () => {
+		doorbell.setConfig({ notify: b.notify, sound: b.sound, video: b.video, power: b.power, cameras: b.cameras });
+		return doorbellView();
+	});
+});
+
+// „Klingeln testen“: läuft wie echtes Klingeln – mit Ring-Video, falls verbunden
+app.post("/api/doorbell/test", requireAuth, (req, res) => {
+	doorbellAction(res, () => {
+		if (!doorbellOn(settingsLib.load())) throw new doorbellLib.DoorbellError("Die Türklingel ist ausgeschaltet – erst oben einschalten.");
+		const devs = ring.connected() ? ring.devices() : [];
+		const active = doorbell.view().config.cameras;
+		const cam = devs.find((d) => !active.length || active.indexOf(d.id) !== -1) || null;
+		doorbell.trigger({ camera: cam ? { id: cam.id, name: cam.name } : null, source: "test" });
+		return doorbellView();
+	});
+});
+
+app.post("/api/doorbell/close", requireAuth, (req, res) => {
+	doorbellAction(res, () => { doorbell.close(); return doorbellView(); });
+});
+
+const doorbellSoundUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: doorbellLib.SOUND_MAX_BYTES, files: 1 } });
+
+app.post("/api/doorbell/sound", requireAuth, doorbellSoundUpload.single("sound"), (req, res) => {
+	doorbellAction(res, () => {
+		if (!req.file) throw new doorbellLib.DoorbellError("Keine Datei erhalten");
+		doorbell.saveSound({ buffer: req.file.buffer, mimetype: req.file.mimetype, originalName: req.file.originalname });
+		return doorbellView();
+	});
+});
+
+app.delete("/api/doorbell/sound", requireAuth, (req, res) => {
+	doorbellAction(res, () => { doorbell.removeSound(); return doorbellView(); });
+});
+
+app.get("/api/doorbell/sound/file", requireAuth, (req, res) => {
+	const f = doorbell.soundFile();
+	if (!f) return res.status(404).json({ error: "Kein eigener Ton" });
+	res.type(f.mime).sendFile(f.path, { maxAge: 0 });
+});
+
+// Live-Video/Standbild für die Vorschau im Portal (der Spiegel holt es selbst
+// über MMM-Doorbell). Nur Dateien des gerade laufenden Klingel-Ereignisses.
+app.get("/api/doorbell/live/:eventId/:file", requireAuth, (req, res) => {
+	const p = doorbell.liveFile(req.params.eventId, req.params.file);
+	if (!p) return res.status(404).json({ error: "Nicht (mehr) da" });
+	res.set("Cache-Control", "no-store");
+	res.sendFile(p);
+});
+
+app.post("/api/ring/login", requireAuth, (req, res) => {
+	const b = req.body || {};
+	doorbellAction(res, async () => Object.assign(await ring.loginStart(b.email, b.password), { ring: ring.view() }));
+});
+
+app.post("/api/ring/code", requireAuth, (req, res) => {
+	doorbellAction(res, async () => Object.assign(await ring.loginCode((req.body || {}).code), { ring: ring.view() }));
+});
+
+app.post("/api/ring/cancel", requireAuth, (req, res) => {
+	doorbellAction(res, () => ({ ring: ring.cancelLogin() }));
+});
+
+app.post("/api/ring/logout", requireAuth, (req, res) => {
+	doorbellAction(res, () => { doorbell.close(); ring.logout(); return doorbellView(); });
+});
+
+app.post("/api/ring/reconnect", requireAuth, (req, res) => {
+	doorbellAction(res, async () => { await ring.connect(); return doorbellView(); });
+});
+
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
 // eslint-disable-next-line no-unused-vars
@@ -842,6 +959,9 @@ if (require.main === module) {
 	setInterval(ensureWeekSafe, 60 * 1000);
 	// Timer der Dauerschleife: abgelaufen → wirklich aus
 	setInterval(expireAmbientSafe, 60 * 1000);
+	// Türklingel: liegengebliebenes Ereignis weg, Ring verbinden (falls an)
+	doorbell.reset();
+	syncDoorbell(settingsLib.load());
 	// Update-Prüfung: erstmals 3 Minuten nach dem Start, dann alle 12 Stunden.
 	updater.startSchedule();
 }

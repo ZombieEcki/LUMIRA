@@ -428,6 +428,140 @@
         </div>
       </section>
 
+      <!-- Klingel: Ring-Türklingel auf dem Spiegel (doorbell.js, MMM-Doorbell) -->
+      <section class="page cols" data-page="klingel">
+        <p class="page-lead">Klingelt es an eurer Ring-Türklingel, erscheint auf dem Spiegel eine Meldung in der Mitte – danach das Live-Video
+          der Klingel. Nach der eingestellten Zeit ist alles wieder wie vorher. Einstellungen wirken sofort.</p>
+        <div class="stack">
+        <div class="card" id="db-main">
+          <h2>Türklingel</h2>
+          <div class="toggle">
+            <span class="tl2">Türklingel auf dem Spiegel<small id="db-on-sub">aus</small></span>
+            <button class="sw" id="db-on" role="switch" aria-label="Türklingel auf dem Spiegel"></button>
+          </div>
+          <div class="db-event" id="db-event" hidden>
+            <div class="db-event-head"><span class="dot err db-pulse"></span><strong id="db-event-title">Es klingelt</strong><span class="db-left" id="db-event-left"></span></div>
+            <div class="db-preview" id="db-preview"></div>
+            <p class="save-hint" id="db-event-msg"></p>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn primary" id="db-test">Klingeln testen</button>
+            <button type="button" class="btn" id="db-close" hidden>Jetzt schließen</button>
+          </div>
+          <p class="save-hint">„Klingeln testen“ läuft auf dem Spiegel wie echtes Klingeln – mit Ton und, falls Ring verbunden ist, mit dem echten Live-Video.</p>
+        </div>
+
+        <div class="card">
+          <h2>Ring-Verbindung</h2>
+          <div class="db-ring-status"><span class="dot" id="db-ring-dot"></span><span id="db-ring-text">–</span></div>
+          <form id="db-login" class="db-form" hidden autocomplete="off">
+            <div class="field"><label for="db-email">E-Mail des Ring-Kontos</label><input type="email" id="db-email" autocomplete="username"></div>
+            <div class="field"><label for="db-pass">Passwort</label><input type="password" id="db-pass" autocomplete="current-password"></div>
+            <div class="btn-row"><button type="submit" class="btn primary" id="db-login-btn">Bei Ring anmelden</button></div>
+          </form>
+          <form id="db-code" class="db-form" hidden autocomplete="off">
+            <p class="sub" id="db-code-prompt"></p>
+            <div class="field"><label for="db-code-in">Bestätigungscode</label><input type="text" id="db-code-in" class="mono-in" inputmode="numeric" autocomplete="one-time-code" maxlength="8"></div>
+            <div class="btn-row"><button type="submit" class="btn primary" id="db-code-btn">Bestätigen</button>
+              <button type="button" class="btn" id="db-code-cancel">Abbrechen</button></div>
+          </form>
+          <div id="db-connected" hidden>
+            <div class="db-devices" id="db-devices"></div>
+            <div class="field"><label for="db-power">Stromversorgung der Klingel</label>
+              <select id="db-power">
+                <option value="auto">Automatisch erkennen</option>
+                <option value="wired">Kabel – Standbilder alle 5 s, falls das Video ausfällt</option>
+                <option value="battery">Akku – schont den Akku, nur ein Standbild pro Klingeln</option>
+              </select></div>
+            <div class="btn-row"><button type="button" class="btn small" id="db-reconnect">Neu verbinden</button>
+              <button type="button" class="btn small" id="db-logout">Abmelden</button></div>
+          </div>
+          <p class="save-hint">Dein Passwort wird nicht gespeichert – nur ein Zugangsschlüssel von Ring, und der bleibt auf dem Spiegel.
+            In der Ring-App (Kontrollzentrum → Autorisierte Client-Geräte) erscheint der Spiegel als „LUMIRA Spiegel“ und lässt sich dort jederzeit entfernen.</p>
+        </div>
+
+        <div class="card">
+          <h2>Meldung</h2>
+          <div class="toggle">
+            <span class="tl2">Meldung in der Bildschirmmitte<small>kompakt, vor dem Video</small></span>
+            <button class="sw" id="db-notify" role="switch" aria-label="Meldung"></button>
+          </div>
+          <div class="field"><label for="db-text">Text</label><input type="text" id="db-text" maxlength="60" placeholder="Es hat geklingelt!"></div>
+          <div class="field"><label for="db-notify-sec">Anzeigen für</label>
+            <select id="db-notify-sec">
+              <option value="5">5 Sekunden</option>
+              <option value="8">8 Sekunden</option>
+              <option value="10">10 Sekunden</option>
+              <option value="15">15 Sekunden</option>
+              <option value="20">20 Sekunden</option>
+              <option value="30">30 Sekunden</option>
+            </select></div>
+          <div class="toggle">
+            <span class="tl2">Leuchtrahmen<small>pulsierender, farbiger Rahmen</small></span>
+            <button class="sw" id="db-glow" role="switch" aria-label="Leuchtrahmen"></button>
+          </div>
+        </div>
+
+        </div>
+        <div class="stack">
+        <div class="card">
+          <h2>Ton</h2>
+          <div class="toggle">
+            <span class="tl2">Klingelton auf dem Spiegel<small>braucht Lautsprecher am Spiegel</small></span>
+            <button class="sw" id="db-sound" role="switch" aria-label="Klingelton"></button>
+          </div>
+          <div class="field"><label for="db-sound-src">Ton</label>
+            <select id="db-sound-src">
+              <option value="gong">Ding-Dong (eingebaut)</option>
+              <option value="custom">Eigener Ton</option>
+            </select></div>
+          <div class="field"><label for="db-volume">Lautstärke <span id="db-volume-val"></span></label>
+            <input type="range" id="db-volume" class="db-range" min="0" max="100" step="5"></div>
+          <div class="btn-row">
+            <button type="button" class="btn small" id="db-sound-play">Probehören</button>
+            <label class="btn small" for="db-sound-file">Eigenen Ton hochladen</label>
+            <input type="file" id="db-sound-file" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg" hidden>
+            <button type="button" class="btn small" id="db-sound-del" hidden>Eigenen Ton löschen</button>
+          </div>
+          <p class="save-hint" id="db-sound-info">MP3, WAV oder OGG bis 5 MB. Der Ton liegt auf dem Spiegel – zum Abspielen braucht es kein Internet.</p>
+        </div>
+
+        <div class="card">
+          <h2>Live-Video</h2>
+          <div class="toggle">
+            <span class="tl2">Live-Video der Klingel<small>nach der Meldung, in der Bildschirmmitte</small></span>
+            <button class="sw" id="db-video" role="switch" aria-label="Live-Video"></button>
+          </div>
+          <div class="field"><label for="db-size">Größe</label>
+            <select id="db-size">
+              <option value="small">klein</option>
+              <option value="medium">mittel</option>
+              <option value="large">groß</option>
+            </select></div>
+          <div class="field"><label for="db-dur">Anzeigedauer</label>
+            <select id="db-dur">
+              <option value="30">30 Sekunden</option>
+              <option value="60">1 Minute</option>
+              <option value="120">2 Minuten</option>
+              <option value="300">5 Minuten</option>
+              <option value="custom">Eigene Zeit …</option>
+            </select></div>
+          <div class="field" id="db-dur-custom-row" hidden><label for="db-dur-custom">Eigene Zeit in Sekunden (10–600)</label>
+            <input type="number" id="db-dur-custom" class="mono-in" min="10" max="600" step="5"></div>
+          <div class="toggle">
+            <span class="tl2">Automatisch schließen<small id="db-autoclose-sub">nach der Anzeigedauer</small></span>
+            <button class="sw" id="db-autoclose" role="switch" aria-label="Automatisch schließen"></button>
+          </div>
+          <div class="toggle">
+            <span class="tl2">Countdown zeigen<small>Restzeit unten rechts im Video</small></span>
+            <button class="sw" id="db-countdown" role="switch" aria-label="Countdown"></button>
+          </div>
+          <p class="save-hint">Das Video wird ohne Umrechnen direkt weitergereicht – so schafft es auch ein Raspberry Pi 3. Es kommt etwa
+            2–4 Sekunden verzögert an. Ohne Video (Fehler, Ende-zu-Ende-Verschlüsselung in der Ring-App) zeigt der Spiegel das letzte Bild der Klingel.</p>
+        </div>
+        </div>
+      </section>
+
       <section class="page" data-page="standort">
         <p class="page-lead">Für Wettervorhersage und Regenradar.</p>
         <div class="card form-cols">
@@ -665,6 +799,9 @@
 <script src="updates.js"></script>
 <script src="ambient-fire.js"></script>
 <script src="ambient.js"></script>
+<script src="vendor/hls/hls.light.min.js"></script>
+<script src="doorbell-gong.js"></script>
+<script src="doorbell.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

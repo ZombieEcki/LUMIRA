@@ -89,7 +89,7 @@ const MM_REGIONS = ["top_left", "top_center", "top_right", "upper_third", "middl
 	"lower_third", "bottom_left", "bottom_center", "bottom_right"];
 
 // Schaltbare Spiegel-Module (Spiegel → Module im Portal)
-const MODULE_KEYS = ["clock", "weather", "calendar", "news", "compliments", "alarm", "statusHint"];
+const MODULE_KEYS = ["clock", "weather", "calendar", "news", "compliments", "alarm", "statusHint", "doorbell"];
 
 function validate(settings) {
 	if (settings.modules !== undefined) {

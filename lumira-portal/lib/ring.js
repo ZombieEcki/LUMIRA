@@ -1,0 +1,318 @@
+// LUMIRA – Verbindung zur Ring-Türklingel (über ring-client-api, inoffiziell).
+//
+// Anmeldung im Portal: E-Mail + Passwort, danach der Bestätigungscode (Ring
+// verlangt immer 2FA). Gespeichert wird nur der Refresh-Token in
+// ~/.lumira/ring-auth.json (nur für den Benutzer lesbar), nie E-Mail oder
+// Passwort. Ring tauscht den Token etwa stündlich aus – jeder neue wird sofort
+// gespeichert, sonst kommen nach einem Neustart keine Klingel-Pushes mehr an.
+//
+// Klingeln kommt per Push (Firebase), dafür braucht der Pi keine Portfreigabe.
+// Das Live-Video holt ffmpeg (System-ffmpeg, apt) und schreibt es unverändert
+// (ohne Umrechnen – das schafft der Pi 3 nicht) als HLS in einen Ordner.
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+
+const FFMPEG = process.env.LUMIRA_FFMPEG || "ffmpeg";
+const DISPLAY_NAME = "LUMIRA Spiegel"; // so heißt der Spiegel im Ring-Kontrollzentrum
+const LOGIN_TTL_MS = 10 * 60 * 1000;
+const RETRY_MS = [30e3, 2 * 60e3, 5 * 60e3, 15 * 60e3];
+
+class RingError extends Error {
+	constructor(message, status) {
+		super(message);
+		this.status = status || 400;
+	}
+}
+
+// Ring-Fehlermeldungen (englisch) → verständlich auf Deutsch
+function friendlyError(err) {
+	const m = String((err && err.message) || err || "");
+	if (/too many 2fa codes|too many requests/i.test(m)) return "Zu viele Codes angefordert – Ring erlaubt 10 in 10 Minuten. Bitte später noch einmal.";
+	if (/email and password are correct/i.test(m)) return "E-Mail oder Passwort stimmt nicht.";
+	if (/refresh token is correct|refresh token is not valid|invalid_grant/i.test(m)) return "Die Ring-Anmeldung ist abgelaufen – bitte neu anmelden.";
+	if (/verification code/i.test(m)) return "Der Code stimmt nicht – bitte noch einmal eingeben.";
+	if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|fetch failed|network/i.test(m)) return "Ring ist nicht erreichbar – Internetverbindung des Spiegels prüfen.";
+	return m.slice(0, 160) || "Unbekannter Fehler bei Ring";
+}
+
+// „Please enter the code sent to ***12 via sms“ → deutscher Hinweis
+function friendlyPrompt(p) {
+	const s = String(p || "");
+	if (/authenticator/i.test(s)) return "Code aus deiner Authenticator-App eingeben.";
+	const m = /sent to (.+?) via (\w+)/i.exec(s);
+	if (m) return `Code eingeben, den Ring per ${m[2].toLowerCase() === "sms" ? "SMS" : m[2] === "email" ? "E-Mail" : m[2]} an ${m[1]} geschickt hat.`;
+	if (/invalid 2fa/i.test(s)) return "Der Code stimmt nicht – bitte noch einmal eingeben.";
+	return "Code eingeben, den Ring per SMS oder E-Mail geschickt hat.";
+}
+
+function isAuthProblem(err) {
+	return /refresh token|invalid_grant|401|unauthori[sz]ed|email and password/i.test(String((err && err.message) || err));
+}
+
+// loadLib: zum Testen austauschbar; standardmäßig ring-client-api (ESM)
+function createRing({ home, onDing = () => {}, loadLib, log = console, timers = { setTimeout, clearTimeout } } = {}) {
+	home = path.resolve(home);
+	const authPath = path.join(home, "ring-auth.json");
+	// RingRestClient (Anmeldung) gibt das Paket nur über den Unterpfad heraus
+	const load = loadLib || (() => Promise.all([import("ring-client-api"), import("ring-client-api/rest-client")])
+		.then(([main, rest]) => ({ RingApi: main.RingApi, RingRestClient: rest.RingRestClient })));
+
+	let enabled = false;
+	let api = null;
+	let cameras = new Map(); // id → RingCamera
+	let subs = [];
+	let pending = null;      // Anmeldung, die auf den Code wartet
+	let retry = null;
+	let retryStep = 0;
+	let connecting = null;
+	const state = { status: "off", message: "", account: "", devices: [], lastDing: null };
+
+	function readAuth() {
+		try {
+			const a = JSON.parse(fs.readFileSync(authPath, "utf8"));
+			return a && typeof a.refreshToken === "string" && a.refreshToken ? a : null;
+		} catch (e) {
+			return null;
+		}
+	}
+
+	function writeAuth(a) {
+		fs.mkdirSync(home, { recursive: true });
+		const tmp = authPath + ".tmp";
+		fs.writeFileSync(tmp, JSON.stringify(a), { mode: 0o600 });
+		fs.renameSync(tmp, authPath);
+		try { fs.chmodSync(authPath, 0o600); } catch (e) { /* Windows */ }
+	}
+
+	function set(status, message) {
+		state.status = status;
+		state.message = message || "";
+	}
+
+	function view() {
+		return {
+			status: state.status,
+			message: state.message,
+			account: state.account,
+			loggedIn: !!readAuth(),
+			awaitingCode: !!(pending && Date.now() - pending.at < LOGIN_TTL_MS),
+			prompt: pending ? pending.prompt : "",
+			devices: state.devices.slice(),
+			lastDing: state.lastDing
+		};
+	}
+
+	function connected() {
+		return state.status === "connected" && !!api;
+	}
+
+	function devices() {
+		return state.devices.slice();
+	}
+
+	function deviceInfo(cam) {
+		let battery = null;
+		try { battery = !!cam.operatingOnBattery; } catch (e) { battery = null; }
+		let level = null;
+		try { level = cam.batteryLevel; } catch (e) { level = null; }
+		let offline = false;
+		try { offline = !!cam.isOffline; } catch (e) { offline = false; }
+		return { id: String(cam.id), name: String(cam.name || "Klingel"), model: String(cam.model || ""), battery, batteryLevel: typeof level === "number" ? level : null, offline };
+	}
+
+	function disconnect() {
+		timers.clearTimeout(retry);
+		retry = null;
+		for (const s of subs) { try { s.unsubscribe(); } catch (e) { /* egal */ } }
+		subs = [];
+		if (api) { try { api.disconnect(); } catch (e) { /* egal */ } }
+		api = null;
+		cameras = new Map();
+		state.devices = [];
+	}
+
+	function scheduleRetry() {
+		timers.clearTimeout(retry);
+		const ms = RETRY_MS[Math.min(retryStep, RETRY_MS.length - 1)];
+		retryStep++;
+		retry = timers.setTimeout(() => { retry = null; connect().catch(() => {}); }, ms);
+	}
+
+	async function connect() {
+		if (!enabled) return view();
+		if (connecting) return connecting;
+		connecting = (async () => {
+			disconnect();
+			const auth = readAuth();
+			if (!auth) { set("needs-login", ""); return view(); }
+			let lib;
+			try {
+				lib = await load();
+			} catch (err) {
+				set("error", "Ring-Unterstützung fehlt – bitte LUMIRA aktualisieren (Info → Updates).");
+				return view();
+			}
+			set("connecting", "Verbinde mit Ring …");
+			try {
+				const ringApi = new lib.RingApi({
+					refreshToken: auth.refreshToken,
+					controlCenterDisplayName: DISPLAY_NAME,
+					avoidSnapshotBatteryDrain: true,
+					ffmpegPath: FFMPEG
+				});
+				api = ringApi;
+				subs.push(ringApi.onRefreshTokenUpdated.subscribe(({ newRefreshToken }) => {
+					if (newRefreshToken) writeAuth(Object.assign({}, readAuth() || {}, { refreshToken: newRefreshToken, updatedAt: new Date().toISOString() }));
+				}));
+				const all = await ringApi.getCameras();
+				if (api !== ringApi) return view(); // inzwischen getrennt
+				const bells = all.filter((c) => c.isDoorbot);
+				cameras = new Map(bells.map((c) => [String(c.id), c]));
+				state.devices = bells.map(deviceInfo);
+				for (const cam of bells) {
+					subs.push(cam.onDoorbellPressed.subscribe((ding) => {
+						const dev = (ding && ding.data && ding.data.device) || {};
+						const ev = (ding && ding.data && ding.data.event && ding.data.event.ding) || {};
+						state.lastDing = { at: new Date().toISOString(), camera: String(cam.name || "") };
+						try {
+							onDing({ camera: { id: String(cam.id), name: String(cam.name || "Klingel") }, dingId: String(ev.id || ""), e2ee: !!dev.e2ee_enabled });
+						} catch (err) {
+							log.error("[lumira-portal] Klingel-Ereignis:", err && err.message);
+						}
+					}));
+					subs.push(cam.onData.subscribe(() => {
+						const i = state.devices.findIndex((d) => d.id === String(cam.id));
+						if (i !== -1) state.devices[i] = deviceInfo(cam);
+					}));
+				}
+				try {
+					const profile = await ringApi.getProfile();
+					state.account = maskEmail(profile && profile.email);
+				} catch (e) { /* nur Anzeige */ }
+				retryStep = 0;
+				set("connected", bells.length ? "" : "Verbunden, aber keine Ring-Türklingel im Konto gefunden");
+			} catch (err) {
+				disconnect();
+				if (isAuthProblem(err)) {
+					set("needs-login", friendlyError(err));
+				} else {
+					set("error", friendlyError(err));
+					scheduleRetry();
+				}
+			}
+			return view();
+		})();
+		try { return await connecting; } finally { connecting = null; }
+	}
+
+	// Ein/aus mit dem Schalter „Türklingel“ (Spiegel → Module bzw. Klingel)
+	async function setEnabled(on) {
+		// Jedes Speichern im Portal ruft das auf – eine stehende Verbindung
+		// bleibt, sonst gingen währenddessen Klingel-Pushes verloren
+		if (on && enabled && (connecting || state.status === "connected")) return view();
+		enabled = !!on;
+		if (!enabled) { disconnect(); set("off", ""); return view(); }
+		return connect();
+	}
+
+	// ---------------------------------------------------------------- Anmeldung
+	async function loginStart(email, password) {
+		email = String(email || "").trim();
+		password = String(password || "");
+		if (!/^[^\s@]+@[^\s@]+$/.test(email) || !password) throw new RingError("Bitte E-Mail und Passwort deines Ring-Kontos eingeben.");
+		let lib;
+		try { lib = await load(); } catch (e) { throw new RingError("Ring-Unterstützung fehlt – bitte LUMIRA aktualisieren.", 503); }
+		const client = new lib.RingRestClient({ email, password, controlCenterDisplayName: DISPLAY_NAME });
+		try {
+			const auth = await client.getCurrentAuth();
+			return finishLogin(auth, email);
+		} catch (err) {
+			if (client.promptFor2fa) {
+				pending = { client, email, at: Date.now(), prompt: friendlyPrompt(client.promptFor2fa) };
+				return { needsCode: true, prompt: pending.prompt };
+			}
+			throw new RingError(friendlyError(err));
+		}
+	}
+
+	async function loginCode(code) {
+		code = String(code || "").replace(/\s+/g, "");
+		if (!pending || Date.now() - pending.at > LOGIN_TTL_MS) { pending = null; throw new RingError("Die Anmeldung ist abgelaufen – bitte noch einmal mit E-Mail und Passwort beginnen."); }
+		if (!/^[0-9]{4,8}$/.test(code)) throw new RingError("Der Code besteht aus Ziffern.");
+		try {
+			const auth = await pending.client.getAuth(code);
+			const email = pending.email;
+			pending = null;
+			return finishLogin(auth, email);
+		} catch (err) {
+			throw new RingError(friendlyError(err));
+		}
+	}
+
+	async function finishLogin(auth, email) {
+		if (!auth || !auth.refresh_token) throw new RingError("Ring hat keinen Zugang geliefert – bitte noch einmal versuchen.");
+		writeAuth({ refreshToken: auth.refresh_token, createdAt: new Date().toISOString() });
+		state.account = maskEmail(email);
+		retryStep = 0;
+		if (enabled) await connect();
+		return Object.assign({ done: true }, view());
+	}
+
+	function cancelLogin() {
+		pending = null;
+		return view();
+	}
+
+	function logout() {
+		disconnect();
+		pending = null;
+		try { fs.unlinkSync(authPath); } catch (e) { /* schon weg */ }
+		state.account = "";
+		set(enabled ? "needs-login" : "off", enabled ? "Abgemeldet" : "");
+		return view();
+	}
+
+	// ---------------------------------------------------------------- Video/Bild
+	async function startStream(cameraId, dir) {
+		const cam = cameras.get(String(cameraId));
+		if (!cam) throw new Error("Klingel nicht gefunden");
+		const session = await cam.streamVideo({
+			audio: ["-an"],            // Ton bleibt aus (Spiegel ist kein Gegensprechen)
+			video: ["-c:v", "copy"],   // nicht umrechnen – der Pi 3 schafft das nicht flüssig
+			output: [
+				"-f", "hls",
+				"-hls_time", "1",
+				"-hls_list_size", "6",
+				"-hls_flags", "delete_segments+independent_segments",
+				"-hls_segment_filename", path.join(dir, "seg%05d.ts"),
+				path.join(dir, "stream.m3u8")
+			]
+		});
+		return {
+			stop: () => session.stop(),
+			onEnded: (cb) => { subs.push(session.onCallEnded.subscribe(() => cb())); }
+		};
+	}
+
+	async function snapshot(cameraId, { dingId } = {}) {
+		const cam = cameras.get(String(cameraId));
+		if (!cam) return null;
+		const p = dingId ? cam.getSnapshot({ uuid: dingId }) : cam.getSnapshot();
+		let t;
+		const timeout = new Promise((resolve) => { t = timers.setTimeout(() => resolve(null), 15000); });
+		try { return await Promise.race([p, timeout]); } finally { timers.clearTimeout(t); }
+	}
+
+	return { view, connected, devices, connect, setEnabled, loginStart, loginCode, cancelLogin, logout, startStream, snapshot, disconnect, authPath };
+}
+
+function maskEmail(e) {
+	const s = String(e || "");
+	const at = s.indexOf("@");
+	if (at < 1) return "";
+	return s[0] + "•••" + s.slice(at);
+}
+
+module.exports = { createRing, RingError, friendlyError, friendlyPrompt, maskEmail };

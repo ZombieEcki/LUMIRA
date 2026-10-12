@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 90 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 108 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -189,6 +189,25 @@ um den aktuellen Stand zu sehen.
       GIFs ruckeln auf dem Pi 3; ohne ffmpeg bleibt es beim GIF mit Hinweis.
       `install.sh` installiert ffmpeg mit (bestehende Geräte: einmal `sudo apt install ffmpeg`)
 - [ ] Auf echter Pi-Hardware prüfen (Video-Wiedergabe Pi 3, Ton, Alarm-Unterbrechung)
+
+### Spiegel: Türklingel (Ring, MMM-Doorbell)
+- [x] Neues Modul `MMM-Doorbell`: beim Klingeln kompakte Meldung in der Mitte (Text,
+      Leuchtrahmen, Dauer), Klingelton (eingebautes Ding-Dong oder eigener Ton, Lautstärke),
+      danach Live-Video (klein/mittel/groß, 30 s–5 min oder eigene Zeit, automatisch
+      schließen, Countdown); während eines Alarms verborgen. Live über `~/.lumira/doorbell.json`
+- [x] Ring-Anbindung im Portal (`lib/ring.js`, `ring-client-api`): Anmeldung mit
+      E-Mail/Passwort + Bestätigungscode, nur Refresh-Token gespeichert (0600, wird bei
+      jedem Tausch sofort gesichert), Klingeln per Push ohne Portfreigabe, Klingeln einzeln
+      abwählbar, Kabel/Akku automatisch erkannt (einstellbar)
+- [x] Live-Video ohne Umrechnen (ffmpeg `-c:v copy` → HLS im Arbeitsspeicher, hls.js);
+      ohne Video: Meldung bleibt, letztes Bild der Klingel (Kabel: alle 5 s neu)
+- [x] Portal: Spiegel → **Klingel** (Schalter, Klingeln testen, Jetzt schließen mit
+      Vorschau, Ring-Verbindung, Meldung, Ton mit Probehören, Video); Schalter auch unter
+      Spiegel → Module (Standard: aus). Anleitung: [docs/KLINGEL.md](docs/KLINGEL.md)
+- [x] `install.sh`: Portal-Abhängigkeiten mit `--ignore-scripts` (sonst lädt
+      ring-client-api ein eigenes ffmpeg mit über 100 MB)
+- [ ] Auf echter Pi-Hardware mit Ring-Klingel prüfen (Push, Video-Flüssigkeit Pi 3,
+      Ton, Akku-Klingel)
 
 ### Portal: eigene Bedienelemente & Jahrestage
 - [x] Eigene Auswahlfelder statt Browser-Dropdowns (`public/select.js`, für
