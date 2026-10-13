@@ -270,3 +270,52 @@ test("Alte Datei ohne neue Felder: alles wöchentlich wie bisher", () => {
 	const p = buildPayload(raw, WED);
 	assert.ok(p.members.every((m) => m.duties.length === 2));
 });
+
+test("Alle 8 Dienste täglich: jeden Tag je Person 2, im 4-Tage-Zyklus jeder jeden Dienst einmal, nie zweimal hintereinander", () => {
+	reset();
+	const { id } = family();
+	const all = {};
+	["Gartendienst", "Tischdienst", "Baddienst", "Mülldienst", "Kochdienst", "Küchendienst", "Putzdienst", "Bodendienst"].forEach((n) => { all[n] = { rotation: "daily" }; });
+	setRules(all);
+	fp.ensureCurrentWeek(MON);
+	fp.ensureCurrentWeek(week(1));
+	const v = fp.view(week(1));
+	const raw = JSON.parse(fs.readFileSync(fp.FAMILYPLAN_PATH, "utf8"));
+	const days = {};
+	raw.weeks.forEach((w) => Object.keys(w.days).forEach((did) => Object.assign(days[did] = days[did] || {}, w.days[did])));
+	const dates = Object.keys(days[v.duties[0].id]).sort();
+	assert.equal(dates.length, 14);
+	const people = ["Marcel", "Franzi", "Maja", "Marie"].map(id);
+	for (const date of dates) {
+		const per = {};
+		v.duties.forEach((d) => { const p = days[d.id][date]; per[p] = (per[p] || 0) + 1; });
+		assert.deepEqual(people.map((p) => per[p]), [2, 2, 2, 2], "am " + date + " je 2");
+	}
+	for (const d of v.duties) {
+		for (let i = 1; i < dates.length; i++) assert.notEqual(days[d.id][dates[i]], days[d.id][dates[i - 1]], d.name + " nicht zweimal hintereinander");
+		const per = {};
+		dates.forEach((k) => { per[days[d.id][k]] = (per[days[d.id][k]] || 0) + 1; });
+		assert.ok(Math.max(...Object.values(per)) - Math.min(...Object.values(per)) <= 1, d.name + " über 14 Tage gleich verteilt");
+	}
+});
+
+test("Ganze Familie fest: Putzen am Freitag für alle – Spiegel zeigt es bei jedem", () => {
+	reset();
+	family();
+	setRules({ Putzdienst: { rotation: "fixed", fixed: [{ day: 5, memberId: "*" }] } });
+	fp.ensureCurrentWeek(MON);
+	const v = fp.view(new Date(2026, 6, 10, 9));
+	const did = v.duties.find((x) => x.name === "Putzdienst").id;
+	assert.deepEqual(v.currentWeek.days[did], { "2026-07-10": "*" });
+	assert.ok(Object.values(v.currentWeek.today).every((l) => l.some((x) => x.dutyId === did && x.all)), "heute bei allen");
+	const raw = JSON.parse(fs.readFileSync(fp.FAMILYPLAN_PATH, "utf8"));
+	const fri = buildPayload(raw, new Date(2026, 6, 10, 9));
+	assert.ok(fri.members.every((m) => m.duties.some((x) => x.name === "Putzdienst" && x.today)));
+	const thu = buildPayload(raw, new Date(2026, 6, 9, 9));
+	assert.ok(!thu.members.some((m) => m.duties.some((x) => x.name === "Putzdienst")));
+	// die anderen 7 Dienste verteilen sich normal
+	assert.equal(Object.values(v.currentWeek.assign).reduce((s, l) => s + l.length, 0), 7);
+	// Fairness zählt den Freitag bei allen
+	const f = fp.view(new Date(2026, 6, 12, 20)).fairness;
+	assert.ok(Object.values(f.counts).every((c) => c[did] === 1));
+});

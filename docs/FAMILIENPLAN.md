@@ -50,7 +50,7 @@ Unter der Dienstzeile (*Familienplan → Dienste*) steht, wie der Dienst verteil
 | **Wöchentlich rotierend** (Standard) | jede Woche … alle 4 Wochen | Wechselt am Wechseltag. Bei „alle 2 Wochen“ behält die Person den Dienst zwei Wochen. |
 | **Täglich rotierend** | jeden Tag … alle 7 Tage | Jeden Tag (bzw. alle N Tage) jemand anderes – an den markierten Wochentagen, ohne Auswahl an allen. |
 | **Monatlich rotierend** | jeden Monat … alle 6 Monate | Wechselt am ersten Wechseltag im neuen Monat. |
-| **Fest zugewiesen** | – | Keine Rotation: nur an den eingetragenen Tagen bei der eingetragenen Person (z. B. Kochdienst Mo Franzi, Di Marcel, Mi Franzi) – oder „Jeden Tag“ die ganze Woche bei einer Person. |
+| **Fest zugewiesen** | – | Keine Rotation: nur an den eingetragenen Tagen bei der eingetragenen Person (z. B. Kochdienst Mo Franzi, Di Marcel, Mi Franzi) – oder „Jeden Tag“ die ganze Woche bei einer Person. Statt einer Person geht auch **„Ganze Familie“** (z. B. Putzen am Freitag für alle). |
 
 **Feste Tage** lassen sich auch bei rotierenden Diensten eintragen
 („+ Feste Zuweisung“): An diesem Wochentag hat dann immer die eingetragene
@@ -102,10 +102,12 @@ gelten immer ab der nächsten Woche – sofort nur über *Aktuelle Woche neu ver
 - Wöchentliche Dienste mit Rhythmus („alle 2 Wochen“) und monatliche Dienste
   bleiben bis zum Wechsel bei derselben Person und zählen in jeder dieser
   Wochen mit.
-- **Tagesdienste** werden Tag für Tag verteilt: Wer den Dienst in den letzten
-  vier Wochen am seltensten hatte, ist dran; niemand zweimal hintereinander,
-  wenn es sich vermeiden lässt; wer diese Woche schon mehr Dienste hat,
-  bekommt eher keinen weiteren. Feste Tage zählen mit.
+- **Tagesdienste** werden Tag für Tag gemeinsam verteilt – nach denselben
+  Regeln wie die Wochen: jeden Tag gleich viele Dienste je Person (8 tägliche
+  Dienste, 4 Personen → je 2), im Zyklus (so viele Tage wie Personen) jeder
+  jeden Dienst einmal, niemand denselben Dienst zwei Tage hintereinander.
+  Feste Tage einzelner Personen zählen mit – auch die, die erst später in der
+  Woche liegen.
 - Ist eine fest eingetragene Person pausiert, bleibt der Dienst an dem Tag frei
   (Hinweis im Portal).
 - Es wird nicht gewürfelt: Gleiche Ausgangslage ergibt immer denselben Plan,

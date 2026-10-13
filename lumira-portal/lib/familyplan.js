@@ -302,7 +302,7 @@ function validate(data) {
 			throw new ValidationError("duties", `${d.name}: Für „fest zugewiesen“ mindestens eine Person eintragen`);
 		}
 		for (const f of d.fixed) {
-			if (memberIds.indexOf(f.memberId) === -1) throw new ValidationError("duties", `${d.name}: Die fest eingetragene Person gibt es nicht mehr`);
+			if (f.memberId !== rot.ALL && memberIds.indexOf(f.memberId) === -1) throw new ValidationError("duties", `${d.name}: Die fest eingetragene Person gibt es nicht mehr`);
 		}
 	}
 	const dutyIds = duties.map((d) => d.id);
@@ -402,6 +402,7 @@ function computeFor(data, weekStart, simulated) {
 	const rotating = [];
 	for (const d of duties) {
 		const allWeek = d.fixed.find((f) => f.day === -1);
+		if (allWeek && allWeek.memberId === rot.ALL) continue; // ganze Familie → Tagesplan
 		if (allWeek) {
 			if (memberById[allWeek.memberId]) preassigned[d.id] = allWeek.memberId;
 			else blocked.push(d.id); // feste Person pausiert → Dienst bleibt frei (Hinweis)
@@ -433,7 +434,9 @@ function computeFor(data, weekStart, simulated) {
 		duties: duties.map((d) => ({ id: d.id, roles: d.roles, rotation: d.rotation, every: d.every, days: d.days, fixed: d.fixed })),
 		weekAssign: res.assign,
 		history: prev.map((w) => w.days),
-		key: weekStart
+		key: weekStart,
+		pairMode: data.settings.pairMode,
+		fixedPairs: data.settings.fixedPairs
 	});
 	const gaps = dayRes.gaps.slice();
 	blocked.forEach((did) => {
@@ -558,7 +561,8 @@ function fairness(data, uptoIdx) {
 		for (const did of Object.keys(days)) {
 			for (const date of Object.keys(days[did])) {
 				const pid = days[did][date];
-				if (pid && counts[pid]) counts[pid][did] = (counts[pid][did] || 0) + 1;
+				const list = pid === rot.ALL ? Object.keys(counts) : [pid];
+				list.forEach((p) => { if (p && counts[p]) counts[p][did] = (counts[p][did] || 0) + 1; });
 			}
 		}
 	}
@@ -633,14 +637,17 @@ function todayOf(week, dateKey) {
 	const days = effectiveDays(week);
 	const out = {};
 	for (const pid of Object.keys(assign)) {
-		out[pid] = assign[pid].filter((did) => !(days[did] && days[did][dateKey] !== undefined && days[did][dateKey] !== pid))
+		out[pid] = assign[pid].filter((did) => !(days[did] && days[did][dateKey] !== undefined && days[did][dateKey] !== pid && days[did][dateKey] !== rot.ALL))
 			.map((did) => ({ dutyId: did, day: !!(days[did] && days[did][dateKey] === pid) }));
 	}
 	for (const did of Object.keys(days)) {
 		const pid = days[did][dateKey];
 		if (!pid) continue;
-		out[pid] = out[pid] || [];
-		if (!out[pid].some((x) => x.dutyId === did)) out[pid].push({ dutyId: did, day: true });
+		const list = pid === rot.ALL ? Object.keys(assign) : [pid];
+		for (const p of list) {
+			out[p] = out[p] || [];
+			if (!out[p].some((x) => x.dutyId === did)) out[p].push({ dutyId: did, day: true, all: pid === rot.ALL });
+		}
 	}
 	return out;
 }
@@ -792,7 +799,7 @@ function setMembers(revision, list, now) {
 		// Feste Zuweisungen an entfernte Personen fallen weg; ein „fester“ Dienst
 		// ohne Person rotiert wieder wöchentlich
 		for (const d of data.duties) {
-			d.fixed = (d.fixed || []).filter((f) => keep.has(f.memberId));
+			d.fixed = (d.fixed || []).filter((f) => f.memberId === rot.ALL || keep.has(f.memberId));
 			if (d.rotation === "fixed" && !d.fixed.length) { d.rotation = "weekly"; d.every = 1; }
 		}
 		if (fingerprint(data) !== before) restartCycle(data, now || new Date());
@@ -816,7 +823,7 @@ function checkRotation(field, item, data, existing) {
 	for (const f of list) {
 		const day = Number(f && f.day);
 		if (!Number.isInteger(day) || day < -1 || day > 6) throw new ValidationError(field, `${name}: Unbekannter Wochentag`);
-		if (members.indexOf(f.memberId) === -1) throw new ValidationError(field, `${name}: Bitte für jede feste Zuweisung eine Person wählen`);
+		if (f.memberId !== rot.ALL && members.indexOf(f.memberId) === -1) throw new ValidationError(field, `${name}: Bitte für jede feste Zuweisung eine Person wählen`);
 		if (seen[day]) throw new ValidationError(field, `${name}: ${day === -1 ? "„Jeden Tag“" : DAY_NAMES[day]} ist doppelt fest vergeben`);
 		seen[day] = true;
 	}
@@ -971,7 +978,7 @@ function assignDay(revision, weekStart, dutyId, date, memberId, now) {
 		if (!(week.days[dutyId] && Object.prototype.hasOwnProperty.call(week.days[dutyId], date))) {
 			throw new ValidationError("date", "An diesem Tag gibt es den Dienst nicht");
 		}
-		if (!activeMembers(data).some((m) => m.id === memberId)) throw new ValidationError("memberId", "Bitte eine (aktive) Person wählen");
+		if (memberId !== rot.ALL && !activeMembers(data).some((m) => m.id === memberId)) throw new ValidationError("memberId", "Bitte eine (aktive) Person wählen");
 		const md = week.manualDays || {};
 		if (week.days[dutyId][date] === memberId) {
 			if (md[dutyId]) { delete md[dutyId][date]; if (!Object.keys(md[dutyId]).length) delete md[dutyId]; }

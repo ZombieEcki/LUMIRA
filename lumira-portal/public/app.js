@@ -1335,7 +1335,7 @@
         // Feste Tage: heute fällig hervorheben, sonst die Tage dahinter
         var days = Array.isArray(d.days) ? d.days : [];
         if (it.day) {
-          chip.appendChild(el("span", "chip-days", "heute"));
+          chip.appendChild(el("span", "chip-days", it.all ? "heute · alle" : "heute"));
           chip.classList.add("is-today");
         } else if (days.length && days.length < 7) {
           var today = days.indexOf(new Date().getDay()) !== -1;

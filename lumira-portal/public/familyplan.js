@@ -39,7 +39,7 @@
     { v: "monthly", label: "Monatlich rotierend", max: 6, one: "jeden Monat", many: "alle %n Monate",
       hint: "Wechselt am ersten Wechseltag im neuen Monat. Feste Tage gehen vor." },
     { v: "fixed", label: "Fest zugewiesen", max: 1,
-      hint: "Keine Rotation: nur an den eingetragenen Tagen bei der eingetragenen Person – oder „Jeden Tag“ die ganze Woche." }
+      hint: "Keine Rotation: nur an den eingetragenen Tagen bei der eingetragenen Person – oder „Jeden Tag“ die ganze Woche. „Ganze Familie“ heißt: alle zusammen (z. B. Putzen am Freitag)." }
   ];
   function rotationOf(v) { return ROTATION.filter(function (x) { return x.v === v; })[0] || ROTATION[0]; }
 
@@ -248,8 +248,12 @@
       }
       tb.appendChild(tr);
     });
-    t.appendChild(tb); wrap.appendChild(t); wc.appendChild(wrap);
-    wc.appendChild(el("p", "save-hint fp-gap", "Wählst du einen Dienst, den schon jemand hat, tauschen die beiden. Wirkt sofort auf dem Spiegel."));
+    t.appendChild(tb); wrap.appendChild(t);
+    // Nur Tagesdienste (alles täglich/fest nach Tag): keine leere Wochentabelle
+    if (maxSlots) {
+      wc.appendChild(wrap);
+      wc.appendChild(el("p", "save-hint fp-gap", "Wählst du einen Dienst, den schon jemand hat, tauschen die beiden. Wirkt sofort auf dem Spiegel."));
+    }
     var dg = dayGrid(w, true);
     if (dg) wc.appendChild(dg);
     var row = el("div", "save-row");
@@ -558,6 +562,9 @@
       day.addEventListener("change", function () { f.day = Number(day.value); renderTab(); });
       fr.appendChild(day);
       var who = el("select", "fp-small"); who.id = "fp-fmem-" + i + "-" + k; who.setAttribute("aria-label", "Person");
+      var allOpt = el("option", null, "Ganze Familie"); allOpt.value = "*"; allOpt.dataset.icon = "users";
+      if (f.memberId === "*") allOpt.selected = true;
+      who.appendChild(allOpt);
       PLAN.members.forEach(function (m) {
         var o = el("option", null, m.name + (m.active === false ? " (pausiert)" : "")); o.value = m.id;
         if (f.memberId === m.id) o.selected = true;
@@ -801,6 +808,8 @@
         if (editable) {
           var sel = el("select", "fp-dg-sel"); sel.id = "fp-dg-" + d.id + "-" + k;
           sel.setAttribute("aria-label", d.name + " am " + dm(k));
+          var oa = el("option", null, "Alle"); oa.value = "*"; oa.dataset.icon = "users"; if (pid === "*") oa.selected = true;
+          sel.appendChild(oa);
           PLAN.members.filter(function (m) { return m.active !== false; }).forEach(function (m) {
             var o = el("option", null, m.name); o.value = m.id; if (m.id === pid) o.selected = true;
             o.dataset.color = m.color; o.dataset.initial = (m.name || "?").charAt(0).toUpperCase();
@@ -812,6 +821,11 @@
               .then(function (p) { apply(p); ctx.toast("Gespeichert"); }).catch(fail);
           });
           td.appendChild(sel);
+        } else if (pid === "*") {
+          var allChip = el("span", "fp-dg-all"); allChip.title = "Ganze Familie · " + d.name + " · " + dm(k);
+          allChip.appendChild(icon("users"));
+          if (!compact) allChip.appendChild(el("span", null, "Alle"));
+          td.appendChild(allChip);
         } else if (pid) {
           var m = memberById(pid) || { name: "?", color: "#9ca3af" };
           var who = el("span", "fp-dg-who"); who.title = m.name + " · " + d.name + " · " + dm(k);

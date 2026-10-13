@@ -67,8 +67,11 @@ function buildPayload(raw, now) {
 	// Wer hat heute einen Tagesdienst? (dutyId → memberId)
 	const todayOwner = {};
 	Object.keys(days).forEach((did) => { if (Object.prototype.hasOwnProperty.call(days[did], todayKey)) todayOwner[did] = days[did][todayKey]; });
+	// „*“ = ganze Familie
+	const isMine = (owner, mid) => owner === mid || owner === "*";
 	const hasDayDuty = {};
-	Object.keys(days).forEach((did) => Object.keys(days[did]).forEach((k) => { if (days[did][k]) hasDayDuty[days[did][k]] = true; }));
+	const anyAll = Object.keys(days).some((did) => Object.keys(days[did]).some((k) => days[did][k] === "*"));
+	Object.keys(days).forEach((did) => Object.keys(days[did]).forEach((k) => { if (days[did][k] && days[did][k] !== "*") hasDayDuty[days[did][k]] = true; }));
 	const dutyOrder = {};
 	(Array.isArray(raw.duties) ? raw.duties : []).forEach((d, i) => { if (d && d.id) dutyOrder[d.id] = i; });
 	const members = Array.isArray(raw.members) ? raw.members : [];
@@ -90,12 +93,12 @@ function buildPayload(raw, now) {
 			range: dm(start) + " – " + dm(end) + end.getFullYear()
 		},
 		stale: toKey(end) < todayKey,
-		members: ordered.filter((m) => Array.isArray(assign[m.id]) || hasDayDuty[m.id]).map((m) => {
+		members: ordered.filter((m) => Array.isArray(assign[m.id]) || hasDayDuty[m.id] || (anyAll && !m.deleted && m.active !== false)).map((m) => {
 			const color = HEX_RE.test(m.color) ? m.color : "#9ca3af";
 			// Wochendienste – außer, heute hat ihn laut Tagesplan jemand anderes –
 			// plus die Tagesdienste, die heute bei dieser Person liegen
-			const own = (assign[m.id] || []).filter((id) => todayOwner[id] === undefined || todayOwner[id] === m.id);
-			Object.keys(todayOwner).forEach((id) => { if (todayOwner[id] === m.id && own.indexOf(id) === -1) own.push(id); });
+			const own = (assign[m.id] || []).filter((id) => todayOwner[id] === undefined || isMine(todayOwner[id], m.id));
+			Object.keys(todayOwner).forEach((id) => { if (isMine(todayOwner[id], m.id) && own.indexOf(id) === -1) own.push(id); });
 			own.sort((a, b) => (dutyOrder[a] || 0) - (dutyOrder[b] || 0));
 			const list = own.filter((id) => duties[id]);
 			return {
@@ -105,12 +108,12 @@ function buildPayload(raw, now) {
 				textColor: textOn(color),
 				avatar: avatarUrl(m.avatar),
 				// keine Dienste: heute frei (Tagesdienste an anderen Tagen) bzw. die ganze Woche
-				free: list.length ? null : (hasDayDuty[m.id] ? "heute" : "woche"),
+				free: list.length ? null : (hasDayDuty[m.id] || anyAll ? "heute" : "woche"),
 				duties: list.map((id) => {
 					const d = duties[id];
 					const dc = HEX_RE.test(d.color) ? d.color : "#9ca3af";
 					const wd = dutyDays(d.days);
-					const dayDuty = todayOwner[id] === m.id;
+					const dayDuty = isMine(todayOwner[id], m.id);
 					return {
 						name: String(d.name || "").slice(0, 30),
 						color: dc,

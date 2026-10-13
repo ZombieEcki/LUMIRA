@@ -461,6 +461,8 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
 .fp-dg-who { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
 .fp-dg-who .fp-av { width:22px; height:22px; font-size:.6rem; }
 .fp-dg-free { color:var(--danger); font-weight:600; }
+.fp-dg-all { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:999px; background:var(--inv); color:var(--inv-ink); font-weight:600; white-space:nowrap; }
+.fp-daygrid.compact .fp-dg-all { padding:3px 5px; }
 .fp-dg-sel { min-width:96px; font-size:.78rem; padding:5px 8px; min-height:32px; }
 .fp-daygrid.compact { min-width:0; table-layout:fixed; }
 .fp-daygrid.compact th, .fp-daygrid.compact td { padding:3px 1px; text-align:center; }
