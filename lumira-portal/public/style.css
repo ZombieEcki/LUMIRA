@@ -438,6 +438,35 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
 .fp-move { display:inline-flex; gap:4px; }
 .fp-move .btn-x, .fp-mrow > .btn-x, .fp-drow > .btn-x { width:40px; height:40px; padding:0; background:var(--card); }
 .fp-dprev { min-width:150px; }
+/* Verteilung je Dienst (zweite Zeile) und feste Zuweisungen */
+.fp-dwrap { display:flex; flex-direction:column; gap:0; border-radius:18px; background:var(--field); }
+.fp-dwrap > .fp-drow { background:transparent; }
+.fp-drot { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 10px 10px; }
+.fp-drot-line { display:flex; flex-wrap:wrap; gap:8px; }
+.fp-drot .fp-small { min-width:0; width:auto; background:var(--card); }
+.fp-fixed { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.fp-fixed-h { font-size:.78rem; font-weight:600; color:var(--muted); }
+.fp-fixed-r { display:flex; align-items:center; gap:4px; padding:3px; border-radius:14px; background:var(--card); }
+.fp-fixed-r .fp-small { background:var(--field); }
+.fp-fixed-r .btn-x { width:34px; height:34px; min-width:34px; min-height:34px; }
+.fp-drot-hint { flex-basis:100%; margin:0; }
+/* Tagesplan einer Woche */
+.fp-daygrid-wrap { margin-top:12px; }
+.fp-daygrid-h { font-size:.78rem; font-weight:700; color:var(--muted); margin-bottom:4px; }
+.fp-daygrid { min-width:520px; font-size:.78rem; }
+.fp-daygrid th small { font-weight:400; color:var(--faint); }
+.fp-daygrid th.is-today, .fp-daygrid td.is-today { background:color-mix(in srgb, var(--accent) 14%, transparent); }
+.fp-daygrid td { padding:5px 4px; }
+.fp-daygrid td.is-manual { box-shadow:inset 0 -2px 0 var(--accent); }
+.fp-dg-who { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+.fp-dg-who .fp-av { width:22px; height:22px; font-size:.6rem; }
+.fp-dg-free { color:var(--danger); font-weight:600; }
+.fp-dg-sel { min-width:96px; font-size:.78rem; padding:5px 8px; min-height:32px; }
+.fp-daygrid.compact { min-width:0; table-layout:fixed; }
+.fp-daygrid.compact th, .fp-daygrid.compact td { padding:3px 1px; text-align:center; }
+.fp-daygrid.compact th:first-child, .fp-daygrid.compact td:first-child { width:30px; }
+.fp-daygrid.compact .fp-dg-who .fp-av { width:20px; height:20px; font-size:.55rem; }
+.fp-dg-ico { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:50%; font-size:.7rem; }
 /* Symbolauswahl (eigenes Auswahlfeld mit Raster) */
 .fp-icpick { position:relative; }
 .fp-icbtn { display:flex; align-items:center; gap:9px; min-height:42px; padding:8px 12px; border:1px solid var(--line); border-radius:12px;

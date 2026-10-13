@@ -42,6 +42,12 @@ const HEX_RE = /^#[0-9a-f]{6}$/i;
 const PRESET_RE = /^(adult|child)-\d{2}$/;
 const UPLOAD_RE = /^m_[a-z0-9]{4,12}\.(png|jpg|webp)$/;
 const CLOCK_TOLERANCE_MS = 10 * 60 * 1000;
+// Verteilung je Dienst (Konzept v1.1): wöchentlich/täglich/monatlich rotierend
+// oder fest; „every“ = Rhythmus (alle N Tage/Wochen/Monate)
+const ROTATIONS = ["weekly", "daily", "monthly", "fixed"];
+const EVERY_MAX = { weekly: 4, daily: 7, monthly: 6, fixed: 1 };
+const MAX_FIXED = 7;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const MEMBER_COLORS = ["#4ade80", "#facc15", "#a78bfa", "#f472b6", "#38bdf8", "#fb923c", "#2dd4bf", "#e879f9"];
 
@@ -82,7 +88,7 @@ function defaults() {
 			fixedPairs: []
 		},
 		members: [],
-		duties: DEFAULT_DUTIES.map((d) => Object.assign({}, d, { roles: ROLES.slice(), active: true })),
+		duties: DEFAULT_DUTIES.map((d) => cleanDuty(Object.assign({}, d, { roles: ROLES.slice(), active: true }))),
 		weeks: [],
 		// Manuelle Änderungen an zukünftigen Wochen (Phase 4). Werden beim
 		// Wochenwechsel als "manual" in die neue Woche übernommen.
@@ -138,15 +144,43 @@ function cleanDays(days) {
 	return [1, 2, 3, 4, 5, 6, 0].filter((n) => set.has(n));
 }
 
+// Feste Zuweisungen: [{ day: -1 (jeden Tag) | 0–6, memberId }], je Tag höchstens eine
+function cleanFixed(list) {
+	if (!Array.isArray(list)) return [];
+	const out = [];
+	const seen = {};
+	for (const f of list) {
+		if (!f || typeof f.memberId !== "string" || !f.memberId) continue;
+		const day = Number(f.day);
+		if (!Number.isInteger(day) || day < -1 || day > 6 || seen[day]) continue;
+		seen[day] = true;
+		out.push({ day, memberId: f.memberId });
+	}
+	if (out.some((f) => f.day === -1)) return out.filter((f) => f.day === -1).slice(0, 1);
+	const order = [1, 2, 3, 4, 5, 6, 0];
+	return out.sort((a, b) => order.indexOf(a.day) - order.indexOf(b.day)).slice(0, MAX_FIXED);
+}
+
+function cleanEvery(rotation, every) {
+	const n = Number(every);
+	return Number.isInteger(n) && n >= 1 ? Math.min(n, EVERY_MAX[rotation] || 1) : 1;
+}
+
 function cleanDuty(d) {
 	const roles = Array.isArray(d.roles) ? d.roles.filter((r) => ROLES.indexOf(r) !== -1) : ROLES.slice();
+	const rotation = ROTATIONS.indexOf(d.rotation) !== -1 ? d.rotation : "weekly";
+	const fixed = cleanFixed(d.fixed);
 	return {
 		id: String(d.id),
 		name: String(d.name || "").slice(0, MAX_NAME),
 		color: HEX_RE.test(d.color) ? d.color : "#9ca3af",
 		icon: ICONS.indexOf(d.icon) !== -1 ? d.icon : "house",
 		roles: roles.length ? roles : ROLES.slice(),
-		days: cleanDays(d.days),
+		// fest an einzelnen Tagen: die Tage ergeben sich aus den Zuweisungen
+		days: rotation === "fixed" && fixed.length && fixed[0].day !== -1 ? cleanDays(fixed.map((f) => f.day)) : cleanDays(d.days),
+		rotation,
+		every: cleanEvery(rotation, d.every),
+		fixed,
 		active: d.active !== false,
 		deleted: d.deleted === true
 	};
@@ -159,6 +193,28 @@ function cleanAssign(a) {
 		if (Array.isArray(a[k])) out[k] = a[k].filter((x) => typeof x === "string");
 	}
 	return out;
+}
+
+// Tagesplan einer Woche: { dutyId: { "YYYY-MM-DD": memberId | null } }
+function cleanDayMap(m) {
+	const out = {};
+	if (!m || typeof m !== "object") return out;
+	for (const did of Object.keys(m)) {
+		if (!m[did] || typeof m[did] !== "object") continue;
+		const row = {};
+		for (const date of Object.keys(m[did])) {
+			const v = m[did][date];
+			if (DATE_RE.test(date) && (typeof v === "string" || v === null)) row[date] = v;
+		}
+		if (Object.keys(row).length) out[did] = row;
+	}
+	return out;
+}
+
+function cleanGaps(list) {
+	return Array.isArray(list) ? list.filter((g) => g && typeof g.dutyId === "string" && DATE_RE.test(g.date)).map((g) => ({
+		dutyId: g.dutyId, date: g.date, reason: g.reason === "paused" ? "paused" : "nobody", memberId: typeof g.memberId === "string" ? g.memberId : undefined
+	})) : [];
 }
 
 function normalize(raw) {
@@ -186,6 +242,9 @@ function normalize(raw) {
 			auto: cleanAssign(w.auto),
 			manual: w.manual ? cleanAssign(w.manual) : null,
 			unassigned: Array.isArray(w.unassigned) ? w.unassigned.filter((x) => typeof x === "string") : [],
+			days: cleanDayMap(w.days),
+			manualDays: w.manualDays ? cleanDayMap(w.manualDays) : null,
+			gaps: cleanGaps(w.gaps),
 			createdAt: typeof w.createdAt === "string" ? w.createdAt : "",
 			createdBy: typeof w.createdBy === "string" ? w.createdBy : ""
 		})) : [],
@@ -236,6 +295,15 @@ function validate(data) {
 	}
 	if (new Set(duties.map((d) => lower(d.name))).size !== duties.length) {
 		throw new ValidationError("duties", "Zwei Dienste haben denselben Namen");
+	}
+	const memberIds = members.map((m) => m.id);
+	for (const d of duties) {
+		if (d.rotation === "fixed" && !d.fixed.length) {
+			throw new ValidationError("duties", `${d.name}: Für „fest zugewiesen“ mindestens eine Person eintragen`);
+		}
+		for (const f of d.fixed) {
+			if (memberIds.indexOf(f.memberId) === -1) throw new ValidationError("duties", `${d.name}: Die fest eingetragene Person gibt es nicht mehr`);
+		}
 	}
 	const dutyIds = duties.map((d) => d.id);
 	const seen = {};
@@ -288,7 +356,7 @@ function shown(week) {
 function fingerprint(data) {
 	return JSON.stringify({
 		m: activeMembers(data).map((m) => [m.id, m.role]),
-		d: activeDuties(data).map((d) => [d.id, d.roles.slice().sort()]),
+		d: activeDuties(data).map((d) => [d.id, d.roles.slice().sort(), d.rotation, d.every, d.fixed, d.rotation === "daily" ? d.days : []]),
 		p: data.settings.pairMode,
 		f: data.settings.pairMode === "fixed" ? data.settings.fixedPairs : []
 	});
@@ -303,22 +371,83 @@ function currentWeekIndex(data, todayKey) {
 
 // Berechnet eine Woche aus der gespeicherten Historie vor weekStart plus
 // optional bereits simulierten Wochen (für die Vorschau).
+// Tagesplan einer Woche inklusive manueller Änderungen
+function effectiveDays(week) {
+	const out = JSON.parse(JSON.stringify(week.days || {}));
+	const man = week.manualDays || {};
+	for (const did of Object.keys(man)) {
+		out[did] = Object.assign(out[did] || {}, man[did]);
+	}
+	return out;
+}
+
+// Wochenverteilung (ganze Woche bei einer Person) und Tagesplan (tägliche
+// Rotation, feste Tage). Feste Zuweisungen und Dienste, deren Rhythmus noch
+// nicht wechselt, stehen vorab fest; der Rest wird fair darum herum verteilt.
 function computeFor(data, weekStart, simulated) {
 	const members = activeMembers(data);
 	const before = data.weeks.filter((w) => w.start < weekStart);
-	const history = before.map(shown).concat((simulated || []).map((s) => s.assign));
-	const starts = before.map((w) => w.start).concat((simulated || []).map((s) => s.start));
+	const prev = before.map((w) => ({ start: w.start, assign: shown(w), days: effectiveDays(w) }))
+		.concat((simulated || []).map((s) => ({ start: s.start, assign: s.assign, days: s.days || {} })));
+	const history = prev.map((w) => w.assign);
 	const cycleStart = data.settings.cycleStart || "";
-	const inCycle = starts.filter((s) => s >= cycleStart).length;
-	return rot.computeWeek({
+	const inCycle = prev.filter((w) => w.start >= cycleStart).length;
+	const duties = activeDuties(data);
+	const memberById = {};
+	members.forEach((m) => { memberById[m.id] = m; });
+	const last = prev[prev.length - 1];
+
+	const preassigned = {};
+	const blocked = [];
+	const rotating = [];
+	for (const d of duties) {
+		const allWeek = d.fixed.find((f) => f.day === -1);
+		if (allWeek) {
+			if (memberById[allWeek.memberId]) preassigned[d.id] = allWeek.memberId;
+			else blocked.push(d.id); // feste Person pausiert → Dienst bleibt frei (Hinweis)
+			continue;
+		}
+		if (d.rotation === "daily" || d.rotation === "fixed") continue; // Tagesplan
+		// Rhythmus/monatlich: bis zum nächsten Wechsel behält die Person den Dienst
+		if (last && !rot.changeDue(d.rotation, d.every, last.start, weekStart)) {
+			const holder = Object.keys(last.assign).find((pid) => (last.assign[pid] || []).indexOf(d.id) !== -1);
+			if (holder && memberById[holder] && rot.allowed(memberById[holder], d)) { preassigned[d.id] = holder; continue; }
+		}
+		rotating.push(d);
+	}
+	const res = rot.computeWeek({
 		members: members.map((m) => ({ id: m.id, role: m.role })),
-		duties: activeDuties(data).map((d) => ({ id: d.id, roles: d.roles })),
+		duties: rotating.map((d) => ({ id: d.id, roles: d.roles })),
+		preassigned,
+		order: duties.map((d) => d.id),
 		history,
 		cyclePos: members.length ? inCycle % members.length : 0,
 		key: weekStart,
 		pairMode: data.settings.pairMode,
 		fixedPairs: data.settings.fixedPairs
 	});
+	const dayRes = rot.computeDays({
+		start: weekStart,
+		end: rot.nextBoundary(weekStart, data.settings.rotationWeekday),
+		members: members.map((m) => ({ id: m.id, role: m.role })),
+		duties: duties.map((d) => ({ id: d.id, roles: d.roles, rotation: d.rotation, every: d.every, days: d.days, fixed: d.fixed })),
+		weekAssign: res.assign,
+		history: prev.map((w) => w.days),
+		key: weekStart
+	});
+	const gaps = dayRes.gaps.slice();
+	blocked.forEach((did) => {
+		const f = duties.find((d) => d.id === did).fixed[0];
+		gaps.push({ dutyId: did, date: weekStart, reason: "paused", memberId: f.memberId });
+	});
+	return {
+		assign: res.assign,
+		unassigned: res.unassigned.concat(blocked),
+		overQuota: res.overQuota,
+		days: dayRes.days,
+		gaps,
+		preassigned
+	};
 }
 
 // Neuer Zyklus ab der nächsten Wochengrenze (die laufende Woche bleibt).
@@ -362,8 +491,8 @@ function simulateFuture(data, now, count) {
 		const planned = data.plannedOverrides[start];
 		const manual = sameDistribution(planned, res.assign) ? planned : null;
 		const assign = manual || res.assign;
-		out.push({ start, auto: res.assign, manual, assign, unassigned: res.unassigned, history: simulated.slice() });
-		simulated.push({ start, assign });
+		out.push({ start, auto: res.assign, manual, assign, unassigned: res.unassigned, days: res.days, gaps: res.gaps, history: simulated.slice() });
+		simulated.push({ start, assign, days: res.days });
 		start = rot.nextBoundary(start, data.settings.rotationWeekday);
 	}
 	return out;
@@ -384,8 +513,17 @@ function explain(data, historyList, week) {
 		for (const did of week.assign[pid]) {
 			const parts = [];
 			const auto = (week.auto && week.auto[pid]) || [];
+			const dd = dutyById[did];
+			const prevWeek = recent[recent.length - 1];
+			const kept = prevWeek && (prevWeek.assign[pid] || []).indexOf(did) !== -1;
 			if (week.manual && auto.indexOf(did) === -1) {
 				parts.push("Manuell festgelegt.");
+			} else if (dd && dd.fixed && dd.fixed.some((f) => f.day === -1 && f.memberId === pid)) {
+				parts.push("Fest zugewiesen.");
+			} else if (dd && kept && dd.rotation === "monthly") {
+				parts.push(dd.every > 1 ? `Wechselt nur alle ${dd.every} Monate (am ersten Wechseltag im Monat).` : "Monatlicher Dienst – wechselt am ersten Wechseltag im neuen Monat.");
+			} else if (dd && kept && dd.rotation === "weekly" && dd.every > 1) {
+				parts.push(`Wechselt nur alle ${dd.every} Wochen.`);
 			} else {
 				let ago = -1;
 				for (let i = recent.length - 1; i >= 0; i--) {
@@ -415,6 +553,14 @@ function fairness(data, uptoIdx) {
 			if (!counts[pid]) continue;
 			for (const did of a[pid]) counts[pid][did] = (counts[pid][did] || 0) + 1;
 		}
+		// Tagesdienste (täglich/feste Tage) zählen je Tag
+		const days = effectiveDays(w);
+		for (const did of Object.keys(days)) {
+			for (const date of Object.keys(days[did])) {
+				const pid = days[did][date];
+				if (pid && counts[pid]) counts[pid][did] = (counts[pid][did] || 0) + 1;
+			}
+		}
 	}
 	return { weeks: weeks.length, counts };
 }
@@ -440,6 +586,9 @@ function ensureCurrentWeek(now) {
 		auto: res.assign,
 		manual: sameDistribution(planned, res.assign) && JSON.stringify(planned) !== JSON.stringify(res.assign) ? planned : null,
 		unassigned: res.unassigned,
+		days: res.days,
+		manualDays: null,
+		gaps: res.gaps,
 		createdAt: now.toISOString(),
 		createdBy: "scheduler"
 	});
@@ -463,8 +612,37 @@ function weekView(data, week, todayKey) {
 		auto: week.auto,
 		manual: week.manual,
 		unassigned: week.unassigned || [],
+		days: effectiveDays(week),
+		manualDays: week.manualDays || null,
+		gaps: week.gaps || [],
+		dates: datesOf(week.start, end),
 		stale: end < todayKey
 	};
+}
+
+function datesOf(start, end) {
+	const out = [];
+	for (let k = start; k <= end; k = rot.addDays(k, 1)) out.push(k);
+	return out;
+}
+
+// Wer hat heute welchen Dienst? Wochendienste plus Tagesdienste des Tages –
+// ein fester Tag oder eine Tagesänderung geht dem Wochen-Inhaber vor.
+function todayOf(week, dateKey) {
+	const assign = shown(week);
+	const days = effectiveDays(week);
+	const out = {};
+	for (const pid of Object.keys(assign)) {
+		out[pid] = assign[pid].filter((did) => !(days[did] && days[did][dateKey] !== undefined && days[did][dateKey] !== pid))
+			.map((did) => ({ dutyId: did, day: !!(days[did] && days[did][dateKey] === pid) }));
+	}
+	for (const did of Object.keys(days)) {
+		const pid = days[did][dateKey];
+		if (!pid) continue;
+		out[pid] = out[pid] || [];
+		if (!out[pid].some((x) => x.dutyId === did)) out[pid].push({ dutyId: did, day: true });
+	}
+	return out;
 }
 
 function view(now) {
@@ -474,7 +652,11 @@ function view(now) {
 	const idx = currentWeekIndex(data, todayKey);
 	const current = idx >= 0 ? weekView(data, data.weeks[idx], todayKey) : null;
 	const stored = data.weeks.map((w) => ({ start: w.start, assign: shown(w) }));
-	if (current) current.reasons = explain(data, stored.slice(0, idx), current);
+	if (current) {
+		current.reasons = explain(data, stored.slice(0, idx), current);
+		current.today = todayOf(data.weeks[idx], todayKey);
+		current.todayKey = todayKey;
+	}
 
 	const preview = simulateFuture(data, now, data.settings.previewWeeks).map((p) => {
 		const entry = {
@@ -484,8 +666,11 @@ function view(now) {
 			assign: p.assign,
 			auto: p.auto,
 			manual: p.manual,
-			unassigned: p.unassigned
+			unassigned: p.unassigned,
+			days: p.days,
+			gaps: p.gaps
 		};
+		entry.dates = datesOf(entry.start, entry.end);
 		entry.reasons = explain(data, stored.slice(0, idx + 1).concat(p.history), entry);
 		return entry;
 	});
@@ -495,9 +680,18 @@ function view(now) {
 	if (!activeMembers(data).length) warnings.push("Noch keine Mitglieder. Lege unter „Familienmitglieder“ die Familie an.");
 	if (!clockPlausible(data, now)) warnings.push("Die Uhrzeit des Pi wirkt falsch (liegt vor der letzten Änderung). Neue Wochen werden erst angelegt, wenn die Uhr wieder stimmt.");
 	if (!data.settings.autoRotate) warnings.push("Die automatische Rotation ist pausiert. Der Plan bleibt stehen.");
+	const dutyName = (id) => (data.duties.find((d) => d.id === id) || { name: id }).name;
 	if (current && current.unassigned.length) {
-		const names = current.unassigned.map((id) => (data.duties.find((d) => d.id === id) || { name: id }).name);
-		warnings.push(`Diese Woche nicht vergeben, weil niemand Passendes mitmacht: ${names.join(", ")}`);
+		const paused = new Set(current.gaps.filter((g) => g.reason === "paused").map((g) => g.dutyId));
+		const names = current.unassigned.filter((id) => !paused.has(id)).map(dutyName);
+		if (names.length) warnings.push(`Diese Woche nicht vergeben, weil niemand Passendes mitmacht: ${names.join(", ")}`);
+	}
+	warnings.push(...ruleWarnings(data));
+	if (current) {
+		const nobody = [...new Set(current.gaps.filter((g) => g.reason === "nobody").map((g) => g.dutyId))].map(dutyName);
+		if (nobody.length) warnings.push(`Tagesdienst ohne passende Person (Rolle): ${nobody.join(", ")}`);
+		const uneven = unevenText(data, current.assign);
+		if (uneven) warnings.push(uneven);
 	}
 
 	return {
@@ -516,6 +710,35 @@ function view(now) {
 		warnings,
 		corrupt
 	};
+}
+
+// Konflikte in den Regeln: feste Person pausiert, Rolle passt nicht
+const DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+function ruleWarnings(data) {
+	const out = [];
+	const byId = {};
+	data.members.forEach((m) => { byId[m.id] = m; });
+	for (const d of activeDuties(data)) {
+		for (const f of d.fixed) {
+			const m = byId[f.memberId];
+			if (!m) continue;
+			const when = f.day === -1 ? "die ganze Woche" : "am " + DAY_NAMES[f.day];
+			if (!m.active) out.push(`${d.name}: ${m.name} ist pausiert – ${when} bleibt der Dienst frei.`);
+			else if (!rot.allowed(m, d)) out.push(`${d.name}: ${m.name} ist fest eingetragen, obwohl der Dienst nur für ${d.roles[0] === "adult" ? "Erwachsene" : "Kinder"} gilt – die feste Zuweisung geht vor.`);
+		}
+	}
+	return out;
+}
+
+// Ungleiche Verteilung der Wochendienste (meist wegen fester Zuweisungen)
+function unevenText(data, assign) {
+	const members = activeMembers(data).filter((m) => Array.isArray(assign[m.id]));
+	if (members.length < 2) return "";
+	const counts = members.map((m) => ({ name: m.name, n: assign[m.id].length }));
+	const max = Math.max(...counts.map((c) => c.n));
+	const min = Math.min(...counts.map((c) => c.n));
+	if (max - min < 2) return "";
+	return "Diese Woche ungleich verteilt: " + counts.map((c) => `${c.name} ${c.n}`).join(", ") + " Wochendienste – feste Zuweisungen haben Vorrang.";
 }
 
 // ---------------------------------------------------------------------------
@@ -566,8 +789,41 @@ function setMembers(revision, list, now) {
 		const keep = new Set(next.map((m) => m.id));
 		const removed = data.members.filter((m) => !keep.has(m.id)).map((m) => Object.assign({}, m, { deleted: true }));
 		data.members = next.concat(removed);
+		// Feste Zuweisungen an entfernte Personen fallen weg; ein „fester“ Dienst
+		// ohne Person rotiert wieder wöchentlich
+		for (const d of data.duties) {
+			d.fixed = (d.fixed || []).filter((f) => keep.has(f.memberId));
+			if (d.rotation === "fixed" && !d.fixed.length) { d.rotation = "weekly"; d.every = 1; }
+		}
 		if (fingerprint(data) !== before) restartCycle(data, now || new Date());
 	}, now);
+}
+
+// Verteilung eines Dienstes aus dem Portal prüfen (verständliche Fehler)
+const ROTATION_LABEL = { weekly: "Wochen", daily: "Tage", monthly: "Monate" };
+function checkRotation(field, item, data, existing) {
+	const name = String(item.name || "Dienst").trim() || "Dienst";
+	const rotation = item.rotation === undefined ? (existing ? existing.rotation : "weekly") : item.rotation;
+	if (ROTATIONS.indexOf(rotation) === -1) throw new ValidationError(field, `${name}: Unbekannte Verteilung`);
+	const every = item.every === undefined ? (existing && existing.rotation === rotation ? existing.every : 1) : Number(item.every);
+	if (rotation !== "fixed" && (!Number.isInteger(every) || every < 1 || every > EVERY_MAX[rotation])) {
+		throw new ValidationError(field, `${name}: Rhythmus 1 bis ${EVERY_MAX[rotation]} ${ROTATION_LABEL[rotation]}`);
+	}
+	const list = item.fixed === undefined ? (existing ? existing.fixed : []) : item.fixed;
+	if (!Array.isArray(list)) throw new ValidationError(field, `${name}: Feste Zuweisungen müssen eine Liste sein`);
+	const members = data.members.filter((m) => !m.deleted).map((m) => m.id);
+	const seen = {};
+	for (const f of list) {
+		const day = Number(f && f.day);
+		if (!Number.isInteger(day) || day < -1 || day > 6) throw new ValidationError(field, `${name}: Unbekannter Wochentag`);
+		if (members.indexOf(f.memberId) === -1) throw new ValidationError(field, `${name}: Bitte für jede feste Zuweisung eine Person wählen`);
+		if (seen[day]) throw new ValidationError(field, `${name}: ${day === -1 ? "„Jeden Tag“" : DAY_NAMES[day]} ist doppelt fest vergeben`);
+		seen[day] = true;
+	}
+	if (seen[-1] && list.length > 1) throw new ValidationError(field, `${name}: „Jeden Tag“ lässt sich nicht mit einzelnen Tagen mischen`);
+	if (list.length > MAX_FIXED) throw new ValidationError(field, `${name}: Höchstens ${MAX_FIXED} feste Zuweisungen`);
+	if (rotation === "fixed" && !list.length) throw new ValidationError(field, `${name}: Für „fest zugewiesen“ mindestens eine Person eintragen`);
+	return { rotation, every: rotation === "fixed" ? 1 : every, fixed: cleanFixed(list) };
 }
 
 function setDuties(revision, list, now) {
@@ -589,10 +845,11 @@ function setDuties(revision, list, now) {
 				icon: item.icon,
 				roles: ROLES.filter((r) => roles.indexOf(r) !== -1),
 				days: cleanDays(item.days),
+				...checkRotation(field, item, data, existing),
 				active: item.active !== false,
 				deleted: false
 			};
-		});
+		}).map((d) => Object.assign(d, { days: cleanDuty(d).days }));
 		const keep = new Set(next.map((d) => d.id));
 		const removed = data.duties.filter((d) => !keep.has(d.id)).map((d) => Object.assign({}, d, { deleted: true }));
 		data.duties = next.concat(removed);
@@ -694,9 +951,34 @@ function assign(revision, weekStart, memberId, slot, dutyId, now) {
 function resetWeek(revision, weekStart, now) {
 	return mutate(revision, (data) => {
 		const week = data.weeks.find((w) => w.start === weekStart);
-		if (week) { week.manual = null; return; }
+		if (week) { week.manual = null; week.manualDays = null; return; }
 		if (data.plannedOverrides[weekStart]) { delete data.plannedOverrides[weekStart]; return; }
 		throw new ValidationError("week", "Woche nicht gefunden");
+	}, now);
+}
+
+// Tagesdienst an einem Tag der laufenden Woche jemand anderem geben (oder
+// zurück zur Automatik: memberId = Wert aus dem Tagesplan).
+function assignDay(revision, weekStart, dutyId, date, memberId, now) {
+	now = now || new Date();
+	return mutate(revision, (data) => {
+		const idx = currentWeekIndex(data, rot.toKey(now));
+		if (idx < 0 || data.weeks[idx].start !== weekStart) throw new ValidationError("week", "Einzelne Tage lassen sich nur in der laufenden Woche ändern");
+		const week = data.weeks[idx];
+		const end = rot.addDays(rot.nextBoundary(week.start, data.settings.rotationWeekday), -1);
+		if (!DATE_RE.test(String(date)) || date < week.start || date > end) throw new ValidationError("date", "Der Tag liegt nicht in dieser Woche");
+		if (!data.duties.some((d) => d.id === dutyId && !d.deleted)) throw new ValidationError("dutyId", "Unbekannter Dienst");
+		if (!(week.days[dutyId] && Object.prototype.hasOwnProperty.call(week.days[dutyId], date))) {
+			throw new ValidationError("date", "An diesem Tag gibt es den Dienst nicht");
+		}
+		if (!activeMembers(data).some((m) => m.id === memberId)) throw new ValidationError("memberId", "Bitte eine (aktive) Person wählen");
+		const md = week.manualDays || {};
+		if (week.days[dutyId][date] === memberId) {
+			if (md[dutyId]) { delete md[dutyId][date]; if (!Object.keys(md[dutyId]).length) delete md[dutyId]; }
+		} else {
+			(md[dutyId] = md[dutyId] || {})[date] = memberId;
+		}
+		week.manualDays = Object.keys(md).length ? md : null;
 	}, now);
 }
 
@@ -719,7 +1001,10 @@ function regenerateCurrent(revision, now) {
 		const res = computeFor(data, week.start);
 		week.auto = res.assign;
 		week.unassigned = res.unassigned;
+		week.days = res.days;
+		week.gaps = res.gaps;
 		week.manual = null;
+		week.manualDays = null;
 		week.createdBy = "regenerate";
 	}, now);
 }
@@ -846,6 +1131,7 @@ module.exports = {
 	AVATAR_UPLOAD_DIR,
 	ICONS,
 	ROLES,
+	ROTATIONS,
 	MAX_MEMBERS,
 	MAX_DUTIES,
 	defaults,
@@ -858,6 +1144,7 @@ module.exports = {
 	setDuties,
 	setSettings,
 	assign,
+	assignDay,
 	resetWeek,
 	regenerateCurrent,
 	regenerateFuture,

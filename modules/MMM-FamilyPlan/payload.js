@@ -3,6 +3,10 @@
  * buildPayload(raw, now) macht aus familyplan.json die laufende Woche mit
  * aufgelösten Namen, Farben, Symbolen und Avatar-URLs. Keine Rotation – die
  * rechnet ausschließlich das LUMIRA-Portal.
+ *
+ * Dienste, die nicht die ganze Woche bei einer Person liegen (täglich
+ * rotierend, fest an einzelnen Wochentagen), zeigt der Spiegel nur am Tag
+ * selbst – bei der Person, die heute dran ist („heute“).
  */
 "use strict";
 
@@ -59,6 +63,14 @@ function buildPayload(raw, now) {
 	if (!week) return { state: "empty", title };
 
 	const assign = (week.manual && typeof week.manual === "object" ? week.manual : week.auto) || {};
+	const days = dayPlan(week);
+	// Wer hat heute einen Tagesdienst? (dutyId → memberId)
+	const todayOwner = {};
+	Object.keys(days).forEach((did) => { if (Object.prototype.hasOwnProperty.call(days[did], todayKey)) todayOwner[did] = days[did][todayKey]; });
+	const hasDayDuty = {};
+	Object.keys(days).forEach((did) => Object.keys(days[did]).forEach((k) => { if (days[did][k]) hasDayDuty[days[did][k]] = true; }));
+	const dutyOrder = {};
+	(Array.isArray(raw.duties) ? raw.duties : []).forEach((d, i) => { if (d && d.id) dutyOrder[d.id] = i; });
 	const members = Array.isArray(raw.members) ? raw.members : [];
 	const duties = {};
 	(Array.isArray(raw.duties) ? raw.duties : []).forEach((d) => { if (d && d.id) duties[d.id] = d; });
@@ -78,31 +90,57 @@ function buildPayload(raw, now) {
 			range: dm(start) + " – " + dm(end) + end.getFullYear()
 		},
 		stale: toKey(end) < todayKey,
-		members: ordered.filter((m) => Array.isArray(assign[m.id])).map((m) => {
+		members: ordered.filter((m) => Array.isArray(assign[m.id]) || hasDayDuty[m.id]).map((m) => {
 			const color = HEX_RE.test(m.color) ? m.color : "#9ca3af";
+			// Wochendienste – außer, heute hat ihn laut Tagesplan jemand anderes –
+			// plus die Tagesdienste, die heute bei dieser Person liegen
+			const own = (assign[m.id] || []).filter((id) => todayOwner[id] === undefined || todayOwner[id] === m.id);
+			Object.keys(todayOwner).forEach((id) => { if (todayOwner[id] === m.id && own.indexOf(id) === -1) own.push(id); });
+			own.sort((a, b) => (dutyOrder[a] || 0) - (dutyOrder[b] || 0));
+			const list = own.filter((id) => duties[id]);
 			return {
 				name: String(m.name || "").slice(0, 30),
 				initial: String(m.name || "?").trim().charAt(0).toUpperCase(),
 				color,
 				textColor: textOn(color),
 				avatar: avatarUrl(m.avatar),
-				duties: assign[m.id].filter((id) => duties[id]).map((id) => {
+				// keine Dienste: heute frei (Tagesdienste an anderen Tagen) bzw. die ganze Woche
+				free: list.length ? null : (hasDayDuty[m.id] ? "heute" : "woche"),
+				duties: list.map((id) => {
 					const d = duties[id];
 					const dc = HEX_RE.test(d.color) ? d.color : "#9ca3af";
-					const days = dutyDays(d.days);
+					const wd = dutyDays(d.days);
+					const dayDuty = todayOwner[id] === m.id;
 					return {
 						name: String(d.name || "").slice(0, 30),
 						color: dc,
 						textColor: textOn(dc),
 						icon: ICON_RE.test(d.icon) ? d.icon : "house",
-						// feste Wochentage: Kurztext und „heute fällig“
-						days: daysText(days),
-						today: days.length > 0 && days.indexOf(now.getDay()) !== -1
+						// feste Wochentage: Kurztext und „heute fällig“; Tagesdienste immer „heute“
+						days: dayDuty ? "" : daysText(wd),
+						today: dayDuty || (wd.length > 0 && wd.indexOf(now.getDay()) !== -1)
 					};
 				})
 			};
 		})
 	};
+}
+
+// Tagesplan der Woche inklusive manueller Änderungen: { dutyId: { datum: memberId|null } }
+function dayPlan(week) {
+	const out = {};
+	[week.days, week.manualDays].forEach((map) => {
+		if (!map || typeof map !== "object") return;
+		Object.keys(map).forEach((did) => {
+			const row = map[did];
+			if (!row || typeof row !== "object") return;
+			out[did] = out[did] || {};
+			Object.keys(row).forEach((k) => {
+				if (/^\d{4}-\d{2}-\d{2}$/.test(k) && (typeof row[k] === "string" || row[k] === null)) out[did][k] = row[k];
+			});
+		});
+	});
+	return out;
 }
 
 const DAY_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];

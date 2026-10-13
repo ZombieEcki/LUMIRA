@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 108 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 121 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -140,6 +140,19 @@ um den aktuellen Stand zu sehen.
 - [x] Alarmierung zusätzlich oben auf der Alarm-Seite schaltbar; aus = kein aPager-Modul,
       Alarm-Kachel/-Karte auf der Startseite ausgeblendet, Familienplan/Sprüche/Dauerschleife
       reagieren nicht mehr auf Alarm-Zustände
+
+### Familienplan v1.1: Verteilung je Dienst & feste Zuweisungen
+- [x] Je Dienst wählbar: wöchentlich (alle 1–4 Wochen), täglich (alle 1–7 Tage, an
+      den markierten Wochentagen), monatlich (alle 1–6 Monate, Wechsel am ersten
+      Wechseltag im neuen Monat) oder fest zugewiesen
+- [x] Feste Zuweisungen nach Person und Wochentag (z. B. Kochdienst Mo Franzi,
+      Di Marcel) oder „jeden Tag“; haben Vorrang, zählen bei der fairen Verteilung mit
+- [x] Tagesplan je Woche (beim Wochenwechsel eingefroren, Regeländerungen gelten ab
+      nächster Woche), einzelne Tage der laufenden Woche änderbar, zurück zur Automatik
+- [x] Spiegel und Startseite: Tagesdienste nur am Tag selbst bei der Person („heute“)
+- [x] Hinweise: feste Person pausiert, Rolle passt nicht, ungleiche Verteilung
+- [x] Alte familyplan.json ohne neue Felder: alles wöchentlich wie bisher
+- [ ] Auf dem Familien-Spiegel prüfen
 
 ### Familienplan: Dienste an Wochentagen & Bilder zuschneiden
 - [x] Dienste können feste Wochentage haben (z. B. Müll Di, Do); Rotation bleibt

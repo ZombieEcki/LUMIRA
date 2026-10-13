@@ -427,6 +427,11 @@ app.post("/api/familyplan/weeks/:start/assign", requireAuth, (req, res) => {
 	familyplanAction(res, (now) => familyplanLib.assign(body.revision, req.params.start, String(body.memberId || ""), Number(body.slot), String(body.dutyId || ""), now));
 });
 
+app.post("/api/familyplan/weeks/:start/day", requireAuth, (req, res) => {
+	const body = req.body || {};
+	familyplanAction(res, (now) => familyplanLib.assignDay(body.revision, req.params.start, String(body.dutyId || ""), String(body.date || ""), String(body.memberId || ""), now));
+});
+
 app.post("/api/familyplan/weeks/:start/reset", requireAuth, (req, res) => {
 	const body = req.body || {};
 	familyplanAction(res, (now) => familyplanLib.resetWeek(body.revision, req.params.start, now));

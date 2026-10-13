@@ -1,7 +1,9 @@
 /* MagicMirror²
  * Module: MMM-FamilyPlan
  *
- * Familienplan für LUMIRA: zeigt, wer diese Woche welche Dienste hat.
+ * Familienplan für LUMIRA: zeigt, wer diese Woche welche Dienste hat – und
+ * bei täglich wechselnden oder fest nach Wochentag verteilten Diensten, wer
+ * heute dran ist.
  * Die Daten kommen aus ~/.lumira/familyplan.json (gepflegt im
  * LUMIRA-Portal, Seite „Familienplan“), der node_helper lädt sie live nach.
  * Siehe concept/familienplan.md.
@@ -135,7 +137,7 @@ Module.register("MMM-FamilyPlan", {
 				}
 				pills.appendChild(pill);
 			});
-			if (!m.duties.length) pills.appendChild(this.el("div", "fp-pill fp-free", "Diese Woche frei"));
+			if (!m.duties.length) pills.appendChild(this.el("div", "fp-pill fp-free", m.free === "heute" ? "Heute frei" : "Diese Woche frei"));
 			right.appendChild(pills);
 			row.appendChild(right);
 			wrapper.appendChild(row);

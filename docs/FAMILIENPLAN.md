@@ -31,15 +31,37 @@ mit, ist aber zunächst ausgeschaltet.
 3. **Auf dem Spiegel einschalten:** *Übersicht → Auf dem Spiegel →
    „Familienplan anzeigen“* einschalten, Darstellung und Breite wählen,
    *Speichern*. Der Spiegel startet einmal neu und zeigt den Plan oben links.
-4. **Optional:** *Einstellungen*: Rotationstag (Standard Montag), Überschrift,
+4. **Optional:** *Einstellungen*: Wechseltag (Standard Montag), Überschrift,
    wie viele Wochen die Vorschau zeigt, und ob die Dienste jede Woche neu
    kombiniert werden oder feste Paare zusammenbleiben (z. B. Kochen +
    Küche).
 
 Dienste können **feste Wochentage** bekommen (Familienplan → Dienste, Schalter
-Mo–So, z. B. Mülldienst Di + Do). Die Verteilung bleibt wöchentlich; der Spiegel
-zeigt die Tage am Dienst und hebt ihn am Tag selbst mit „heute“ hervor. Eigene
-Profilfotos lassen sich beim Hochladen zuschneiden (Ausschnitt verschieben, zoomen).
+Mo–So, z. B. Mülldienst Di + Do). Der Spiegel zeigt die Tage am Dienst und hebt
+ihn am Tag selbst mit „heute“ hervor. Eigene Profilfotos lassen sich beim
+Hochladen zuschneiden (Ausschnitt verschieben, zoomen).
+
+### Verteilung je Dienst
+
+Unter der Dienstzeile (*Familienplan → Dienste*) steht, wie der Dienst verteilt wird:
+
+| Verteilung | Rhythmus | Wirkung |
+|---|---|---|
+| **Wöchentlich rotierend** (Standard) | jede Woche … alle 4 Wochen | Wechselt am Wechseltag. Bei „alle 2 Wochen“ behält die Person den Dienst zwei Wochen. |
+| **Täglich rotierend** | jeden Tag … alle 7 Tage | Jeden Tag (bzw. alle N Tage) jemand anderes – an den markierten Wochentagen, ohne Auswahl an allen. |
+| **Monatlich rotierend** | jeden Monat … alle 6 Monate | Wechselt am ersten Wechseltag im neuen Monat. |
+| **Fest zugewiesen** | – | Keine Rotation: nur an den eingetragenen Tagen bei der eingetragenen Person (z. B. Kochdienst Mo Franzi, Di Marcel, Mi Franzi) – oder „Jeden Tag“ die ganze Woche bei einer Person. |
+
+**Feste Tage** lassen sich auch bei rotierenden Diensten eintragen
+(„+ Feste Zuweisung“): An diesem Wochentag hat dann immer die eingetragene
+Person den Dienst, an den anderen Tagen wird rotiert. Feste Zuweisungen haben
+immer Vorrang.
+
+Dienste, die nicht die ganze Woche bei einer Person liegen (täglich rotierend
+oder fest an einzelnen Tagen), heißen **Tagesdienste**. Der Spiegel und die
+Startseite zeigen sie nur am Tag selbst bei der Person, die heute dran ist
+(„heute“). Im Portal stehen sie als Tagesraster unter der Woche
+(*Übersicht*: änderbar, *Wochenplan*: kompakt).
 
 Geburtstage, Jahrestage (Hochzeitstag, Kennenlerntag, Einzug oder ein eigener
 Anlass) und Countdowns für die Familienbotschaften stehen auf der Seite
@@ -51,6 +73,7 @@ Familienmitgliedern verknüpft.
 | Was | Wo | Wirkung |
 |-----|----|---------|
 | Dienste dieser Woche tauschen | *Übersicht*: im Dropdown einen anderen Dienst wählen | Die beiden tauschen. Sofort auf dem Spiegel. |
+| Tagesdienst an einem Tag ändern | *Übersicht → Tagesdienste*: Person im Tagesraster wählen | Nur dieser Tag, sofort auf dem Spiegel (markiert als geändert). |
 | Eine kommende Woche vorab ändern | *Wochenplan → Bearbeiten* bei der Woche | Gilt ab Wochenbeginn. Die Wochen danach rechnen sich neu, damit es fair bleibt. |
 | Eine Änderung zurücknehmen | *↺ automatisch* bzw. *Automatische Verteilung wiederherstellen* | Die berechnete Verteilung gilt wieder. |
 | Alle Vorab-Änderungen verwerfen | *Wochenplan → Rotationsplan neu generieren* | Kommende Wochen wieder automatisch, die laufende bleibt. |
@@ -60,8 +83,8 @@ Familienmitgliedern verknüpft.
 | Prüfen, ob es fair zugeht | *Wochenplan → Wie oft hatte wer was?* | Tabelle der letzten 12 Wochen. |
 
 **Gut zu wissen:** Die laufende Woche ändert sich nie von allein. Neue
-Personen, pausierte Dienste oder ein anderer Rotationstag gelten immer ab der
-nächsten Woche.
+Personen, pausierte Dienste, eine andere Verteilung oder ein anderer Wechseltag
+gelten immer ab der nächsten Woche – sofort nur über *Aktuelle Woche neu verteilen*.
 
 ## 4. So wird verteilt
 
@@ -72,6 +95,19 @@ nächsten Woche.
   Person jeden Dienst genau einmal. Danach beginnt der nächste Zyklus.
 - Niemand hat denselben Dienst zwei Wochen hintereinander.
 - Die Kombinationen wechseln von Zyklus zu Zyklus (außer bei festen Paaren).
+- **Feste Zuweisungen gehen vor** und zählen bei „gleich viele Dienste“ mit:
+  Wer feste Dienste hat, bekommt entsprechend weniger dazu. Lässt sich das
+  nicht ausgleichen (z. B. drei feste Dienste bei einer Person), zeigt das
+  Portal einen Hinweis „ungleich verteilt“.
+- Wöchentliche Dienste mit Rhythmus („alle 2 Wochen“) und monatliche Dienste
+  bleiben bis zum Wechsel bei derselben Person und zählen in jeder dieser
+  Wochen mit.
+- **Tagesdienste** werden Tag für Tag verteilt: Wer den Dienst in den letzten
+  vier Wochen am seltensten hatte, ist dran; niemand zweimal hintereinander,
+  wenn es sich vermeiden lässt; wer diese Woche schon mehr Dienste hat,
+  bekommt eher keinen weiteren. Feste Tage zählen mit.
+- Ist eine fest eingetragene Person pausiert, bleibt der Dienst an dem Tag frei
+  (Hinweis im Portal).
 - Es wird nicht gewürfelt: Gleiche Ausgangslage ergibt immer denselben Plan,
   auch nach einem Neustart. Die Vorschau zeigt deshalb verlässlich, was kommt
   – solange niemand etwas ändert.

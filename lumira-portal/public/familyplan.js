@@ -30,6 +30,18 @@
     "paw": "Haustier", "car": "Auto", "bicycle": "Fahrrad", "snowflake": "Winterdienst", "house": "Haus", "wrench": "Werkzeug"
   };
   var MEMBER_COLORS = ["#4ade80", "#facc15", "#a78bfa", "#f472b6", "#38bdf8", "#fb923c", "#2dd4bf", "#e879f9"];
+  // Verteilung je Dienst (Konzept v1.1) – Werte wie lib/familyplan.js
+  var ROTATION = [
+    { v: "weekly", label: "Wöchentlich rotierend", max: 4, one: "jede Woche", many: "alle %n Wochen",
+      hint: "Wechselt am Wechseltag (Einstellungen). Feste Tage gehen vor." },
+    { v: "daily", label: "Täglich rotierend", max: 7, one: "jeden Tag", many: "alle %n Tage",
+      hint: "Jeden Tag jemand anderes – an den markierten Wochentagen, ohne Auswahl an allen. Der Spiegel zeigt nur, wer heute dran ist." },
+    { v: "monthly", label: "Monatlich rotierend", max: 6, one: "jeden Monat", many: "alle %n Monate",
+      hint: "Wechselt am ersten Wechseltag im neuen Monat. Feste Tage gehen vor." },
+    { v: "fixed", label: "Fest zugewiesen", max: 1,
+      hint: "Keine Rotation: nur an den eingetragenen Tagen bei der eingetragenen Person – oder „Jeden Tag“ die ganze Woche." }
+  ];
+  function rotationOf(v) { return ROTATION.filter(function (x) { return x.v === v; })[0] || ROTATION[0]; }
 
   // ---------------------------------------------------------------------
   // Helfer
@@ -238,8 +250,10 @@
     });
     t.appendChild(tb); wrap.appendChild(t); wc.appendChild(wrap);
     wc.appendChild(el("p", "save-hint fp-gap", "Wählst du einen Dienst, den schon jemand hat, tauschen die beiden. Wirkt sofort auf dem Spiegel."));
+    var dg = dayGrid(w, true);
+    if (dg) wc.appendChild(dg);
     var row = el("div", "save-row");
-    if (w.manual) {
+    if (w.manual || w.manualDays) {
       var rs = el("button", "btn", "↺ Automatische Verteilung wiederherstellen"); rs.type = "button";
       rs.addEventListener("click", function () {
         api("/api/familyplan/weeks/" + w.start + "/reset", { method: "POST", body: { revision: PLAN.revision } })
@@ -424,14 +438,14 @@
   // ----- Dienste -----
   function renderDuties(panel) {
     if (!draftDuties) draftDuties = clone(PLAN.duties);
-    var c = card("Dienste", "Name, Farbe, Symbol und für wen der Dienst gilt. Pausierte Dienste werden nicht verteilt (z. B. Garten im Winter).");
+    var c = card("Dienste", "Name, Farbe, Symbol, für wen der Dienst gilt und wie er verteilt wird: wöchentlich, täglich oder monatlich rotierend oder fest – auch fest nach Wochentag (z. B. Kochdienst Mo Franzi, Di Marcel). Pausierte Dienste werden nicht verteilt (z. B. Garten im Winter).");
     var list = el("div", "fp-list");
     draftDuties.forEach(function (d, i) { list.appendChild(dutyRow(d, i)); });
     c.appendChild(list);
     var add = el("button", "btn-add", "+ Dienst hinzufügen"); add.type = "button";
     add.disabled = draftDuties.length >= 16;
     add.addEventListener("click", function () {
-      draftDuties.push({ name: "", color: "#38bdf8", icon: "house", roles: ["adult", "child"], active: true });
+      draftDuties.push({ name: "", color: "#38bdf8", icon: "house", roles: ["adult", "child"], active: true, rotation: "weekly", every: 1, fixed: [] });
       renderTab();
       var inputs = document.querySelectorAll(".fp-dname-in");
       if (inputs.length) inputs[inputs.length - 1].focus();
@@ -442,12 +456,14 @@
       api("/api/familyplan/duties", { method: "PUT", body: { revision: PLAN.revision, duties: draftDuties } })
         .then(function (p) { apply(p); ctx.toast("Dienste gespeichert"); })
         .catch(function (err) { btn.disabled = false; fail(err); });
-    }, "Name, Farbe und Symbol wirken sofort, die Verteilung ändert sich ab der nächsten Woche."));
+    }, "Name, Farbe und Symbol wirken sofort, die Verteilung ändert sich ab der nächsten Woche (sofort: Übersicht → „Aktuelle Woche neu verteilen“)."));
     panel.appendChild(c);
   }
 
   function dutyRow(d, i) {
+    var box = el("div", "fp-dwrap");
     var row = el("div", "fp-drow");
+    box.appendChild(row);
     var preview = el("span", "fp-dprev");
     function refresh() { preview.replaceChildren(pill({ name: d.name || "Neuer Dienst", color: d.color, icon: d.icon, days: d.days })); }
     refresh();
@@ -474,7 +490,9 @@
     var daysBox = el("div", "fp-days");
     daysBox.setAttribute("role", "group");
     daysBox.setAttribute("aria-label", "Wochentage, leer = ganze Woche");
-    daysBox.title = "Feste Tage – ohne Auswahl gilt der Dienst die ganze Woche";
+    daysBox.title = d.rotation === "daily" ? "An diesen Tagen rotiert der Dienst – ohne Auswahl jeden Tag" : "Feste Tage – ohne Auswahl gilt der Dienst die ganze Woche";
+    // „Fest“: die Tage ergeben sich aus den Zuweisungen
+    if (d.rotation === "fixed") daysBox.hidden = true;
     if (!Array.isArray(d.days)) d.days = [];
     [1, 2, 3, 4, 5, 6, 0].forEach(function (n) {
       var b = el("button", "fp-day", DAY_SHORT[n]); b.type = "button";
@@ -493,7 +511,83 @@
     var del = el("button", "btn-x", "✕"); del.type = "button"; del.title = "Entfernen"; del.setAttribute("aria-label", "Entfernen");
     del.addEventListener("click", function () { draftDuties.splice(i, 1); renderTab(); });
     row.appendChild(del);
-    return row;
+    box.appendChild(rotationEditor(d, i));
+    return box;
+  }
+
+  // Zweite Zeile je Dienst: Verteilung, Rhythmus, feste Zuweisungen
+  function rotationEditor(d, i) {
+    if (!d.rotation) d.rotation = "weekly";
+    if (!Array.isArray(d.fixed)) d.fixed = [];
+    var R = rotationOf(d.rotation);
+    var box = el("div", "fp-drot");
+    var line = el("div", "fp-drot-line");
+
+    var mode = el("select", "fp-small"); mode.id = "fp-drotm-" + i; mode.setAttribute("aria-label", "Verteilung");
+    ROTATION.forEach(function (x) { var o = el("option", null, x.label); o.value = x.v; if (x.v === d.rotation) o.selected = true; mode.appendChild(o); });
+    mode.addEventListener("change", function () {
+      d.rotation = mode.value;
+      d.every = 1;
+      // Fest ohne Eintrag: gleich eine Zeile anbieten
+      if (d.rotation === "fixed" && !d.fixed.length && PLAN.members.length) d.fixed.push({ day: -1, memberId: PLAN.members[0].id });
+      renderTab();
+    });
+    line.appendChild(mode);
+
+    if (d.rotation !== "fixed") {
+      var every = el("select", "fp-small"); every.id = "fp-devery-" + i; every.setAttribute("aria-label", "Rhythmus");
+      for (var n = 1; n <= R.max; n++) {
+        var o = el("option", null, n === 1 ? R.one : R.many.replace("%n", n)); o.value = n;
+        if ((d.every || 1) === n) o.selected = true;
+        every.appendChild(o);
+      }
+      every.addEventListener("change", function () { d.every = Number(every.value); });
+      line.appendChild(every);
+    }
+    box.appendChild(line);
+
+    // Feste Zuweisungen: Wochentag (oder jeden Tag) → Person
+    var list = el("div", "fp-fixed");
+    if (d.fixed.length) list.appendChild(el("span", "fp-fixed-h", d.rotation === "fixed" ? "Fest bei" : "Feste Tage (gehen vor)"));
+    d.fixed.forEach(function (f, k) {
+      var fr = el("div", "fp-fixed-r");
+      var day = el("select", "fp-small"); day.id = "fp-fday-" + i + "-" + k; day.setAttribute("aria-label", "Wochentag");
+      [[-1, "Jeden Tag"], [1, "Montag"], [2, "Dienstag"], [3, "Mittwoch"], [4, "Donnerstag"], [5, "Freitag"], [6, "Samstag"], [0, "Sonntag"]].forEach(function (x) {
+        var o = el("option", null, x[1]); o.value = x[0]; if (f.day === x[0]) o.selected = true; day.appendChild(o);
+      });
+      day.addEventListener("change", function () { f.day = Number(day.value); renderTab(); });
+      fr.appendChild(day);
+      var who = el("select", "fp-small"); who.id = "fp-fmem-" + i + "-" + k; who.setAttribute("aria-label", "Person");
+      PLAN.members.forEach(function (m) {
+        var o = el("option", null, m.name + (m.active === false ? " (pausiert)" : "")); o.value = m.id;
+        if (f.memberId === m.id) o.selected = true;
+        o.dataset.color = m.color; o.dataset.initial = (m.name || "?").charAt(0).toUpperCase();
+        who.appendChild(o);
+      });
+      who.addEventListener("change", function () { f.memberId = who.value; });
+      fr.appendChild(who);
+      var x = el("button", "btn-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "Feste Zuweisung entfernen");
+      x.addEventListener("click", function () { d.fixed.splice(k, 1); renderTab(); });
+      fr.appendChild(x);
+      list.appendChild(fr);
+    });
+    var allDay = d.fixed.some(function (f) { return f.day === -1; });
+    if (!allDay && d.fixed.length < 7) {
+      var add = el("button", "btn-x fp-txt", d.fixed.length ? "+ weiterer Tag" : "+ Feste Zuweisung"); add.type = "button";
+      add.disabled = !PLAN.members.length;
+      add.title = PLAN.members.length ? "Person an einem Wochentag fest eintragen" : "Erst Familienmitglieder anlegen und speichern";
+      add.addEventListener("click", function () {
+        var used = d.fixed.map(function (f) { return f.day; });
+        var free = [1, 2, 3, 4, 5, 6, 0].filter(function (n) { return used.indexOf(n) === -1; })[0];
+        d.fixed.push({ day: free === undefined ? 1 : free, memberId: PLAN.members[0].id });
+        renderTab();
+      });
+      list.appendChild(add);
+    }
+    box.appendChild(list);
+    // Wöchentlich ist der Normalfall – den Hinweis nur bei den anderen Arten
+    if (d.rotation !== "weekly" || d.fixed.length) box.appendChild(el("p", "save-hint fp-drot-hint", R.hint));
+    return box;
   }
 
   // Eigene Symbolauswahl statt <select>: Knopf mit Symbol + Name, darunter
@@ -619,6 +713,13 @@
       r.appendChild(ps); c.appendChild(r);
     });
 
+    // Schmale Karte: kompakt (Symbol + Avatare), Tage ändert man in der Übersicht
+    var grid = dayGrid(w, false, true);
+    if (grid) {
+      c.appendChild(grid);
+      if (editing && mode === "current") c.appendChild(el("p", "save-hint", "Einzelne Tage änderst du in der Übersicht."));
+    }
+
     if (whyWeek === w.start && w.reasons) {
       var why = el("div", "fp-why");
       ids.forEach(function (id) {
@@ -644,7 +745,7 @@
         wb.addEventListener("click", function () { whyWeek = whyWeek === w.start ? null : w.start; renderTab(); });
         actions.appendChild(wb);
       }
-      if (w.manual) {
+      if (w.manual || w.manualDays) {
         var rb = el("button", "btn-x fp-txt", "↺ automatisch"); rb.type = "button";
         rb.addEventListener("click", function () {
           api("/api/familyplan/weeks/" + w.start + "/reset", { method: "POST", body: { revision: PLAN.revision } })
@@ -655,6 +756,78 @@
       c.appendChild(actions);
     }
     return c;
+  }
+
+  // Tagesplan einer Woche: Dienste, die täglich wechseln oder fest an
+  // einzelnen Tagen liegen – je Tag die Person (laufende Woche änderbar)
+  var DAY_HEAD = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  function dayGrid(w, editable, compact) {
+    var days = w.days || {};
+    var duties = (PLAN.allDuties || []).filter(function (d) { return days[d.id] && Object.keys(days[d.id]).length; });
+    if (!duties.length || !w.dates) return null;
+    var todayKey = PLAN.currentWeek && PLAN.currentWeek.todayKey;
+    var box = el("div", "fp-daygrid-wrap");
+    box.appendChild(el("div", "fp-daygrid-h", "Tagesdienste"));
+    var scroll = el("div", "fp-scroll");
+    var t = el("table", "fp-table fp-daygrid" + (compact ? " compact" : ""));
+    var hr = el("tr"); hr.appendChild(el("th", null, ""));
+    w.dates.forEach(function (k) {
+      var p = k.split("-");
+      var th = el("th", k === todayKey ? "is-today" : null, DAY_HEAD[new Date(+p[0], +p[1] - 1, +p[2]).getDay()]);
+      if (!compact) th.appendChild(el("small", null, " " + p[2] + "."));
+      th.title = dm(k);
+      hr.appendChild(th);
+    });
+    var thead = el("thead"); thead.appendChild(hr); t.appendChild(thead);
+    var tb = el("tbody");
+    duties.forEach(function (d) {
+      var tr = el("tr");
+      var c0 = el("td");
+      if (compact) {
+        var ic = el("span", "fp-dg-ico"); ic.title = d.name;
+        ic.style.background = d.color; ic.style.color = textOn(d.color);
+        ic.appendChild(icon(d.icon));
+        c0.appendChild(ic);
+      } else {
+        c0.appendChild(pill({ name: d.name, color: d.color, icon: d.icon }));
+      }
+      tr.appendChild(c0);
+      w.dates.forEach(function (k) {
+        var td = el("td", k === todayKey ? "is-today" : null);
+        var has = Object.prototype.hasOwnProperty.call(days[d.id], k);
+        var pid = days[d.id][k];
+        var manual = w.manualDays && w.manualDays[d.id] && w.manualDays[d.id][k] !== undefined;
+        if (!has) { td.appendChild(el("span", "fp-dg-none", "")); tr.appendChild(td); return; }
+        if (editable) {
+          var sel = el("select", "fp-dg-sel"); sel.id = "fp-dg-" + d.id + "-" + k;
+          sel.setAttribute("aria-label", d.name + " am " + dm(k));
+          PLAN.members.filter(function (m) { return m.active !== false; }).forEach(function (m) {
+            var o = el("option", null, m.name); o.value = m.id; if (m.id === pid) o.selected = true;
+            o.dataset.color = m.color; o.dataset.initial = (m.name || "?").charAt(0).toUpperCase();
+            sel.appendChild(o);
+          });
+          if (!pid) { var o0 = el("option", null, "– frei –"); o0.value = ""; o0.selected = true; o0.disabled = true; sel.insertBefore(o0, sel.firstChild); }
+          sel.addEventListener("change", function () {
+            api("/api/familyplan/weeks/" + w.start + "/day", { method: "POST", body: { revision: PLAN.revision, dutyId: d.id, date: k, memberId: sel.value } })
+              .then(function (p) { apply(p); ctx.toast("Gespeichert"); }).catch(fail);
+          });
+          td.appendChild(sel);
+        } else if (pid) {
+          var m = memberById(pid) || { name: "?", color: "#9ca3af" };
+          var who = el("span", "fp-dg-who"); who.title = m.name + " · " + d.name + " · " + dm(k);
+          who.appendChild(avatarEl(m, compact ? 20 : 22));
+          if (!compact) who.appendChild(el("span", null, m.name));
+          td.appendChild(who);
+        } else {
+          td.appendChild(el("span", "fp-dg-free", compact ? "–" : "frei"));
+        }
+        if (manual) { td.classList.add("is-manual"); td.title = "Von Hand geändert"; }
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); scroll.appendChild(t); box.appendChild(scroll);
+    return box;
   }
 
   function renderWeeks(panel) {
@@ -692,7 +865,7 @@
   function fairnessCard() {
     var f = PLAN.fairness || { weeks: 0, counts: {} };
     var c = card("Wie oft hatte wer was?", f.weeks
-      ? (f.weeks === 1 ? "Bisher nur die laufende Woche." : "Die letzten " + f.weeks + " Wochen inklusive der laufenden.") + " Je kräftiger die Farbe, desto öfter."
+      ? (f.weeks === 1 ? "Bisher nur die laufende Woche." : "Die letzten " + f.weeks + " Wochen inklusive der laufenden.") + " Wochendienste zählen je Woche, Tagesdienste je Tag. Je kräftiger die Farbe, desto öfter."
       : "Sobald die erste Woche gelaufen ist, steht hier, wer welchen Dienst wie oft hatte.");
     if (!f.weeks || !PLAN.members.length) return c;
     var duties = PLAN.duties;
@@ -739,7 +912,7 @@
     f0.appendChild(l0); f0.appendChild(title); c.appendChild(f0);
 
     var g = el("div", "grid2");
-    var f1 = el("div", "field"); var l1 = el("label", null, "Rotationstag"); l1.htmlFor = "fp-weekday";
+    var f1 = el("div", "field"); var l1 = el("label", null, "Wechseltag"); l1.htmlFor = "fp-weekday";
     var wd = el("select"); wd.id = "fp-weekday";
     [1, 2, 3, 4, 5, 6, 0].forEach(function (d) { var o = el("option", null, WEEKDAYS[d]); o.value = d; if (s.rotationWeekday === d) o.selected = true; wd.appendChild(o); });
     wd.addEventListener("change", function () { s.rotationWeekday = Number(wd.value); });
@@ -771,7 +944,7 @@
       api("/api/familyplan/settings", { method: "PUT", body: { revision: PLAN.revision, settings: draftSettings } })
         .then(function (p) { apply(p); ctx.toast("Einstellungen gespeichert"); })
         .catch(function (err) { btn.disabled = false; fail(err); });
-    }, "Rotationstag und Paar-Modus gelten ab der nächsten Woche, die laufende bleibt."));
+    }, "Wechseltag (für wöchentlich und monatlich rotierende Dienste) und Paar-Modus gelten ab der nächsten Woche, die laufende bleibt."));
     panel.appendChild(c);
 
     panel.appendChild(backupCard());

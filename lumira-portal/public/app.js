@@ -1311,7 +1311,11 @@
     var duties = {};
     (plan.allDuties || []).forEach(function (d) { duties[d.id] = d; });
     var order = (plan.allMembers || []).map(function (m) { return m.id; });
-    Object.keys(w.assign).sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); }).forEach(function (id) {
+    // Wie der Spiegel: Wochendienste plus die Tagesdienste von heute
+    var today = w.today || null;
+    var ids = Object.keys(w.assign);
+    if (today) Object.keys(today).forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+    ids.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); }).forEach(function (id) {
       var m = (plan.allMembers || []).filter(function (x) { return x.id === id; })[0];
       if (!m) return;
       var row = el("div", "mini-row");
@@ -1321,22 +1325,27 @@
       nm.appendChild(el("span", null, m.role === "child" ? "Kind" : "Erwachsener"));
       row.appendChild(nm);
       var chips = el("span", "chips");
-      w.assign[id].forEach(function (did) {
-        var d = duties[did]; if (!d) return;
+      var items = today ? (today[id] || []) : (w.assign[id] || []).map(function (did) { return { dutyId: did, day: false }; });
+      items.forEach(function (it) {
+        var d = duties[it.dutyId]; if (!d) return;
         var chip = el("span", "chip");
         var dot = el("i", "d"); dot.style.background = d.color;
         chip.appendChild(dot);
         chip.appendChild(document.createTextNode(d.name));
         // Feste Tage: heute fällig hervorheben, sonst die Tage dahinter
         var days = Array.isArray(d.days) ? d.days : [];
-        if (days.length && days.length < 7) {
+        if (it.day) {
+          chip.appendChild(el("span", "chip-days", "heute"));
+          chip.classList.add("is-today");
+        } else if (days.length && days.length < 7) {
           var today = days.indexOf(new Date().getDay()) !== -1;
           chip.appendChild(el("span", "chip-days", today ? "heute" : startDaysText(days)));
           if (today) chip.classList.add("is-today");
         }
         chips.appendChild(chip);
       });
-      if (!w.assign[id].length) chips.appendChild(el("span", "save-hint", "diese Woche frei"));
+      var hasDays = Object.keys(w.days || {}).some(function (did) { return Object.keys(w.days[did]).some(function (k) { return w.days[did][k] === id; }); });
+      if (!items.length) chips.appendChild(el("span", "save-hint", (w.assign[id] || []).length || hasDays ? "heute frei" : "diese Woche frei"));
       row.appendChild(chips);
       wrap.appendChild(row);
     });
