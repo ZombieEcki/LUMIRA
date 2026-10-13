@@ -71,6 +71,7 @@
     $("#db-connected").hidden = !S.enabled || !r.loggedIn;
     $("#db-reconnect").hidden = r.status === "connected";
     renderDevices();
+    renderDiag(r);
     $("#db-power").value = c.power;
 
     // Meldung
@@ -121,6 +122,36 @@
   function timeText(iso) {
     var d = new Date(iso);
     return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+
+  // Diagnose: kommt beim Klingeln nichts an, zeigt das, wo es hakt
+  var KIND = { ding: "Klingeln", motion: "Bewegung", other: "andere Nachricht" };
+  function whenText(iso) {
+    var d = new Date(iso);
+    var today = new Date().toDateString() === d.toDateString();
+    return (today ? "heute " : d.toLocaleDateString("de-DE") + " ") + timeText(iso);
+  }
+  function renderDiag(r) {
+    var dg = r.diag || {};
+    var p = dg.push;
+    $("#db-diag-push-dot").className = "dot" + (p ? (p.ok ? " ok" : " err") : "");
+    $("#db-diag-push").textContent = p ? (p.ok ? "erreichbar" + (p.address ? " (" + p.address + ")" : "") : p.message) + " · geprüft " + whenText(p.checkedAt)
+      : (r.status === "connected" ? "wird geprüft …" : "erst nach dem Verbinden");
+    var n = dg.lastNotification;
+    $("#db-diag-msg-dot").className = "dot" + (n ? " ok" : r.status === "connected" ? " warn" : "");
+    $("#db-diag-msg").textContent = n
+      ? dg.notifications + (dg.notifications === 1 ? " Nachricht" : " Nachrichten") + " · zuletzt " + (KIND[n.kind] || n.kind) + " (" + n.camera + ", " + whenText(n.at) + ")"
+      : (r.status === "connected" ? "noch keine – einmal klingeln oder vor der Kamera bewegen" : "–");
+    $("#db-diag-ding-dot").className = "dot" + (r.lastDing ? " ok" : "");
+    $("#db-diag-ding").textContent = r.lastDing ? r.lastDing.camera + ", " + whenText(r.lastDing.at) : "seit dem Verbinden noch nicht";
+    var box = $("#db-diag-errors");
+    box.innerHTML = "";
+    if ((dg.errors || []).length) {
+      box.appendChild(el("p", "save-hint", "Meldungen der Ring-Verbindung (neueste zuerst):"));
+      var ul = el("ul", "db-diag-log");
+      dg.errors.slice(0, 8).forEach(function (e) { ul.appendChild(el("li", null, timeText(e.at) + " – " + e.text)); });
+      box.appendChild(ul);
+    }
   }
 
   function renderDevices() {
@@ -357,6 +388,13 @@
       $("#db-logout").addEventListener("click", function () {
         if (!confirm("Vom Ring-Konto abmelden? Der Spiegel reagiert dann nicht mehr aufs Klingeln, bis du dich neu anmeldest.")) return;
         api("/api/ring/logout", "POST").then(function (s) { S = s; render(); ctx.toast("Von Ring abgemeldet"); }).catch(fail);
+      });
+      $("#db-diag-check").addEventListener("click", function () {
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = "Prüfe …";
+        api("/api/ring/diagnose", "POST").then(function (s2) { S = s2; render(); })
+          .catch(fail).then(function () { btn.disabled = false; btn.textContent = "Prüfen"; });
       });
       $("#db-reconnect").addEventListener("click", function () {
         var btn = this;

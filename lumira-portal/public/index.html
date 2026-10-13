@@ -475,6 +475,21 @@
               </select></div>
             <div class="btn-row"><button type="button" class="btn small" id="db-reconnect">Neu verbinden</button>
               <button type="button" class="btn small" id="db-logout">Abmelden</button></div>
+            <details class="upd-ssh" id="db-diag">
+              <summary>Diagnose – es klingelt, aber nichts passiert?</summary>
+              <div class="db-diag-rows">
+                <div class="db-diag-row"><span class="dot" id="db-diag-push-dot"></span><span><b>Push-Kanal</b> (mtalk.google.com:5228)<br><small id="db-diag-push">–</small></span>
+                  <button type="button" class="btn small" id="db-diag-check">Prüfen</button></div>
+                <div class="db-diag-row"><span class="dot" id="db-diag-msg-dot"></span><span><b>Nachrichten von Ring</b> seit dem Verbinden<br><small id="db-diag-msg">–</small></span></div>
+                <div class="db-diag-row"><span class="dot" id="db-diag-ding-dot"></span><span><b>Zuletzt geklingelt</b><br><small id="db-diag-ding">–</small></span></div>
+              </div>
+              <ol class="ssh-steps">
+                <li><b>Push-Kanal blockiert?</b> Klingel-Nachrichten kommen über Google (mtalk.google.com, Port 5228). Ein Werbeblocker wie Pi-hole oder AdGuard bzw. die Firewall im Router muss das durchlassen.</li>
+                <li><b>Gar keine Nachrichten von Ring?</b> In der Ring-App unter Kontrollzentrum → Autorisierte Client-Geräte alte Einträge („LUMIRA Spiegel“, „ring-client-api“, „Device name not found“) entfernen, hier <b>Abmelden</b> und neu anmelden, dann ein paar Minuten warten.</li>
+                <li><b>Bewegung kommt an, Klingeln nicht?</b> In der Ring-App bei der Klingel die Klingel-Benachrichtigungen (Ring Alerts) einschalten.</li>
+              </ol>
+              <div id="db-diag-errors"></div>
+            </details>
           </div>
           <p class="save-hint">Dein Passwort wird nicht gespeichert – nur ein Zugangsschlüssel von Ring, und der bleibt auf dem Spiegel.
             In der Ring-App (Kontrollzentrum → Autorisierte Client-Geräte) erscheint der Spiegel als „LUMIRA Spiegel“ und lässt sich dort jederzeit entfernen.</p>

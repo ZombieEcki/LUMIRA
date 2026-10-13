@@ -13,11 +13,36 @@
 
 const fs = require("fs");
 const path = require("path");
+const net = require("net");
+const dns = require("dns");
 
 const FFMPEG = process.env.LUMIRA_FFMPEG || "ffmpeg";
 const DISPLAY_NAME = "LUMIRA Spiegel"; // so heißt der Spiegel im Ring-Kontrollzentrum
 const LOGIN_TTL_MS = 10 * 60 * 1000;
 const RETRY_MS = [30e3, 2 * 60e3, 5 * 60e3, 15 * 60e3];
+// Klingel-Pushes kommen über Googles Firebase: dauerhafte Verbindung zu
+// mtalk.google.com:5228. Werbeblocker im DNS (Pi-hole) oder Firewalls
+// blockieren das gern – dann klappt alles außer dem Klingeln.
+const PUSH_HOST = "mtalk.google.com";
+const PUSH_PORT = 5228;
+
+// Push-Kanal prüfen: Name auflösen, TCP-Verbindung aufbauen
+function probePush(host = PUSH_HOST, port = PUSH_PORT, timeoutMs = 6000) {
+	return new Promise((resolve) => {
+		dns.lookup(host, (err, address) => {
+			if (err) return resolve({ ok: false, code: "dns", address: "", message: `${host} lässt sich nicht auflösen – blockiert ein Werbeblocker (z. B. Pi-hole) oder der Router diese Adresse?` });
+			if (/^(0\.0\.0\.0|127\.|::$|::1$)/.test(address)) {
+				return resolve({ ok: false, code: "blocked", address, message: `${host} wird auf ${address} umgeleitet – ein Werbeblocker (z. B. Pi-hole, AdGuard) blockiert die Klingel-Nachrichten. Bitte ${host} dort freigeben.` });
+			}
+			const sock = net.connect({ host: address, port });
+			let done = false;
+			const finish = (res) => { if (done) return; done = true; sock.destroy(); resolve(Object.assign({ address }, res)); };
+			sock.setTimeout(timeoutMs, () => finish({ ok: false, code: "timeout", message: `Keine Verbindung zu ${host}:${port} (Zeitüberschreitung) – blockiert eine Firewall Port ${port}?` }));
+			sock.once("connect", () => finish({ ok: true, code: "ok", message: "Push-Kanal erreichbar" }));
+			sock.once("error", (e) => finish({ ok: false, code: e.code || "error", message: `Keine Verbindung zu ${host}:${port} (${e.code || e.message}) – blockiert eine Firewall Port ${port}?` }));
+		});
+	});
+}
 
 class RingError extends Error {
 	constructor(message, status) {
@@ -52,12 +77,12 @@ function isAuthProblem(err) {
 }
 
 // loadLib: zum Testen austauschbar; standardmäßig ring-client-api (ESM)
-function createRing({ home, onDing = () => {}, loadLib, log = console, timers = { setTimeout, clearTimeout } } = {}) {
+function createRing({ home, onDing = () => {}, loadLib, log = console, timers = { setTimeout, clearTimeout }, pushProbe = probePush } = {}) {
 	home = path.resolve(home);
 	const authPath = path.join(home, "ring-auth.json");
 	// RingRestClient (Anmeldung) gibt das Paket nur über den Unterpfad heraus
-	const load = loadLib || (() => Promise.all([import("ring-client-api"), import("ring-client-api/rest-client")])
-		.then(([main, rest]) => ({ RingApi: main.RingApi, RingRestClient: rest.RingRestClient })));
+	const load = loadLib || (() => Promise.all([import("ring-client-api"), import("ring-client-api/rest-client"), import("ring-client-api/util")])
+		.then(([main, rest, util]) => ({ RingApi: main.RingApi, RingRestClient: rest.RingRestClient, useLogger: util.useLogger, enableDebug: util.enableDebug })));
 
 	let enabled = false;
 	let api = null;
@@ -68,6 +93,42 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 	let retryStep = 0;
 	let connecting = null;
 	const state = { status: "off", message: "", account: "", devices: [], lastDing: null };
+	// Diagnose: Push-Kanal, letzte Nachricht von Ring, Protokoll der Bibliothek
+	const diag = { push: null, lastNotification: null, notifications: 0, errors: [], log: [] };
+	let loggerSet = false;
+
+	function addLog(level, parts) {
+		const text = parts.map((p) => (typeof p === "string" ? p : p && p.message ? p.message : (() => { try { return JSON.stringify(p); } catch (e) { return String(p); } })()))
+			.join(" ").replace(/\s+/g, " ").trim().slice(0, 300);
+		if (!text) return;
+		const list = level === "error" ? diag.errors : diag.log;
+		list.push({ at: new Date().toISOString(), text });
+		if (list.length > (level === "error" ? 15 : 30)) list.shift();
+		// Fehler auch ins Journal (journalctl -u lumira-portal)
+		if (level === "error") log.warn("[lumira-portal] Ring:", text);
+	}
+
+	// Die Bibliothek protokolliert sonst nur mit DEBUG=ring – Fehler wie
+	// „Failed to connect push notification receiver“ blieben unsichtbar
+	function hookLogger(lib) {
+		if (loggerSet || !lib || typeof lib.useLogger !== "function") return;
+		loggerSet = true;
+		lib.useLogger({
+			logInfo: (...m) => addLog("info", m),
+			logError: (...m) => addLog("error", m)
+		});
+		if (typeof lib.enableDebug === "function") lib.enableDebug();
+	}
+
+	async function checkPush() {
+		try {
+			const res = await pushProbe();
+			diag.push = Object.assign({ checkedAt: new Date().toISOString() }, res);
+		} catch (err) {
+			diag.push = { ok: false, code: "error", message: String((err && err.message) || err), checkedAt: new Date().toISOString() };
+		}
+		return diag.push;
+	}
 
 	function readAuth() {
 		try {
@@ -100,7 +161,14 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 			awaitingCode: !!(pending && Date.now() - pending.at < LOGIN_TTL_MS),
 			prompt: pending ? pending.prompt : "",
 			devices: state.devices.slice(),
-			lastDing: state.lastDing
+			lastDing: state.lastDing,
+			diag: {
+				push: diag.push,
+				lastNotification: diag.lastNotification,
+				notifications: diag.notifications,
+				errors: diag.errors.slice().reverse(),
+				log: diag.log.slice(-12).reverse()
+			}
 		};
 	}
 
@@ -154,6 +222,7 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 				set("error", "Ring-Unterstützung fehlt – bitte LUMIRA aktualisieren (Info → Updates).");
 				return view();
 			}
+			hookLogger(lib);
 			set("connecting", "Verbinde mit Ring …");
 			try {
 				const ringApi = new lib.RingApi({
@@ -172,6 +241,19 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 				cameras = new Map(bells.map((c) => [String(c.id), c]));
 				state.devices = bells.map(deviceInfo);
 				for (const cam of bells) {
+					// Jede Nachricht von Ring (Klingeln, Bewegung, …) – zeigt, ob überhaupt etwas ankommt
+					if (cam.onNewNotification && cam.onNewNotification.subscribe) {
+						subs.push(cam.onNewNotification.subscribe((n) => {
+							const cat = String((n && n.android_config && n.android_config.category) || "");
+							diag.notifications++;
+							diag.lastNotification = {
+								at: new Date().toISOString(),
+								camera: String(cam.name || ""),
+								kind: /ding$/.test(cat) ? "ding" : /motion/.test(cat) ? "motion" : "other",
+								category: cat.slice(0, 80)
+							};
+						}));
+					}
 					subs.push(cam.onDoorbellPressed.subscribe((ding) => {
 						const dev = (ding && ding.data && ding.data.device) || {};
 						const ev = (ding && ding.data && ding.data.event && ding.data.event.ding) || {};
@@ -193,6 +275,7 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 				} catch (e) { /* nur Anzeige */ }
 				retryStep = 0;
 				set("connected", bells.length ? "" : "Verbunden, aber keine Ring-Türklingel im Konto gefunden");
+				checkPush().then((p) => { if (p && !p.ok) addLog("error", [p.message]); });
 			} catch (err) {
 				disconnect();
 				if (isAuthProblem(err)) {
@@ -305,7 +388,7 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 		try { return await Promise.race([p, timeout]); } finally { timers.clearTimeout(t); }
 	}
 
-	return { view, connected, devices, connect, setEnabled, loginStart, loginCode, cancelLogin, logout, startStream, snapshot, disconnect, authPath };
+	return { view, connected, devices, connect, setEnabled, loginStart, loginCode, cancelLogin, logout, startStream, snapshot, disconnect, checkPush, authPath };
 }
 
 function maskEmail(e) {
@@ -315,4 +398,4 @@ function maskEmail(e) {
 	return s[0] + "•••" + s.slice(at);
 }
 
-module.exports = { createRing, RingError, friendlyError, friendlyPrompt, maskEmail };
+module.exports = { createRing, probePush, RingError, friendlyError, friendlyPrompt, maskEmail, PUSH_HOST, PUSH_PORT };

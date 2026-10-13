@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 121 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 123 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -222,6 +222,9 @@ um den aktuellen Stand zu sehen.
       Spiegel → Module (Standard: aus). Anleitung: [docs/KLINGEL.md](docs/KLINGEL.md)
 - [x] `install.sh`: Portal-Abhängigkeiten mit `--ignore-scripts` (sonst lädt
       ring-client-api ein eigenes ffmpeg mit über 100 MB)
+- [x] Diagnose in der Ring-Karte: Push-Kanal (mtalk.google.com:5228) prüfen, Nachrichten
+      von Ring seit dem Verbinden (Klingeln/Bewegung), letztes Klingeln, Fehler der
+      Ring-Bibliothek (vorher nur mit DEBUG=ring sichtbar, jetzt auch im Journal)
 - [ ] Auf echter Pi-Hardware mit Ring-Klingel prüfen (Push, Video-Flüssigkeit Pi 3,
       Ton, Akku-Klingel)
 

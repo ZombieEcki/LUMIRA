@@ -947,6 +947,11 @@ app.post("/api/ring/logout", requireAuth, (req, res) => {
 	doorbellAction(res, () => { doorbell.close(); ring.logout(); return doorbellView(); });
 });
 
+// Diagnose: Push-Kanal (mtalk.google.com:5228) prüfen
+app.post("/api/ring/diagnose", requireAuth, (req, res) => {
+	doorbellAction(res, async () => { await ring.checkPush(); return doorbellView(); });
+});
+
 app.post("/api/ring/reconnect", requireAuth, (req, res) => {
 	doorbellAction(res, async () => { await ring.connect(); return doorbellView(); });
 });

@@ -245,6 +245,8 @@ function subject() {
 	return { next: (v) => fns.forEach((f) => f(v)), subscribe: (f) => { fns.push(f); return { unsubscribe() { fns.splice(fns.indexOf(f), 1); } }; } };
 }
 
+const okProbe = async () => ({ ok: true, code: "ok", address: "203.0.113.5", message: "Push-Kanal erreichbar" });
+
 function fakeLib() {
 	const st = { bell: null, api: null, codes: [] };
 	class RingRestClient {
@@ -269,21 +271,22 @@ function fakeLib() {
 		async getCameras() {
 			if (this.o.refreshToken === "ABGELAUFEN") throw new Error("Failed to fetch oauth token from Ring. Verify that your refresh token is correct.");
 			st.bell = { id: 111, name: "Haustür", model: "Video Doorbell Pro", isDoorbot: true, operatingOnBattery: false, batteryLevel: null, isOffline: false,
-				onDoorbellPressed: subject(), onData: subject() };
+				onDoorbellPressed: subject(), onNewNotification: subject(), onData: subject() };
 			const cam = { id: 5, name: "Garten", isDoorbot: false, onDoorbellPressed: subject(), onData: subject() };
 			return [st.bell, cam];
 		}
 		async getProfile() { return { email: "familie@example.com" }; }
 		disconnect() { this.gone = true; }
 	}
-	return { st, lib: { RingRestClient, RingApi } };
+	const logger = { fn: null, debug: false };
+	return { st, logger, lib: { RingRestClient, RingApi, useLogger: (l) => { logger.fn = l; }, enableDebug: () => { logger.debug = true; } } };
 }
 
 test("Ring-Anmeldung: Passwort, Code, nur Token gespeichert (0600), nie herausgegeben", async () => {
 	const home = path.join(HOME, "ring-login");
 	const { st, lib } = fakeLib();
 	const dings = [];
-	const ring = ringLib.createRing({ home, loadLib: async () => lib, onDing: (d) => dings.push(d), log: quiet });
+	const ring = ringLib.createRing({ home, loadLib: async () => lib, onDing: (d) => dings.push(d), log: quiet, pushProbe: okProbe });
 	await ring.setEnabled(true);
 	assert.equal(ring.view().status, "needs-login");
 
@@ -337,13 +340,13 @@ test("Ring: abgelaufener Token → neu anmelden; fehlende Bibliothek → Hinweis
 	fs.mkdirSync(home, { recursive: true });
 	fs.writeFileSync(path.join(home, "ring-auth.json"), JSON.stringify({ refreshToken: "ABGELAUFEN" }));
 	const { lib } = fakeLib();
-	const ring = ringLib.createRing({ home, loadLib: async () => lib, log: quiet });
+	const ring = ringLib.createRing({ home, loadLib: async () => lib, log: quiet, pushProbe: okProbe });
 	await ring.setEnabled(true);
 	assert.equal(ring.view().status, "needs-login");
 	assert.match(ring.view().message, /abgelaufen/);
 	ring.disconnect();
 
-	const missing = ringLib.createRing({ home, loadLib: async () => { throw new Error("Cannot find package"); }, log: quiet });
+	const missing = ringLib.createRing({ home, loadLib: async () => { throw new Error("Cannot find package"); }, log: quiet, pushProbe: okProbe });
 	await missing.setEnabled(true);
 	assert.equal(missing.view().status, "error");
 	assert.match(missing.view().message, /aktualisieren/);
@@ -356,4 +359,41 @@ test("Ring-Meldungen auf Deutsch", () => {
 	assert.match(ringLib.friendlyPrompt("Please enter the code from your authenticator app"), /Authenticator/);
 	assert.match(ringLib.friendlyPrompt("Please enter the code sent to your text/email"), /SMS oder E-Mail/);
 	assert.equal(ringLib.maskEmail("max@web.de"), "m•••@web.de");
+});
+
+test("Diagnose: Push-Kanal, Nachrichten von Ring, Fehler der Bibliothek sichtbar", async () => {
+	const home = path.join(HOME, "ring-diag");
+	fs.mkdirSync(home, { recursive: true });
+	fs.writeFileSync(path.join(home, "ring-auth.json"), JSON.stringify({ refreshToken: "T" }));
+	const { st, logger, lib } = fakeLib();
+	const blocked = async () => ({ ok: false, code: "blocked", address: "0.0.0.0", message: "mtalk.google.com wird auf 0.0.0.0 umgeleitet – ein Werbeblocker blockiert" });
+	const ring = ringLib.createRing({ home, loadLib: async () => lib, log: quiet, pushProbe: blocked });
+	await ring.setEnabled(true);
+	await new Promise((r) => setTimeout(r, 20));
+	let v = ring.view();
+	assert.equal(v.status, "connected");
+	assert.equal(v.diag.push.ok, false);
+	assert.match(v.diag.push.message, /Werbeblocker/);
+	assert.ok(v.diag.errors.some((e) => /Werbeblocker/.test(e.text)), "auch im Protokoll");
+	// Bibliotheks-Logger ist eingehängt, Fehler landen in der Diagnose
+	assert.ok(logger.fn && logger.debug);
+	logger.fn.logError("Failed to connect push notification receiver");
+	assert.equal(ring.view().diag.errors[0].text, "Failed to connect push notification receiver");
+	// Bewegung kommt an, Klingeln nicht → sichtbar
+	st.bell.onNewNotification.next({ android_config: { category: "com.ring.pn.live-event.motion" } });
+	v = ring.view();
+	assert.equal(v.diag.notifications, 1);
+	assert.equal(v.diag.lastNotification.kind, "motion");
+	assert.equal(v.lastDing, null);
+	st.bell.onNewNotification.next({ android_config: { category: "com.ring.pn.live-event.ding" } });
+	assert.equal(ring.view().diag.lastNotification.kind, "ding");
+	ring.disconnect();
+});
+
+test("Push-Prüfung: nicht auflösbarer Name und gesperrter Port verständlich", async () => {
+	const dnsFail = await ringLib.probePush("gibt-es-nicht.invalid", 5228, 500);
+	assert.equal(dnsFail.ok, false);
+	assert.match(dnsFail.message, /nicht auflösen/);
+	const closed = await ringLib.probePush("127.0.0.2", 1, 500);
+	assert.equal(closed.ok, false);
 });
