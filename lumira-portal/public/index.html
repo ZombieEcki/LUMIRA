@@ -430,8 +430,8 @@
 
       <!-- Klingel: Ring-Türklingel auf dem Spiegel (doorbell.js, MMM-Doorbell) -->
       <section class="page cols" data-page="klingel">
-        <p class="page-lead">Klingelt es an eurer Ring-Türklingel, erscheint auf dem Spiegel eine Meldung in der Mitte – danach das Live-Video
-          der Klingel. Nach der eingestellten Zeit ist alles wieder wie vorher. Einstellungen wirken sofort.</p>
+        <p class="page-lead">Klingelt es an eurer Ring-Türklingel, erscheint auf dem Spiegel in der Mitte das Live-Video der Klingel,
+          darüber die Meldung „Es hat geklingelt!“. Nach der eingestellten Zeit ist alles wieder wie vorher. Einstellungen wirken sofort.</p>
         <div class="stack">
         <div class="card" id="db-main">
           <h2>Türklingel</h2>
@@ -498,7 +498,7 @@
         <div class="card">
           <h2>Meldung</h2>
           <div class="toggle">
-            <span class="tl2">Meldung in der Bildschirmmitte<small>kompakt, vor dem Video</small></span>
+            <span class="tl2">Meldung „Es hat geklingelt!“<small>kompakt, über dem Video (ohne Video in der Mitte)</small></span>
             <button class="sw" id="db-notify" role="switch" aria-label="Meldung"></button>
           </div>
           <div class="field"><label for="db-text">Text</label><input type="text" id="db-text" maxlength="60" placeholder="Es hat geklingelt!"></div>
@@ -544,7 +544,7 @@
         <div class="card">
           <h2>Live-Video</h2>
           <div class="toggle">
-            <span class="tl2">Live-Video der Klingel<small>nach der Meldung, in der Bildschirmmitte</small></span>
+            <span class="tl2">Live-Video der Klingel<small>sofort, in der Bildschirmmitte – die Meldung steht darüber</small></span>
             <button class="sw" id="db-video" role="switch" aria-label="Live-Video"></button>
           </div>
           <div class="field"><label for="db-size">Größe</label>

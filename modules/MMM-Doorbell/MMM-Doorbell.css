@@ -18,9 +18,17 @@
 
 .lumira-doorbell.is-visible { opacity: 1; }
 
+/* Stapel: Video in der Mitte, Meldung darüber */
+.ldb-stack {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
 /* ---------------------------------------------------------------- Meldung */
 .ldb-card {
-	position: absolute;
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: 0.9em;
@@ -38,6 +46,20 @@
 }
 
 .ldb-card.is-shown { opacity: 1; transform: none; }
+
+/* Mit Video: Meldung über dem Video. Der Platz dafür ist fest reserviert,
+   damit Meldung + Video zusammen mittig stehen und das Video nicht springt,
+   wenn die Meldung ausgeblendet wird. */
+.lumira-doorbell.has-video .ldb-stack { padding-top: 132px; }
+.lumira-doorbell.has-video .ldb-card {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	width: max-content;
+	transform: translateX(-50%) scale(0.92);
+}
+.lumira-doorbell.has-video .ldb-card.is-shown { transform: translateX(-50%); }
+.lumira-doorbell:not(.has-video) .ldb-panel { display: none; }
 
 .ldb-bell {
 	width: 2.1em;
@@ -75,7 +97,7 @@
 /* ---------------------------------------------------------------- Video */
 .ldb-panel {
 	--ldb-ratio: 1.7778;
-	position: absolute;
+	position: relative;
 	aspect-ratio: var(--ldb-ratio);
 	border-radius: 18px;
 	overflow: hidden;
@@ -89,10 +111,10 @@
 
 .ldb-panel.is-shown { opacity: 1; transform: none; }
 
-/* klein / mittel / groß – nie höher als 72 % des Bildschirms */
-.ldb-panel.size-small { width: min(34vw, calc(56vh * var(--ldb-ratio))); }
-.ldb-panel.size-medium { width: min(48vw, calc(64vh * var(--ldb-ratio))); }
-.ldb-panel.size-large { width: min(66vw, calc(72vh * var(--ldb-ratio))); }
+/* klein / mittel / groß – mit der Meldung darüber passt es immer auf den Bildschirm */
+.ldb-panel.size-small { width: min(34vw, calc(52vh * var(--ldb-ratio))); }
+.ldb-panel.size-medium { width: min(48vw, calc(60vh * var(--ldb-ratio))); }
+.ldb-panel.size-large { width: min(66vw, calc((100vh - 200px) * var(--ldb-ratio))); }
 
 .ldb-stage { position: absolute; inset: 0; }
 

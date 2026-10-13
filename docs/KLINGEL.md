@@ -3,9 +3,9 @@
 Klingelt es an der Ring-Türklingel, erscheint auf dem Spiegel in der
 Bildschirmmitte
 
-1. eine kompakte Meldung („Es hat geklingelt!“, auf Wunsch mit Leuchtrahmen)
-   und der Klingelton,
-2. danach das **Live-Video** der Klingel in der gewählten Größe, mit Countdown,
+1. sofort das **Live-Video** der Klingel in der gewählten Größe, mit Countdown,
+2. gleichzeitig darüber eine kompakte Meldung („Es hat geklingelt!“, auf Wunsch
+   mit Leuchtrahmen) für ihre eingestellte Dauer, dazu der Klingelton,
 3. nach der eingestellten Zeit ist der Spiegel wieder wie vorher.
 
 Die anderen Module bleiben, wo sie sind; die Anzeige liegt nur darüber. Während

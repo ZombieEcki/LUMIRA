@@ -64,7 +64,7 @@ module.exports = NodeHelper.create({
 	push: function () {
 		const payload = toPayload(this.read(), new Date());
 		this.sendSocketNotification("DOORBELL_STATE", payload);
-		// Zum Wechsel Meldung → Video und zum Ende noch einmal schicken
+		// Zum Ausblenden der Meldung und zum Ende noch einmal schicken
 		// (das Portal räumt auch auf, die Anzeige soll aber pünktlich sein)
 		this.timers.forEach(clearTimeout);
 		this.timers = [];

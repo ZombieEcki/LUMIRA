@@ -272,8 +272,9 @@ function createDoorbell({ home, liveDir, ring = null, now = () => new Date(), ti
 		const t = now();
 		const notifySec = cfg.notify.enabled ? cfg.notify.seconds : 0;
 		const videoSec = cfg.video.enabled ? (cfg.video.autoClose ? cfg.video.seconds : MANUAL_CAP) : 0;
-		// Nur Ton (Meldung und Video aus): kurz „aktiv“, damit der Spiegel den Ton spielt
-		const total = Math.max(notifySec + videoSec, 4);
+		// Meldung und Video kommen zusammen (Meldung über dem Video) – es zählt
+		// das längere von beiden. Nur Ton (beides aus): kurz „aktiv“ für den Ton.
+		const total = Math.max(notifySec, videoSec, 4);
 
 		// Klingelt dieselbe Klingel erneut, während noch alles läuft: Zeit
 		// verlängern, Ton neu, Video weiterlaufen lassen

@@ -76,12 +76,12 @@ test("Test ohne Ring: Meldung, dann Testbild, Zeiten stimmen", () => {
 	const ev = db.trigger({ source: "test" });
 	assert.equal(ev.video.status, "demo");
 	assert.equal(ev.notifyUntil, "2026-10-12T18:00:08.000Z");
-	assert.equal(ev.until, "2026-10-12T18:01:08.000Z");
+	assert.equal(ev.until, "2026-10-12T18:01:00.000Z", "Meldung und Video gleichzeitig – es zählt das längere");
 	const p = payloadLib.toPayload(JSON.parse(fs.readFileSync(db.statePath, "utf8")), new Date("2026-10-12T18:00:30Z"));
 	assert.equal(p.active, true);
 	assert.equal(p.test, true);
 	assert.equal(p.video.status, "demo");
-	assert.equal(payloadLib.toPayload(JSON.parse(fs.readFileSync(db.statePath, "utf8")), new Date("2026-10-12T18:01:09Z")).active, false, "nach Ablauf aus");
+	assert.equal(payloadLib.toPayload(JSON.parse(fs.readFileSync(db.statePath, "utf8")), new Date("2026-10-12T18:01:01Z")).active, false, "nach Ablauf aus");
 	assert.equal(db.close(), true);
 	assert.equal(db.view().event, null);
 	db.shutdown();
@@ -102,7 +102,7 @@ test("Ohne automatisches Schließen: höchstens 10 Minuten", () => {
 	const db = fresh("manual", { now: () => t });
 	db.setConfig({ notify: { seconds: 5 }, video: { autoClose: false } });
 	const ev = db.trigger({ source: "test" });
-	assert.equal(Date.parse(ev.until) - t.getTime(), (5 + doorbellLib.MANUAL_CAP) * 1000);
+	assert.equal(Date.parse(ev.until) - t.getTime(), doorbellLib.MANUAL_CAP * 1000);
 	db.shutdown();
 });
 

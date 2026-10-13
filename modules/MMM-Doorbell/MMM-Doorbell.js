@@ -3,10 +3,11 @@
  *
  * Türklingel für LUMIRA: Klingelt es an der Ring-Klingel (oder wird im
  * LUMIRA-Portal getestet), erscheint in der Bildschirmmitte
- *   1. eine kompakte Meldung („Es hat geklingelt!“, optional mit Leuchtrahmen)
- *      und der Klingelton (eingebautes Ding-Dong oder eigener Ton),
- *   2. danach das Live-Video der Klingel in der gewählten Größe, mit
- *      Countdown bis zum automatischen Schließen.
+ *   - das Live-Video der Klingel in der gewählten Größe, mit Countdown bis
+ *     zum automatischen Schließen,
+ *   - gleichzeitig darüber eine kompakte Meldung („Es hat geklingelt!“,
+ *     optional mit Leuchtrahmen) für ihre eingestellte Dauer,
+ *   - und der Klingelton (eingebautes Ding-Dong oder eigener Ton).
  * Danach ist der Spiegel wieder wie vorher. Andere Module bleiben unverändert,
  * die Fläche liegt nur darüber.
  *
@@ -94,40 +95,43 @@ Module.register("MMM-Doorbell", {
 	},
 
 	// ------------------------------------------------------------------ Anzeige
+	// Was gerade zu sehen ist: Meldung (für ihre Dauer) und Video – gleichzeitig
 	phase: function () {
 		const s = this.state;
-		if (!s.active || this.alarm) return "off";
+		const off = { card: false, video: false, key: "off" };
+		if (!s.active || this.alarm) return off;
 		const now = Date.now();
-		if (now >= Date.parse(s.until)) return "off";
-		if (s.notify.enabled && now < Date.parse(s.notifyUntil)) return "notify";
-		return s.video.enabled ? "video" : "off";
+		if (now >= Date.parse(s.until)) return off;
+		const card = !!s.notify.enabled && now < Date.parse(s.notifyUntil);
+		const video = !!s.video.enabled;
+		return { card, video, key: (card ? "c" : "") + (video ? "v" : "") || "off" };
 	},
 
 	render: function () {
-		const phase = this.phase();
-		if (phase === "off") { this.hide(); return; }
+		const ph = this.phase();
+		this.lastPhase = ph.key;
+		if (!ph.card && !ph.video) { this.hide(); return; }
 		this.ensureRoot();
 		const s = this.state;
 		this.root.classList.toggle("is-glow", !!s.notify.glow);
+		// Mit Video steht die Meldung über dem Video, sonst allein in der Mitte
+		this.root.classList.toggle("has-video", ph.video);
 
 		// Meldung
 		this.card.querySelector(".ldb-text").textContent = s.notify.text;
 		this.card.querySelector(".ldb-sub").textContent = s.test ? s.camera + " · Test" : s.camera;
-		this.card.classList.toggle("is-shown", phase === "notify");
+		this.card.classList.toggle("is-shown", ph.card);
 
 		// Video
-		this.panel.className = "ldb-panel size-" + s.video.size + (phase === "video" ? " is-shown" : "");
-		if (phase === "video") this.buildPanel();
+		this.panel.className = "ldb-panel size-" + s.video.size + (ph.video ? " is-shown" : "");
+		if (ph.video) this.buildPanel();
 		this.updateCountdown();
 
 		if (!this.tick) this.tick = setInterval(() => this.onTick(), 250);
 	},
 
 	onTick: function () {
-		const was = this.lastPhase;
-		const now = this.phase();
-		this.lastPhase = now;
-		if (now !== was) this.render();
+		if (this.phase().key !== this.lastPhase) this.render();
 		else this.updateCountdown();
 	},
 
@@ -141,15 +145,21 @@ Module.register("MMM-Doorbell", {
 		root.className = "lumira-doorbell";
 		root.style.transitionDuration = this.config.fadeMs + "ms";
 
+		// Stapel: Video in der Mitte, Meldung darüber (absolut, damit das
+		// Video nicht springt, wenn die Meldung ausgeblendet wird)
+		const stack = document.createElement("div");
+		stack.className = "ldb-stack";
+		root.appendChild(stack);
+
+		const panel = document.createElement("div");
+		panel.className = "ldb-panel";
+		stack.appendChild(panel);
+
 		const card = document.createElement("div");
 		card.className = "ldb-card";
 		card.innerHTML = this.bellSvg("ldb-bell") +
 			"<div class=\"ldb-words\"><div class=\"ldb-text\"></div><div class=\"ldb-sub\"></div></div>";
-		root.appendChild(card);
-
-		const panel = document.createElement("div");
-		panel.className = "ldb-panel";
-		root.appendChild(panel);
+		stack.appendChild(card);
 
 		document.body.appendChild(root);
 		this.root = root;
@@ -268,7 +278,7 @@ Module.register("MMM-Doorbell", {
 		const show = s.active && s.autoClose && s.video.countdown;
 		cd.hidden = !show;
 		if (!show) return;
-		const start = Date.parse(s.notify.enabled ? s.notifyUntil : s.at);
+		const start = Date.parse(s.at);
 		const end = Date.parse(s.until);
 		const left = Math.max(0, end - Date.now());
 		const frac = end > start ? left / (end - start) : 0;
