@@ -1031,8 +1031,9 @@
   // Spiegel live: alle 5 s ein Bild vom Spiegel (MMM-LumiraStatus), aber nur
   // solange Start offen und der Tab sichtbar ist – sonst ruht der Pi.
   // ---------------------------------------------------------------------
-  var MIRROR = { view: "live", timer: null, url: null, at: 0, busy: false, failing: false, error: "", wired: false };
+  var MIRROR = { view: "live", timer: null, url: null, at: 0, busy: false, failing: false, error: "", wired: false, full: false };
   var MIRROR_EVERY_MS = 5000;
+  var MIRROR_FULL_MS = 3000; // im Vollbild etwas öfter
   var MIRROR_RETRY_MS = 15000;
 
   function wireMirrorLive() {
@@ -1050,13 +1051,64 @@
     });
     document.addEventListener("visibilitychange", mirrorKick);
     setInterval(renderMirrorAge, 1000);
+    wireMirrorFull();
     MIRROR.wired = true;
     applyMirrorView();
     mirrorKick();
   }
 
   function mirrorActive() {
-    return MIRROR.view === "live" && currentPage === "start" && !document.hidden;
+    return (MIRROR.full || (MIRROR.view === "live" && currentPage === "start")) && !document.hidden;
+  }
+
+  // ---------------------------------------------------------------------
+  // Live-Bild im Vollbild: echtes Vollbild, wo der Browser es kann (PC,
+  // Android – dort auch Querformat), sonst füllt die Ebene das Fenster (iPhone)
+  // ---------------------------------------------------------------------
+  function wireMirrorFull() {
+    var layer = $("#mirror-full");
+    $("#mirror-full-btn").addEventListener("click", openMirrorFull);
+    $("#mirror-img").addEventListener("click", openMirrorFull);
+    $("#mirror-full-close").addEventListener("click", function (e) { e.stopPropagation(); closeMirrorFull(); });
+    layer.addEventListener("click", function (e) { if (e.target === layer || e.target.id === "mirror-full-img") closeMirrorFull(); });
+    document.addEventListener("keydown", function (e) { if (MIRROR.full && e.key === "Escape") closeMirrorFull(); });
+    document.addEventListener("fullscreenchange", function () {
+      // Vollbild über die Browser-Taste verlassen → Ebene ebenfalls zu
+      if (MIRROR.full && !document.fullscreenElement && MIRROR.nativeFull) closeMirrorFull();
+    });
+  }
+
+  function openMirrorFull() {
+    if (!MIRROR.url) return;
+    var layer = $("#mirror-full");
+    $("#mirror-full-img").src = MIRROR.url;
+    layer.hidden = false;
+    MIRROR.full = true;
+    MIRROR.nativeFull = false;
+    document.body.classList.add("mirror-full-open");
+    if (layer.requestFullscreen) {
+      layer.requestFullscreen({ navigationUI: "hide" }).then(function () {
+        MIRROR.nativeFull = true;
+        // Handy: wenn möglich ins Querformat (der Spiegel ist quer)
+        try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () {}); } catch (e) {}
+      }).catch(function () { /* z. B. iPhone: Ebene füllt das Fenster */ });
+    }
+    $("#mirror-full-close").focus();
+    renderMirrorAge();
+    mirrorKick();
+  }
+
+  function closeMirrorFull() {
+    if (!MIRROR.full) return;
+    MIRROR.full = false;
+    $("#mirror-full").hidden = true;
+    document.body.classList.remove("mirror-full-open");
+    try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+    MIRROR.nativeFull = false;
+    var b = $("#mirror-full-btn");
+    if (b) b.focus();
+    mirrorKick();
   }
 
   function mirrorKick() {
@@ -1096,6 +1148,7 @@
         var old = MIRROR.url;
         MIRROR.url = URL.createObjectURL(blob);
         $("#mirror-img").src = MIRROR.url;
+        if (MIRROR.full) $("#mirror-full-img").src = MIRROR.url;
         if (old) setTimeout(function () { URL.revokeObjectURL(old); }, 1000);
         // Empfangszeit statt Aufnahmezeit: die Uhr des Pi kann ohne RTC abweichen
         MIRROR.at = Date.now();
@@ -1110,7 +1163,7 @@
       MIRROR.busy = false;
       applyMirrorView();
       clearTimeout(MIRROR.timer);
-      if (mirrorActive()) MIRROR.timer = setTimeout(mirrorFetch, MIRROR.failing ? MIRROR_RETRY_MS : MIRROR_EVERY_MS);
+      if (mirrorActive()) MIRROR.timer = setTimeout(mirrorFetch, MIRROR.failing ? MIRROR_RETRY_MS : MIRROR.full ? MIRROR_FULL_MS : MIRROR_EVERY_MS);
     });
   }
 
@@ -1119,9 +1172,14 @@
     var s = Math.max(0, Math.round((Date.now() - MIRROR.at) / 1000));
     var age = s <= 2 ? "gerade eben" : s < 60 ? "vor " + s + " s" : "vor " + Math.round(s / 60) + " min";
     var fresh = !MIRROR.failing && s < 15;
-    $("#mirror-age").textContent = MIRROR.failing ? "Verbindung unterbrochen · Stand " + age
+    var text = MIRROR.failing ? "Verbindung unterbrochen · Stand " + age
       : mirrorActive() ? "Live · " + age : "Pausiert · Stand " + age;
+    $("#mirror-age").textContent = text;
     $("#mirror-dot").className = "dot" + (fresh ? " live" : "");
+    if (MIRROR.full) {
+      $("#mirror-full-age").textContent = text;
+      $("#mirror-full-dot").className = "dot" + (fresh ? " live" : "");
+    }
   }
 
   // Startseite, Karte Spiegel: Schnellschalter für die Dauerschleife

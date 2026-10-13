@@ -215,8 +215,10 @@
                 <div class="module-preview" id="module-preview">
                   <!-- Live-Bild (MMM-LumiraStatus → /api/mirror/screenshot), alle 5 s -->
                   <div class="mp-live" id="mp-live" hidden>
-                    <img id="mirror-img" alt="Live-Bild: was der Spiegel gerade zeigt">
+                    <img id="mirror-img" alt="Live-Bild: was der Spiegel gerade zeigt" title="Im Vollbild ansehen">
                     <div class="mp-live-bar"><span class="dot" id="mirror-dot"></span><span id="mirror-age">verbinde …</span></div>
+                    <button type="button" class="mp-full-btn" id="mirror-full-btn" aria-label="Live-Bild im Vollbild ansehen" title="Vollbild">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                   </div>
                   <p class="mp-note" id="mp-note" hidden></p>
                   <div class="mp-layout" id="mp-layout">
@@ -824,6 +826,13 @@
 
   <!-- Tab-Leiste (Handy) -->
   <nav class="tabbar" aria-label="Hauptnavigation" data-areas="tabbar"></nav>
+
+<!-- Live-Bild des Spiegels im Vollbild (app.js, Karte „Spiegel“ auf Start) -->
+<div class="mirror-full" id="mirror-full" hidden role="dialog" aria-modal="true" aria-label="Live-Bild des Spiegels im Vollbild">
+  <img id="mirror-full-img" alt="Live-Bild: was der Spiegel gerade zeigt">
+  <div class="mirror-full-bar"><span class="dot" id="mirror-full-dot"></span><span id="mirror-full-age">verbinde …</span></div>
+  <button type="button" class="mirror-full-x" id="mirror-full-close" aria-label="Vollbild schließen">✕</button>
+</div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
