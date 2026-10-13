@@ -1,0 +1,167 @@
+/* MMM-LumiraWeather – Glas-Kacheln für Regenradar und Warnungen.
+ * Hintergrund nur halbtransparent (Transparenz im Portal einstellbar), kein
+ * Weichzeichner – der kostet den Raspberry Pi 3 zu viel. */
+
+.lw-panel {
+	position: fixed;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	gap: 0.55em;
+	padding: 0.75em 0.85em;
+	border-radius: 16px;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+	color: #f2f3f5;
+	line-height: 1.25;
+	font-family: "Roboto Condensed", "Roboto", sans-serif;
+	text-align: left;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.lw-head {
+	display: flex;
+	align-items: center;
+	gap: 0.55em;
+	font-size: 1.05em;
+	flex: none;
+}
+
+.lw-head > i { font-size: 1.15em; color: #8fd3ff; }
+.lw-title { font-weight: 600; }
+
+.lw-time { margin-left: auto; display: flex; align-items: baseline; gap: 0.45em; }
+.lw-rel { font-size: 0.78em; padding: 0.1em 0.5em; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+.lw-rel.is-future { background: rgba(56, 152, 255, 0.35); }
+.lw-clock { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- Karte */
+.lw-map {
+	position: relative;
+	flex: 1;
+	min-height: 60px;
+	border-radius: 10px;
+	overflow: hidden;
+	background: #11161d;
+}
+
+.lw-base, .lw-frames { position: absolute; inset: 0; }
+.lw-tile { position: absolute; width: 256px; height: 256px; }
+/* OpenStreetMap dunkel eingefärbt */
+.lw-base-osm { filter: invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.85) saturate(0.6); }
+/* DWD-Grundkarte (grün gefüllte Kreise) → dunkle Fläche, helle Grenzen */
+.lw-dwdmap { position: absolute; inset: 0; width: 100%; height: 100%; filter: grayscale(1) invert(1) brightness(0.55) contrast(1.6); }
+
+.lw-frame {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	transition: opacity 180ms linear;
+}
+
+.lw-frame.is-on { opacity: 0.85; }
+
+.lw-marker {
+	position: absolute;
+	width: 12px;
+	height: 12px;
+	margin: -6px 0 0 -6px;
+	border-radius: 50%;
+	background: #ff3b3b;
+	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85), 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
+.lw-attr {
+	position: absolute;
+	right: 4px;
+	bottom: 3px;
+	font-size: 0.55em;
+	color: rgba(255, 255, 255, 0.6);
+	text-shadow: 0 0 3px #000;
+}
+
+.lw-msg {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	text-align: center;
+	font-size: 0.8em;
+	color: rgba(255, 255, 255, 0.8);
+	text-shadow: 0 0 4px #000;
+}
+
+.lw-msg:empty { display: none; }
+
+/* ---------------------------------------------------------------- Fuß */
+.lw-foot { display: flex; align-items: center; gap: 0.8em; flex: none; }
+.lw-foot[hidden], .lw-track[hidden], .lw-legend[hidden] { display: none; }
+
+.lw-track {
+	position: relative;
+	flex: 1;
+	height: 4px;
+	border-radius: 2px;
+	background: rgba(255, 255, 255, 0.18);
+}
+
+.lw-now {
+	position: absolute;
+	top: -4px;
+	width: 2px;
+	height: 12px;
+	margin-left: -1px;
+	background: #fff;
+	border-radius: 1px;
+}
+
+.lw-pos {
+	position: absolute;
+	top: 50%;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	border-radius: 50%;
+	background: #3ba0ff;
+	box-shadow: 0 0 6px rgba(59, 160, 255, 0.8);
+	transition: left 180ms linear;
+}
+
+.lw-legend { display: flex; gap: 0.7em; font-size: 0.72em; color: rgba(255, 255, 255, 0.8); }
+.lw-leg { display: inline-flex; align-items: center; gap: 0.3em; }
+.lw-leg-dot { width: 0.7em; height: 0.7em; border-radius: 2px; display: inline-block; }
+
+/* ---------------------------------------------------------------- Warnungen */
+.lw-warn { border-left-width: 4px; }
+.lw-warn.is-calm .lw-head > i { color: #6fdc8c; }
+
+.lw-badge {
+	margin-left: auto;
+	padding: 0.1em 0.5em;
+	border-radius: 6px;
+	background: #c62828;
+	color: #fff;
+	font-size: 0.7em;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+}
+
+.lw-warn.is-calm .lw-badge { background: rgba(255, 255, 255, 0.15); }
+
+.lw-none { font-size: 0.85em; color: rgba(255, 255, 255, 0.75); }
+
+.lw-w { display: flex; gap: 0.7em; align-items: flex-start; }
+.lw-w + .lw-w { padding-top: 0.5em; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.lw-w-ic { font-size: 1.8em; line-height: 1; width: 1.2em; text-align: center; flex: none; }
+.lw-w-txt { min-width: 0; }
+.lw-w-t { font-weight: 700; display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap; }
+.lw-w-lvl { width: 0.6em; height: 0.6em; border-radius: 50%; display: inline-block; flex: none; }
+.lw-w-tag { font-size: 0.7em; font-weight: 600; padding: 0.05em 0.45em; border-radius: 6px; background: rgba(255, 255, 255, 0.15); }
+.lw-w-s { font-size: 0.85em; }
+.lw-w-a { font-size: 0.8em; color: rgba(255, 255, 255, 0.7); }
+.lw-w-d { font-size: 0.75em; color: rgba(255, 255, 255, 0.75); margin-top: 0.25em; }
+.lw-stale { font-size: 0.7em; color: rgba(255, 255, 255, 0.55); }

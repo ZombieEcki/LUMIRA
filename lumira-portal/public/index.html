@@ -585,6 +585,105 @@
         </div>
       </section>
 
+      <!-- Radar & Warnungen (weather.js, MMM-LumiraWeather) -->
+      <section class="page cols" data-page="wetterkarte">
+        <p class="page-lead">Regenradar und amtliche Wetterwarnungen des Deutschen Wetterdienstes als eigene Kacheln auf dem Spiegel –
+          jede frei platzierbar. Änderungen sind nach wenigen Sekunden auf dem Spiegel zu sehen, ohne Neustart.</p>
+        <div class="stack">
+        <div class="card" id="wx-main">
+          <h2>Radar &amp; Warnungen</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Spiegel zeigen<small id="wx-on-sub">aus</small></span>
+            <button class="sw" id="wx-on" role="switch" aria-label="Radar und Warnungen auf dem Spiegel"></button>
+          </div>
+          <p class="save-hint" id="wx-loc"></p>
+          <p class="save-hint" id="wx-old-radar" hidden>Das bisherige Regenradar ist noch eingeschaltet. Passt das neue, unter <a href="#module">Spiegel → Module</a> „Regenradar“ ausschalten.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="wx-shot-reload">Neu laden</button></div>
+          <p class="sub">Live-Bild vom Spiegel – zeigt die Kacheln, wie sie gerade wirklich stehen.</p>
+          <div class="wx-shot" id="wx-shot"><img id="wx-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note" id="wx-shot-note">Live-Bild wird geladen …</p></div>
+          <div id="wx-report"></div>
+        </div>
+        </div>
+
+        <div class="stack">
+        <div class="card wx-box" data-wx="radar">
+          <h2>Regenradar</h2>
+          <div class="toggle">
+            <span class="tl2">Regenradar zeigen<small>Niederschlag rund um euren Ort, DWD</small></span>
+            <button class="sw" data-k="enabled" role="switch" aria-label="Regenradar zeigen"></button>
+          </div>
+          <div class="wx-fields">
+            <div class="field"><label>Karte</label>
+              <select data-k="basemap" aria-label="Karte">
+                <option value="dwd">DWD – schlicht, dunkel (Grenzen)</option>
+                <option value="osm">OpenStreetMap – mit Straßen und Orten</option>
+              </select></div>
+            <div class="field"><label>Ausschnitt</label><select data-k="zoom" aria-label="Kartenausschnitt"></select></div>
+            <div class="toggle">
+              <span class="tl2">Durchlaufen lassen<small>von „vorher“ über „jetzt“ bis zur Vorhersage, dann von vorn</small></span>
+              <button class="sw" data-k="animate" role="switch" aria-label="Durchlaufen lassen"></button>
+            </div>
+            <div class="grid2 wx-anim">
+              <div class="field"><label>Zurück</label>
+                <select data-k="past" aria-label="Zurück">
+                  <option value="0">nicht</option><option value="30">30 min</option><option value="60">1 Stunde</option>
+                  <option value="90">1,5 Stunden</option><option value="120">2 Stunden</option>
+                </select></div>
+              <div class="field"><label>Vorhersage</label>
+                <select data-k="future" aria-label="Vorhersage">
+                  <option value="0">keine</option><option value="30">+30 min</option><option value="60">+1 Stunde</option>
+                  <option value="90">+1,5 Stunden</option><option value="120">+2 Stunden (mehr liefert der DWD nicht)</option>
+                </select></div>
+              <div class="field"><label>Tempo</label>
+                <select data-k="speed" aria-label="Tempo">
+                  <option value="slow">langsam</option><option value="normal">normal</option><option value="fast">schnell</option>
+                </select></div>
+            </div>
+            <div class="toggle">
+              <span class="tl2">Legende und Zeitleiste</span>
+              <button class="sw" data-k="legend" role="switch" aria-label="Legende"></button>
+            </div>
+          </div>
+          <div class="wx-layout"></div>
+        </div>
+
+        <div class="card wx-box" data-wx="warnings">
+          <h2>Wetterwarnungen</h2>
+          <div class="toggle">
+            <span class="tl2">Warnungen zeigen<small>amtliche DWD-Warnungen genau für euren Ort</small></span>
+            <button class="sw" data-k="enabled" role="switch" aria-label="Warnungen zeigen"></button>
+          </div>
+          <div class="wx-fields">
+            <div class="field"><label>Ohne Warnung</label>
+              <select data-k="whenNone" aria-label="Ohne Warnung">
+                <option value="hide">ausblenden</option>
+                <option value="note">dezenter Hinweis „keine Warnung“</option>
+              </select></div>
+            <div class="grid2">
+              <div class="field"><label>Ab Warnstufe</label>
+                <select data-k="minSeverity" aria-label="Ab Warnstufe">
+                  <option value="1">alle (ab gelb)</option><option value="2">ab orange (markant)</option>
+                  <option value="3">ab rot (Unwetter)</option><option value="4">nur violett (extrem)</option>
+                </select></div>
+              <div class="field"><label>Höchstens</label>
+                <select data-k="max" aria-label="Höchstens">
+                  <option value="1">1 Warnung</option><option value="2">2 Warnungen</option><option value="3">3 Warnungen</option>
+                  <option value="4">4 Warnungen</option><option value="6">6 Warnungen</option>
+                </select></div>
+            </div>
+            <div class="toggle">
+              <span class="tl2">Beschreibung zeigen<small>kurzer Text des DWD zur Warnung</small></span>
+              <button class="sw" data-k="details" role="switch" aria-label="Beschreibung zeigen"></button>
+            </div>
+          </div>
+          <div class="wx-layout"></div>
+        </div>
+        </div>
+      </section>
+
       <section class="page" data-page="standort">
         <p class="page-lead">Für Wettervorhersage und Regenradar.</p>
         <div class="card form-cols">
@@ -845,6 +944,8 @@
 <script src="vendor/hls/hls.light.min.js"></script>
 <script src="doorbell-gong.js"></script>
 <script src="doorbell.js"></script>
+<script src="weather-geo.js"></script>
+<script src="weather.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

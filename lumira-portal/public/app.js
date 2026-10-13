@@ -203,6 +203,13 @@
           window.LumiraAmbient.setEnabled($("#start-amb-sw").getAttribute("aria-checked") !== "true");
         });
       }
+      if (window.LumiraWeather) {
+        window.LumiraWeather.init({
+          toast: toast,
+          getSettings: function () { return SETTINGS; },
+          currentPage: function () { return currentPage; }
+        });
+      }
       if (window.LumiraDoorbell) {
         window.LumiraDoorbell.init({
           toast: toast,
@@ -729,7 +736,7 @@
   var AREAS = [
     { id: "start", label: "Start", icon: "home", pages: [["start", "Übersicht"]] },
     { id: "familie", label: "Familie", icon: "users", need: "hasFamily", pages: [["familienplan", "Familienplan"], ["familie", "Termine"], ["spruche", "Sprüche"]] },
-    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["klingel", "Klingel"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
+    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["klingel", "Klingel"], ["wetterkarte", "Radar & Warnungen"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
     { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarmierung"]] },
     { id: "mehr", label: "Mehr", icon: "more", pages: [["info", "Info & Updates"], ["app", "Als App"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit"]] }
   ];
@@ -762,6 +769,7 @@
     if (!area) { name = "start"; area = areaOf("start"); }
     currentPage = name;
     if (name === "klingel" && window.LumiraDoorbell) window.LumiraDoorbell.reload();
+    if (name === "wetterkarte" && window.LumiraWeather) window.LumiraWeather.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
       var on = b.getAttribute("data-area-btn") === area.id;

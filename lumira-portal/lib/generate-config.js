@@ -225,6 +225,10 @@ function buildModules(settings) {
 		}
 	});
 
+	// Regenradar & Warnungen (Spiegel → Radar & Warnungen): immer geladen,
+	// zeigt nur etwas, wenn im Portal eingeschaltet. Steuerung live über weather.json.
+	modules.push({ module: "MMM-LumiraWeather" });
+
 	// Türklingel (Spiegel → Klingel): nur, wenn eingeschaltet (Standard aus).
 	// Meldung/Video in der Mitte, Steuerung live über doorbell.json.
 	if (settings.modules && settings.modules.doorbell === true) {

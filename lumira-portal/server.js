@@ -30,6 +30,7 @@ const { createSessionStore } = require("./lib/sessions");
 const ambientLib = require("./lib/ambient");
 const doorbellLib = require("./lib/doorbell");
 const ringLib = require("./lib/ring");
+const weatherLib = require("./lib/weather");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -240,6 +241,7 @@ app.post("/api/settings", requireAuth, async (req, res) => {
 		const saved = settingsLib.patch(req.body || {});
 		regenerateAndRestart(saved);
 		syncDoorbell(saved);
+		weather.setLocation(saved.location);
 
 		const { portal, ...safe } = saved;
 		res.json(Object.assign({}, safe, { portal: { pinSet: !!(portal && portal.pinHash) }, restarted: true }));
@@ -956,6 +958,26 @@ app.post("/api/ring/reconnect", requireAuth, (req, res) => {
 	doorbellAction(res, async () => { await ring.connect(); return doorbellView(); });
 });
 
+// ---------------------------------------------------------------------------
+// Regenradar & Wetterwarnungen (Spiegel → Radar & Warnungen), siehe
+// lib/weather.js und modules/MMM-LumiraWeather. Wirkt live über weather.json.
+// ---------------------------------------------------------------------------
+const weather = weatherLib.createWeather({ home: settingsLib.LUMIRA_HOME });
+
+app.get("/api/weather", requireAuth, (req, res) => {
+	try { res.json(weather.view()); } catch (err) { res.status(500).json({ error: "Interner Fehler" }); }
+});
+
+app.put("/api/weather", requireAuth, (req, res) => {
+	try {
+		res.json(weather.setConfig(req.body || {}));
+	} catch (err) {
+		if (err instanceof weatherLib.WeatherError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] Wetter:", err);
+		res.status(500).json({ error: "Interner Fehler" });
+	}
+});
+
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
 // eslint-disable-next-line no-unused-vars
@@ -982,6 +1004,8 @@ if (require.main === module) {
 	setInterval(ensureWeekSafe, 60 * 1000);
 	// Timer der Dauerschleife: abgelaufen → wirklich aus
 	setInterval(expireAmbientSafe, 60 * 1000);
+	// Regenradar & Warnungen: Standort aus den Einstellungen übernehmen
+	try { weather.setLocation(settingsLib.load().location); } catch (err) { console.error("[lumira-portal] Wetter:", err.message); }
 	// Türklingel: liegengebliebenes Ereignis weg, Ring verbinden (falls an)
 	doorbell.reset();
 	syncDoorbell(settingsLib.load());

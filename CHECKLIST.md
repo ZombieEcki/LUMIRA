@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 132 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 138 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -213,6 +213,16 @@ um den aktuellen Stand zu sehen.
       GIFs ruckeln auf dem Pi 3; ohne ffmpeg bleibt es beim GIF mit Hinweis.
       `install.sh` installiert ffmpeg mit (bestehende Geräte: einmal `sudo apt install ffmpeg`)
 - [ ] Auf echter Pi-Hardware prüfen (Video-Wiedergabe Pi 3, Ton, Alarm-Unterbrechung)
+
+### Spiegel: Regenradar & Wetterwarnungen (MMM-LumiraWeather)
+- [x] Eigenes Modul mit DWD-Daten (Open Data, ohne Schlüssel): Regenradar animiert von bis
+      −2 h über „jetzt“ bis +2 h (Vorhersage), Karte DWD oder OpenStreetMap wählbar;
+      amtliche Warnungen genau für den Standort (WFS-Punktabfrage)
+- [x] Zwei unabhängige Kacheln: je Position (9 Felder), Abstände, Breite/Höhe, Deckkraft,
+      Schrift; „nur Radar / nur Warnungen / beides“; ohne Warnung ausblenden oder Hinweis
+- [x] Portal: Spiegel → **Radar & Warnungen**, live ohne Neustart, Vorschau (Live-Bild),
+      Spiegel meldet Überschneidungen mit Uhr/Familienplan/Kalender & Co.
+- [ ] Auf dem Spiegel prüfen, dann altes MMM-RainRadarDWD abschalten/entfernen
 
 ### Spiegel: Türklingel (Ring, MMM-Doorbell)
 - [x] Neues Modul `MMM-Doorbell`: beim Klingeln kompakte Meldung in der Mitte (Text,
