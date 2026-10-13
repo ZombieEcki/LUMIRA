@@ -51,7 +51,7 @@ Alle Einstellungen wirken sofort, ohne Neustart.
 |---|---|
 | Meldung | an/aus, eigener Text (max. 60 Zeichen), Anzeigedauer 5–30 s, Leuchtrahmen an/aus |
 | Ton | an/aus, eingebautes „Ding-Dong“ oder eigener Ton (MP3/WAV/OGG bis 5 MB), Lautstärke, **Probehören** im Browser |
-| Live-Video | an/aus, Größe klein/mittel/groß, Anzeigedauer 30 s / 1 / 2 / 5 min oder eigene Zeit (10–600 s), automatisch schließen, Countdown |
+| Live-Video | an/aus, Größe klein/mittel/groß, Anzeigedauer 30 s / 1 / 2 / 5 min oder eigene Zeit (10–600 s), automatisch schließen, Countdown, Bildübertragung direkt oder umwandeln (640 px) |
 
 - **Ton auf dem Spiegel** braucht Lautsprecher am Raspberry Pi (wie beim Alarmton).
   Der eigene Ton wird auf dem Spiegel gespeichert (`~/.lumira/doorbell/`) und
@@ -126,6 +126,7 @@ Kommt mit LUMIRA mit – nichts extra zu installieren:
 | Klingeln kommt nicht an (Test geht) | Portal → Spiegel → Klingel → Ring-Verbindung → **Diagnose**. *Push-Kanal* rot: mtalk.google.com (Port 5228) wird blockiert – im Werbeblocker (Pi-hole, AdGuard) oder in der Router-Firewall freigeben. *Keine Nachrichten von Ring*: in der Ring-App unter Kontrollzentrum → Autorisierte Client-Geräte alte Einträge („LUMIRA Spiegel“, „ring-client-api“, „Device name not found“) entfernen, im Portal abmelden und neu anmelden, ein paar Minuten warten. *Bewegung kommt an, Klingeln nicht*: in der Ring-App die Klingel-Benachrichtigungen der Klingel einschalten. Meldungen der Ring-Bibliothek stehen in der Diagnose und im Journal. |
 | „Ende-zu-Ende-Verschlüsselung ist an“ | Mit Ring-E2EE gibt Ring kein Live-Video heraus. In der Ring-App abschalten oder ohne Video nutzen. |
 | „Die Klingel liefert kein Video (Zeitüberschreitung)“ | Klingel offline/schwaches WLAN an der Tür, oder ffmpeg fehlt (`ffmpeg -version`). Die Meldung erscheint trotzdem. |
+| Video-Fenster bleibt schwarz („LIVE“ steht da) | Beim laufenden Klingeln zeigt das Portal unter der Meldung, was der Spiegel meldet („Spiegel: kein Bild – …“) und was die Klingel liefert („Stream: h264 1920×1080 …“). Abhilfe: Live-Video → **Bildübertragung: Umwandeln** (640 px, H.264 Baseline – spielt jeder Player ab). Nach 12 Sekunden ohne Bild zeigt der Spiegel statt der schwarzen Fläche einen Hinweis. |
 | Video ruckelt auf dem Pi 3 | Größe „klein“ oder „mittel“ wählen; die Klingel liefert Full-HD, der Pi 3 muss es ohne Grafik-Beschleunigung abspielen. |
 | Kein Ton | Lautsprecher/Ausgang am Pi prüfen (wie beim Alarmton), Lautstärke im Portal > 0. |
 

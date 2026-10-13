@@ -142,6 +142,28 @@ test("Erneut klingeln: dasselbe Ereignis, Ton noch einmal, Video läuft weiter",
 	db.shutdown();
 });
 
+test("Bildübertragung „umwandeln“ geht an den Stream, Rückmeldung des Spiegels erscheint im Portal", async () => {
+	const ring = fakeRing();
+	const db = fresh("mode", { ring });
+	assert.equal(db.view().config.video.mode, "copy", "Standard: direkt");
+	assert.throws(() => db.setConfig({ video: { mode: "magie" } }), /direkt oder umwandeln/);
+	db.setConfig({ video: { mode: "transcode" } });
+	const orig = ring.startStream;
+	let opts = null;
+	ring.startStream = (id, dir, o) => { opts = o; return orig(id, dir, o); };
+	const ev = db.trigger({ camera: { id: "111", name: "Haustür" } });
+	await wait(100);
+	assert.deepEqual(opts, { mode: "transcode" });
+	// MMM-Doorbell meldet zurück (eigene Datei neben doorbell.json)
+	fs.writeFileSync(path.join(path.dirname(db.statePath), doorbellLib.MIRROR_REPORT),
+		JSON.stringify({ eventId: ev.id, state: "timeout", detail: "networkError/fragLoadError 404", width: 0, height: 0 }));
+	const m = db.view().event.mirror;
+	assert.equal(m.state, "timeout");
+	assert.match(m.detail, /404/);
+	db.close();
+	db.shutdown();
+});
+
 test("Video klappt nicht: Meldung bleibt, Fehlertext, Kabel → Standbilder", async () => {
 	const ring = fakeRing({ failStream: true });
 	const db = fresh("fail", { ring });

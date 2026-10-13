@@ -44,13 +44,36 @@ module.exports = NodeHelper.create({
 		}
 	},
 
-	socketNotificationReceived: function (notification) {
+	socketNotificationReceived: function (notification, payload) {
+		if (notification === "DOORBELL_REPORT") { this.writeReport(payload); return; }
 		if (notification !== "DOORBELL_INIT") return;
 		if (!this.started) {
 			this.started = true;
 			this.startWatch();
 		}
 		this.push();
+	},
+
+	// Rückmeldung der Anzeige (Video läuft / Fehler) für das Portal. Eigene
+	// Datei – doorbell.json bleibt allein beim Portal.
+	writeReport: function (p) {
+		if (!p || !/^ev_[a-f0-9]{8}$/.test(String(p.eventId))) return;
+		const out = {
+			eventId: p.eventId,
+			state: String(p.state || "").slice(0, 20),
+			detail: String(p.detail || "").slice(0, 200),
+			width: Number(p.width) || 0,
+			height: Number(p.height) || 0,
+			at: new Date().toISOString()
+		};
+		try {
+			const file = path.join(LUMIRA_HOME, "doorbell-mirror.json");
+			fs.writeFileSync(file + ".tmp", JSON.stringify(out));
+			fs.renameSync(file + ".tmp", file);
+		} catch (err) {
+			console.error(this.name + ": Rückmeldung nicht gespeichert: " + err.message);
+		}
+		if (out.state === "error" || out.state === "timeout") console.warn(this.name + ": kein Bild vom Live-Video – " + out.detail);
 	},
 
 	read: function () {

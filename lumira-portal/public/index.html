@@ -443,6 +443,7 @@
             <div class="db-event-head"><span class="dot err db-pulse"></span><strong id="db-event-title">Es klingelt</strong><span class="db-left" id="db-event-left"></span></div>
             <div class="db-preview" id="db-preview"></div>
             <p class="save-hint" id="db-event-msg"></p>
+            <p class="save-hint" id="db-event-mirror" hidden></p>
           </div>
           <div class="btn-row">
             <button type="button" class="btn primary" id="db-test">Klingeln testen</button>
@@ -560,6 +561,11 @@
               <option value="120">2 Minuten</option>
               <option value="300">5 Minuten</option>
               <option value="custom">Eigene Zeit …</option>
+            </select></div>
+          <div class="field"><label for="db-vmode">Bildübertragung</label>
+            <select id="db-vmode">
+              <option value="copy">Direkt – schnell, wenig Last (empfohlen)</option>
+              <option value="transcode">Umwandeln – 640 px, falls das Bild schwarz bleibt</option>
             </select></div>
           <div class="field" id="db-dur-custom-row" hidden><label for="db-dur-custom">Eigene Zeit in Sekunden (10–600)</label>
             <input type="number" id="db-dur-custom" class="mono-in" min="10" max="600" step="5"></div>

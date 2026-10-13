@@ -96,6 +96,7 @@
     // Video
     sw("#db-video", c.video.enabled);
     $("#db-size").value = c.video.size;
+    $("#db-vmode").value = c.video.mode || "copy";
     var preset = ["30", "60", "120", "300"].indexOf(String(c.video.seconds)) !== -1;
     if (!$("#db-dur-custom-row").hidden && document.activeElement === $("#db-dur-custom")) {
       // gerade am Tippen – nicht überschreiben
@@ -216,7 +217,24 @@
       : v.status === "demo" ? "Testbild auf dem Spiegel – Ring ist nicht verbunden"
       : v.status === "off" ? "Nur Meldung/Ton – Video ist ausgeschaltet"
       : "Kein Video: " + (v.message || "nicht verfügbar");
-    $("#db-event-msg").textContent = msg;
+    $("#db-event-msg").textContent = msg + (ev.info ? " · Stream: " + ev.info : "");
+    // Rückmeldung des Spiegels: läuft das Video dort wirklich?
+    var mr = ev.mirror;
+    var MIRROR = {
+      playing: "Spiegel: Video läuft",
+      metadata: "Spiegel: Video lädt …",
+      warn: "Spiegel: Probleme beim Laden",
+      timeout: "Spiegel: kein Bild",
+      error: "Spiegel: Video-Fehler"
+    };
+    var mEl = $("#db-event-mirror");
+    mEl.hidden = !mr;
+    if (mr) {
+      var bad = mr.state === "timeout" || mr.state === "error";
+      mEl.textContent = (MIRROR[mr.state] || "Spiegel: " + mr.state) + (mr.width ? " (" + mr.width + "×" + mr.height + ")" : "") +
+        (mr.detail ? " – " + mr.detail : "") + (bad && (S.config.video.mode || "copy") === "copy" ? ". Tipp: unten bei Live-Video die Bildübertragung auf „Umwandeln“ stellen." : "");
+      mEl.classList.toggle("is-bad", bad);
+    }
     updateLeft();
     renderPreview(ev);
   }
@@ -424,6 +442,7 @@
 
       $("#db-video").addEventListener("click", function () { send({ video: { enabled: !isOn("#db-video") } }); });
       $("#db-size").addEventListener("change", function () { send({ video: { size: this.value } }); });
+      $("#db-vmode").addEventListener("change", function () { send({ video: { mode: this.value } }, this.value === "transcode" ? "Video wird ab dem nächsten Klingeln umgewandelt" : "Video wird direkt weitergereicht"); });
       $("#db-dur").addEventListener("change", sendDuration);
       $("#db-dur-custom").addEventListener("change", function () {
         var n = Math.round(Number(this.value));

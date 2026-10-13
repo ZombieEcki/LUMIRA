@@ -193,7 +193,7 @@ Module.register("MMM-Doorbell", {
 			stage.appendChild(img);
 		}
 		if (v.status === "live" && v.url) {
-			stage.appendChild(this.makeVideo(v.url));
+			stage.appendChild(this.makeVideo(v.url, s.id, stage));
 		} else if (v.status === "demo") {
 			const demo = document.createElement("div");
 			demo.className = "ldb-demo";
@@ -229,8 +229,30 @@ Module.register("MMM-Doorbell", {
 		p.appendChild(cd);
 	},
 
-	makeVideo: function (url) {
+	// Rückmeldung ans Portal (Spiegel → Klingel zeigt sie beim laufenden Klingeln)
+	report: function (eventId, state, extra) {
+		this.sendSocketNotification("DOORBELL_REPORT", Object.assign({ eventId, state }, extra || {}));
+	},
+
+	// Kommt kein Bild, statt schwarzer Fläche ein Hinweis (Standbild bleibt sichtbar)
+	showNoPicture: function (stage, detail) {
+		if (!stage || stage.querySelector(".ldb-nopic")) return;
+		const box = document.createElement("div");
+		box.className = "ldb-error has-snap ldb-nopic";
+		box.textContent = "Kein Bild vom Live-Video";
+		const small = document.createElement("small");
+		small.textContent = "Im LUMIRA-Portal unter Spiegel → Klingel → Live-Video die Bildübertragung auf „Umwandeln“ stellen." + (detail ? " (" + detail + ")" : "");
+		box.appendChild(small);
+		stage.appendChild(box);
+	},
+
+	makeVideo: function (url, eventId, stage) {
 		const video = document.createElement("video");
+		let playing = false;
+		let lastProblem = "";
+		const sent = {};
+		const once = (state, extra) => { if (sent[state]) return; sent[state] = true; this.report(eventId, state, extra); };
+		const size = () => ({ width: video.videoWidth || 0, height: video.videoHeight || 0 });
 		video.className = "ldb-video";
 		video.muted = true;
 		video.autoplay = true;
@@ -242,7 +264,25 @@ Module.register("MMM-Doorbell", {
 				this.panel.style.setProperty("--ldb-ratio", (video.videoWidth / video.videoHeight).toFixed(4));
 			}
 			video.classList.add("is-playing");
+			once("metadata", size());
 		});
+		// Läuft wirklich: die Zeit im Video bewegt sich
+		video.addEventListener("timeupdate", () => {
+			if (playing || video.currentTime < 0.3) return;
+			playing = true;
+			clearTimeout(this.videoWatch);
+			const nopic = stage && stage.querySelector(".ldb-nopic");
+			if (nopic) nopic.remove();
+			once("playing", size());
+		});
+		// Nach 12 Sekunden ohne laufendes Bild: Hinweis statt schwarzer Fläche
+		clearTimeout(this.videoWatch);
+		this.videoWatch = setTimeout(() => {
+			if (playing) return;
+			const detail = lastProblem || (sent.metadata ? "Videodaten da, aber kein Bild" : "keine Videodaten angekommen");
+			once("timeout", Object.assign({ detail }, size()));
+			this.showNoPicture(stage, detail);
+		}, 12000);
 		const Hls = window.Hls;
 		if (Hls && Hls.isSupported()) {
 			const hls = new Hls({
@@ -254,9 +294,17 @@ Module.register("MMM-Doorbell", {
 			});
 			let retries = 0;
 			hls.on(Hls.Events.ERROR, (evt, data) => {
-				if (!data || !data.fatal) return;
+				if (!data) return;
+				lastProblem = String(data.type || "") + "/" + String(data.details || "") +
+					(data.response && data.response.code ? " " + data.response.code : "") +
+					(data.reason ? " – " + String(data.reason).slice(0, 80) : "");
+				if (!data.fatal) { once("warn", { detail: lastProblem }); return; }
 				if (data.type === Hls.ErrorTypes.NETWORK_ERROR && retries++ < 8) hls.startLoad();
 				else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && retries++ < 8) hls.recoverMediaError();
+				else {
+					once("error", { detail: lastProblem });
+					this.showNoPicture(stage, lastProblem);
+				}
 			});
 			hls.loadSource(url);
 			hls.attachMedia(video);
@@ -290,6 +338,7 @@ Module.register("MMM-Doorbell", {
 	},
 
 	destroyVideo: function () {
+		clearTimeout(this.videoWatch);
 		if (this.hls) {
 			try { this.hls.destroy(); } catch (e) { /* schon weg */ }
 			this.hls = null;

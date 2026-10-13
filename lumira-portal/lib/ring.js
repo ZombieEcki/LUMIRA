@@ -358,12 +358,23 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 	}
 
 	// ---------------------------------------------------------------- Video/Bild
-	async function startStream(cameraId, dir) {
+	// mode "copy": Video unverändert weiterreichen (wenig Last, Standard).
+	// mode "transcode": in 640 px H.264 Baseline umwandeln – spielt jeder
+	// Player ab, falls das Bild sonst schwarz bleibt; der Pi 3 schafft das noch.
+	const VIDEO_ARGS = {
+		copy: ["-c:v", "copy"],
+		transcode: ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-profile:v", "baseline",
+			"-vf", "scale=640:-2", "-r", "15", "-g", "15", "-pix_fmt", "yuv420p"]
+	};
+
+	async function startStream(cameraId, dir, opts = {}) {
 		const cam = cameras.get(String(cameraId));
 		if (!cam) throw new Error("Klingel nicht gefunden");
 		const session = await cam.streamVideo({
+			// Zeitstempel neu erzeugen: RTP von Ring hat oft Lücken, das stört HLS
+			input: ["-fflags", "+genpts"],
 			audio: ["-an"],            // Ton bleibt aus (Spiegel ist kein Gegensprechen)
-			video: ["-c:v", "copy"],   // nicht umrechnen – der Pi 3 schafft das nicht flüssig
+			video: VIDEO_ARGS[opts.mode] || VIDEO_ARGS.copy,
 			output: [
 				"-f", "hls",
 				"-hls_time", "1",

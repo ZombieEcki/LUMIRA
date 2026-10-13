@@ -13,6 +13,15 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { execFile } = require("child_process");
+
+const FFPROBE = process.env.LUMIRA_FFPROBE || "ffprobe";
+// Bildübertragung: „copy“ reicht das Video der Klingel unverändert weiter
+// (schnell, wenig Last), „transcode“ wandelt es in 640 px H.264 Baseline –
+// das spielt jeder Player ab, falls das Bild sonst schwarz bleibt.
+const VIDEO_MODES = ["copy", "transcode"];
+// Rückmeldung des Spiegels (MMM-Doorbell schreibt sie, nur lesend genutzt)
+const MIRROR_REPORT = "doorbell-mirror.json";
 
 const VIDEO_SIZES = ["small", "medium", "large"];
 const POWER_MODES = ["auto", "wired", "battery"];
@@ -34,7 +43,7 @@ const EVENT_ID_RE = /^ev_[a-f0-9]{8}$/;
 const DEFAULT_CONFIG = {
 	notify: { enabled: true, text: DEFAULT_TEXT, glow: true, seconds: 8 },
 	sound: { enabled: true, source: "gong", volume: 80, file: "", name: "" },
-	video: { enabled: true, size: "medium", seconds: 60, autoClose: true, countdown: true },
+	video: { enabled: true, size: "medium", seconds: 60, autoClose: true, countdown: true, mode: "copy" },
 	power: "auto",
 	cameras: [] // Klingeln, die auslösen (Ring-IDs); leer = alle
 };
@@ -95,7 +104,8 @@ function cleanConfig(raw) {
 			size: VIDEO_SIZES.indexOf(v.size) === -1 ? d.video.size : v.size,
 			seconds: clampInt(v.seconds, VIDEO_MIN, VIDEO_MAX, d.video.seconds),
 			autoClose: v.autoClose === undefined ? d.video.autoClose : !!v.autoClose,
-			countdown: v.countdown === undefined ? d.video.countdown : !!v.countdown
+			countdown: v.countdown === undefined ? d.video.countdown : !!v.countdown,
+			mode: VIDEO_MODES.indexOf(v.mode) === -1 ? d.video.mode : v.mode
 		},
 		power: POWER_MODES.indexOf(r.power) === -1 ? "auto" : r.power,
 		cameras: Array.isArray(r.cameras) ? r.cameras.map(String).filter((x, i, a) => /^[0-9]{1,20}$/.test(x) && a.indexOf(x) === i).slice(0, 20) : []
@@ -113,6 +123,7 @@ function checkPatch(p) {
 	if (p.video) {
 		num(p.video.seconds, VIDEO_MIN, VIDEO_MAX, "Video-Dauer (Sekunden)");
 		if (p.video.size !== undefined && VIDEO_SIZES.indexOf(p.video.size) === -1) throw new DoorbellError("Größe: klein, mittel oder groß");
+		if (p.video.mode !== undefined && VIDEO_MODES.indexOf(p.video.mode) === -1) throw new DoorbellError("Bildübertragung: direkt oder umwandeln");
 	}
 	if (p.sound) num(p.sound.volume, 0, 100, "Lautstärke");
 	if (p.power !== undefined && POWER_MODES.indexOf(p.power) === -1) throw new DoorbellError("Stromversorgung: automatisch, Kabel oder Akku");
@@ -193,8 +204,21 @@ function createDoorbell({ home, liveDir, ring = null, now = () => new Date(), ti
 		};
 	}
 
+	// Was der Spiegel zum laufenden Klingeln meldet (Video läuft / Fehler)
+	function mirrorReport(eventId) {
+		try {
+			const m = JSON.parse(fs.readFileSync(path.join(home, MIRROR_REPORT), "utf8"));
+			if (!m || m.eventId !== eventId) return null;
+			return { state: String(m.state || ""), detail: String(m.detail || "").slice(0, 200), width: Number(m.width) || 0, height: Number(m.height) || 0, at: String(m.at || "") };
+		} catch (e) {
+			return null;
+		}
+	}
+
 	function publicEvent(ev) {
 		return {
+			mirror: mirrorReport(ev.id),
+			info: ev.video && ev.video.info ? ev.video.info : "",
 			id: ev.id, at: ev.at, rings: ev.rings, notifyUntil: ev.notifyUntil, until: ev.until,
 			camera: ev.camera, source: ev.source, power: ev.power,
 			video: ev.video, snapshot: ev.snapshot || null,
@@ -355,7 +379,7 @@ function createDoorbell({ home, liveDir, ring = null, now = () => new Date(), ti
 		fs.mkdirSync(dir, { recursive: true });
 		stream = { eventId, cameraId, handle: null };
 		Promise.resolve()
-			.then(() => ring.startStream(cameraId, dir))
+			.then(() => ring.startStream(cameraId, dir, { mode: load().config.video.mode }))
 			.then((h) => {
 				if (!stream || stream.eventId !== eventId) { try { h.stop(); } catch (e) { /* schon zu */ } return; }
 				stream.handle = h;
@@ -384,12 +408,36 @@ function createDoorbell({ home, liveDir, ring = null, now = () => new Date(), ti
 			if (ready) {
 				timers.clearInterval(streamWait); streamWait = null;
 				updateEvent(eventId, (e) => { e.video = { status: "live", url: "/MMM-Doorbell/live/" + eventId + "/stream.m3u8" }; });
+				probeStream(path.dirname(playlist)).then((info) => {
+					if (info) updateEvent(eventId, (e) => { if (e.video && e.video.status === "live") e.video.info = info; });
+				});
 			} else if (now().getTime() - started > STREAM_TIMEOUT_MS) {
 				timers.clearInterval(streamWait); streamWait = null;
 				stopStream();
 				failVideo(eventId, "Die Klingel liefert kein Video (Zeitüberschreitung)");
 			}
 		}, 400);
+	}
+
+	// Erstes Video-Stück mit ffprobe ansehen: „h264 1920×1080, 15 fps“ –
+	// hilft, wenn das Bild auf dem Spiegel schwarz bleibt
+	function probeStream(dir) {
+		return new Promise((resolve) => {
+			let seg = "";
+			try { seg = (fs.readdirSync(dir).filter((f) => /^seg\d+\.ts$/.test(f)).sort()[0]) || ""; } catch (e) { seg = ""; }
+			if (!seg) return resolve("");
+			execFile(FFPROBE, ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name,profile,width,height,avg_frame_rate", "-of", "json", path.join(dir, seg)],
+				{ timeout: 8000, windowsHide: true }, (err, stdout) => {
+					if (err) return resolve("");
+					try {
+						const st = (JSON.parse(stdout).streams || [])[0];
+						if (!st) return resolve("kein Videobild im Stream");
+						const fr = String(st.avg_frame_rate || "").split("/");
+						const fps = fr.length === 2 && Number(fr[1]) ? Math.round(Number(fr[0]) / Number(fr[1])) : 0;
+						resolve(`${st.codec_name || "?"}${st.profile ? " (" + st.profile + ")" : ""} ${st.width}×${st.height}${fps ? ", " + fps + " fps" : ""}`);
+					} catch (e) { resolve(""); }
+				});
+		});
 	}
 
 	function stopStream() {
@@ -470,4 +518,4 @@ function looksLikeAudio(buf) {
 	return false;
 }
 
-module.exports = { createDoorbell, cleanConfig, liveDirFor, looksLikeAudio, DoorbellError, DEFAULT_CONFIG, VIDEO_SIZES, POWER_MODES, VIDEO_MIN, VIDEO_MAX, NOTIFY_MIN, NOTIFY_MAX, MANUAL_CAP, SOUND_MAX_BYTES, EVENT_ID_RE };
+module.exports = { VIDEO_MODES, MIRROR_REPORT, createDoorbell, cleanConfig, liveDirFor, looksLikeAudio, DoorbellError, DEFAULT_CONFIG, VIDEO_SIZES, POWER_MODES, VIDEO_MIN, VIDEO_MAX, NOTIFY_MIN, NOTIFY_MAX, MANUAL_CAP, SOUND_MAX_BYTES, EVENT_ID_RE };
