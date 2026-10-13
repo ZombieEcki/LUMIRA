@@ -319,3 +319,87 @@ test("Ganze Familie fest: Putzen am Freitag für alle – Spiegel zeigt es bei j
 	const f = fp.view(new Date(2026, 6, 12, 20)).fairness;
 	assert.ok(Object.values(f.counts).every((c) => c[did] === 1));
 });
+
+// Mitglied mit Änderungen speichern
+function setMember(name, patch, now) {
+	const v = fp.view(now || MON);
+	return fp.setMembers(v.revision, v.members.map((m) => (m.name === name ? Object.assign({}, m, patch) : m)), now || MON);
+}
+
+function allDaily() {
+	const all = {};
+	["Gartendienst", "Tischdienst", "Baddienst", "Mülldienst", "Kochdienst", "Küchendienst", "Putzdienst", "Bodendienst"].forEach((n) => { all[n] = { rotation: "daily" }; });
+	setRules(all);
+}
+
+test("Höchstens 1 Dienst pro Person und Tag: niemand mehr, der Rest bleibt frei mit Hinweis", () => {
+	reset();
+	const { id } = family();
+	allDaily();
+	const v0 = fp.view(MON);
+	fp.setSettings(v0.revision, { maxPerDay: 1 }, MON);
+	assert.throws(() => fp.setSettings(fp.view(MON).revision, { maxPerDay: 12 }, MON), /bis 8/);
+	fp.ensureCurrentWeek(MON);
+	const v = fp.view(MON);
+	for (const date of v.currentWeek.dates) {
+		const per = {};
+		let free = 0;
+		v.duties.forEach((d) => { const p = v.currentWeek.days[d.id][date]; if (p) per[p] = (per[p] || 0) + 1; else free++; });
+		["Marcel", "Franzi", "Maja", "Marie"].forEach((n) => assert.equal(per[id(n)], 1, n + " am " + date));
+		assert.equal(free, 4);
+	}
+	assert.ok(v.warnings.some((w) => w.includes("Höchstens 1 Dienste pro Person und Tag")));
+});
+
+test("Regelmäßig nicht da (mittwochs): keine Tagesdienste, fester Mittwochsdienst geht an jemand Anwesenden", () => {
+	reset();
+	const { id } = family();
+	setRules({ Tischdienst: { rotation: "daily" }, Kochdienst: { rotation: "fixed", fixed: [{ day: 3, memberId: id("Maja") }] } });
+	setMember("Maja", { awayDays: [3] });
+	fp.ensureCurrentWeek(MON);
+	const v = fp.view(MON);
+	const tisch = v.duties.find((x) => x.name === "Tischdienst").id;
+	const koch = v.duties.find((x) => x.name === "Kochdienst").id;
+	assert.notEqual(v.currentWeek.days[tisch]["2026-07-08"], id("Maja"));
+	const cook = v.currentWeek.days[koch]["2026-07-08"];
+	assert.ok(cook && cook !== id("Maja"), "Kochdienst am Mittwoch übernimmt jemand anderes");
+	assert.ok(v.currentWeek.gaps.some((g) => g.dutyId === koch && g.reason === "away"));
+	// Wochendienste behält Maja (nur einen Tag weg)
+	assert.ok(v.currentWeek.assign[id("Maja")].length >= 1);
+});
+
+test("Urlaub die ganze Woche: keine Wochendienste; mitten in der Woche eingetragen wirkt ab heute", () => {
+	reset();
+	const { id } = family();
+	setRules({ Tischdienst: { rotation: "daily" } });
+	fp.ensureCurrentWeek(MON);
+	let v = fp.view(WED);
+	const tisch = v.duties.find((x) => x.name === "Tischdienst").id;
+	const before = Object.assign({}, v.currentWeek.days[tisch]);
+	// Mittwoch: Franzi ab heute bis Sonntag nicht da
+	setMember("Franzi", { awayDates: [{ from: "2026-07-08", to: "2026-07-12" }] }, WED);
+	v = fp.view(WED);
+	const after = v.currentWeek.days[tisch];
+	assert.equal(after["2026-07-06"], before["2026-07-06"], "Montag bleibt");
+	assert.equal(after["2026-07-07"], before["2026-07-07"], "Dienstag bleibt");
+	["2026-07-08", "2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12"].forEach((k) => assert.notEqual(after[k], id("Franzi"), k));
+	// Nächste Woche ganz weg → keine Wochendienste
+	setMember("Franzi", { awayDates: [{ from: "2026-07-13", to: "2026-07-19" }] }, WED);
+	assert.deepEqual(fp.view(WED).preview[0].assign[id("Franzi")], undefined);
+	assert.throws(() => setMember("Franzi", { awayDates: [{ from: "2026-07-20", to: "2026-07-13" }] }, WED), /Bis-Datum liegt vor/);
+});
+
+test("Ganze Familie, aber jemand ist nicht da: der Spiegel zeigt es nur den Anwesenden", () => {
+	reset();
+	family();
+	setRules({ Putzdienst: { rotation: "fixed", fixed: [{ day: 5, memberId: "*" }] } });
+	setMember("Marie", { awayDays: [5] });
+	fp.ensureCurrentWeek(MON);
+	const raw = JSON.parse(fs.readFileSync(fp.FAMILYPLAN_PATH, "utf8"));
+	const fri = buildPayload(raw, new Date(2026, 6, 10, 9));
+	const marie = fri.members.find((m) => m.name === "Marie");
+	assert.ok(!marie.duties.some((x) => x.name === "Putzdienst"));
+	assert.ok(fri.members.filter((m) => m.name !== "Marie").every((m) => m.duties.some((x) => x.name === "Putzdienst")));
+	const v = fp.view(new Date(2026, 6, 10, 9));
+	assert.ok(v.currentWeek.away.length === 1);
+});

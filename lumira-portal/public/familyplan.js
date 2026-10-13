@@ -12,6 +12,7 @@
   var draftDuties = null;
   var draftSettings = null;
   var openPicker = null;   // Index der Mitgliederzeile mit offener Avatar-Auswahl
+  var openAway = null;     // Index der Mitgliederzeile mit offener Abwesenheit
 
   var WEEKDAYS = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
   var ROLE_LABEL = { adult: "Erwachsener", child: "Kind" };
@@ -342,7 +343,7 @@
     var avBtn = el("button", "fp-avbtn"); avBtn.type = "button"; avBtn.title = "Avatar wählen";
     avBtn.setAttribute("aria-label", "Avatar für " + (m.name || "neues Mitglied") + " wählen");
     avBtn.appendChild(avatarEl(m, 40));
-    avBtn.addEventListener("click", function () { openPicker = openPicker === i ? null : i; renderTab(); });
+    avBtn.addEventListener("click", function () { openPicker = openPicker === i ? null : i; openAway = null; renderTab(); });
     row.appendChild(avBtn);
 
     var name = el("input", "fp-name-in"); name.type = "text"; name.maxLength = 30; name.placeholder = "Name";
@@ -360,6 +361,14 @@
     color.addEventListener("input", function () { m.color = color.value; var av = $(".fp-av", avBtn); av.style.background = m.color; av.style.color = textOn(m.color); });
     row.appendChild(color);
 
+    var awayBtn = el("button", "btn-x fp-txt fp-awaybtn" + (awayText(m) ? " has-away" : "")); awayBtn.type = "button";
+    awayBtn.appendChild(icon("plane-departure"));
+    awayBtn.appendChild(el("span", null, awayText(m) || "nicht da …"));
+    awayBtn.title = "An bestimmten Tagen befreit (nicht zu Hause)";
+    awayBtn.setAttribute("aria-expanded", openAway === i ? "true" : "false");
+    awayBtn.addEventListener("click", function () { openAway = openAway === i ? null : i; openPicker = null; renderTab(); });
+    row.appendChild(awayBtn);
+
     var act = swBtn(m.active !== false, "Aktiv", function (v) { m.active = v; });
     act.title = "Aktiv (aus = pausiert, z. B. Urlaub)";
     row.appendChild(act);
@@ -370,6 +379,86 @@
     row.appendChild(del);
     box.appendChild(row);
     if (openPicker === i) box.appendChild(avatarPicker(m, i));
+    if (openAway === i) box.appendChild(awayEditor(m, i));
+    return box;
+  }
+
+  // ----- „Nicht zu Hause“: regelmäßig an Wochentagen oder in Zeiträumen -----
+  function isoToDe(iso) { var p = String(iso || "").split("-"); return p.length === 3 ? p[2] + "." + p[1] + "." + p[0] : ""; }
+  function deToIso(de) {
+    var m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(String(de || "").trim());
+    if (!m) return "";
+    var d = new Date(+m[3], +m[2] - 1, +m[1]);
+    if (d.getMonth() !== +m[2] - 1) return "";
+    return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  }
+  function todayIso() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function awayText(m) {
+    var parts = [];
+    var dt = daysText(m.awayDays || []);
+    if (m.awayDays && m.awayDays.length === 7) dt = "immer";
+    if (dt) parts.push(dt);
+    var t = todayIso();
+    var upcoming = (m.awayDates || []).filter(function (x) { return x.to >= t; });
+    if (upcoming.length) {
+      var x = upcoming[0];
+      parts.push(x.from === x.to ? dm(x.from) : dm(x.from) + "–" + dm(x.to));
+      if (upcoming.length > 1) parts.push("+" + (upcoming.length - 1));
+    }
+    return parts.length ? "nicht da: " + parts.join(" · ") : "";
+  }
+
+  function awayEditor(m, i) {
+    if (!Array.isArray(m.awayDays)) m.awayDays = [];
+    if (!Array.isArray(m.awayDates)) m.awayDates = [];
+    var box = el("div", "fp-picker fp-away");
+    box.appendChild(el("p", "save-hint", "An diesen Tagen bekommt " + (m.name || "die Person") + " keine Tagesdienste. Ein fester Dienst an so einem Tag geht an jemand Anwesenden; wer die ganze Woche weg ist, bekommt auch keinen Wochendienst. Wirkt nach dem Speichern sofort."));
+
+    var l1 = el("div", "fp-away-l", "Regelmäßig nicht da");
+    box.appendChild(l1);
+    var days = el("div", "fp-days"); days.setAttribute("role", "group"); days.setAttribute("aria-label", "Regelmäßig nicht da");
+    [1, 2, 3, 4, 5, 6, 0].forEach(function (n) {
+      var b = el("button", "fp-day", DAY_SHORT[n]); b.type = "button";
+      b.setAttribute("aria-pressed", m.awayDays.indexOf(n) !== -1 ? "true" : "false");
+      b.addEventListener("click", function () {
+        var k = m.awayDays.indexOf(n);
+        if (k === -1) m.awayDays.push(n); else m.awayDays.splice(k, 1);
+        renderTab();
+      });
+      days.appendChild(b);
+    });
+    box.appendChild(days);
+
+    box.appendChild(el("div", "fp-away-l", "Zeiträume (z. B. Urlaub, Klassenfahrt)"));
+    var list = el("div", "fp-away-list");
+    m.awayDates.forEach(function (x, k) {
+      var row = el("div", "fp-away-r");
+      ["from", "to"].forEach(function (key, j) {
+        var inp = el("input", "mono-in"); inp.type = "text"; inp.placeholder = "TT.MM.JJJJ"; inp.inputMode = "numeric";
+        inp.id = "fp-away-" + i + "-" + k + "-" + key;
+        inp.setAttribute("aria-label", key === "from" ? "von" : "bis");
+        inp.value = isoToDe(x[key]);
+        inp.addEventListener("change", function () {
+          var iso = deToIso(inp.value);
+          x[key] = iso;
+          if (key === "from" && iso && (!x.to || x.to < iso)) { x.to = iso; renderTab(); }
+        });
+        var holder = el("span", "fp-away-d");
+        holder.appendChild(inp);
+        row.appendChild(holder);
+        if (ctx.datePicker) ctx.datePicker(inp, { withYear: true });
+        if (j === 0) row.appendChild(el("span", "save-hint", "bis"));
+      });
+      var del = el("button", "btn-x", "✕"); del.type = "button"; del.setAttribute("aria-label", "Zeitraum entfernen");
+      del.addEventListener("click", function () { m.awayDates.splice(k, 1); renderTab(); });
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+    var add = el("button", "btn-add", "+ Zeitraum"); add.type = "button";
+    add.disabled = m.awayDates.length >= 12;
+    add.addEventListener("click", function () { var t = todayIso(); m.awayDates.push({ from: t, to: t }); renderTab(); });
+    box.appendChild(add);
     return box;
   }
 
@@ -937,6 +1026,16 @@
     pw.addEventListener("change", function () { s.previewWeeks = Number(pw.value); });
     f2.appendChild(l2); f2.appendChild(pw);
     g.appendChild(f1); g.appendChild(f2); c.appendChild(g);
+
+    var fm = el("div", "field"); var lm = el("label", null, "Tagesdienste pro Person"); lm.htmlFor = "fp-maxday";
+    var mx = el("select"); mx.id = "fp-maxday";
+    [[0, "unbegrenzt"], [1, "höchstens 1 pro Tag"], [2, "höchstens 2 pro Tag"], [3, "höchstens 3 pro Tag"], [4, "höchstens 4 pro Tag"], [5, "höchstens 5 pro Tag"], [6, "höchstens 6 pro Tag"]].forEach(function (x) {
+      var o = el("option", null, x[1]); o.value = x[0]; if ((s.maxPerDay || 0) === x[0]) o.selected = true; mx.appendChild(o);
+    });
+    mx.addEventListener("change", function () { s.maxPerDay = Number(mx.value); });
+    fm.appendChild(lm); fm.appendChild(mx);
+    fm.appendChild(el("p", "save-hint", "Gilt für täglich rotierende und fest nach Tag verteilte Dienste. Passt nicht alles hinein, bleibt der Rest an dem Tag frei (Hinweis oben). Wirkt sofort ab heute."));
+    c.appendChild(fm);
 
     var t = el("div", "toggle"); t.style.marginTop = "10px";
     var tl = el("span", "tl2", "Automatische Rotation"); tl.appendChild(el("small", null, "Aus: Der Plan bleibt stehen, bis du sie wieder einschaltest."));

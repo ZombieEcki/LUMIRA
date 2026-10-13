@@ -137,7 +137,7 @@ Module.register("MMM-FamilyPlan", {
 				}
 				pills.appendChild(pill);
 			});
-			if (!m.duties.length) pills.appendChild(this.el("div", "fp-pill fp-free", m.free === "heute" ? "Heute frei" : "Diese Woche frei"));
+			if (!m.duties.length) pills.appendChild(this.el("div", "fp-pill fp-free", m.free === "weg" ? "Heute nicht da" : m.free === "heute" ? "Heute frei" : "Diese Woche frei"));
 			right.appendChild(pills);
 			row.appendChild(right);
 			wrapper.appendChild(row);

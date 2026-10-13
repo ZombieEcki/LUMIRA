@@ -111,6 +111,7 @@ function buildUnits(duties, pairMode, fixedPairs) {
  *                   Kontingent mit, der Rest wird darum herum fair verteilt
  * @param {string[]} [input.order]  Reihenfolge aller Dienste (für die Sortierung)
  * @param {object}   [input.extraLoad] zusätzliche Last je Person (z. B. feste Tage später in der Woche)
+ * @param {number}   [input.maxPer] harte Obergrenze je Person (inkl. vorab vergebener), 0 = keine
  * @returns {{ assign: object, unassigned: string[], overQuota: boolean }}
  */
 function computeWeek(input) {
@@ -163,16 +164,20 @@ function computeWeek(input) {
 	}));
 	load.sort((a, b) => a.t - b.t || a.i - b.i);
 	const quota = {};
-	load.forEach((x, k) => { quota[x.id] = Math.max(0, base + (k < rest ? 1 : 0) - (preCount[x.id] || 0)); });
+	const maxPer = Number(input.maxPer) > 0 ? Number(input.maxPer) : 0;
+	const room = (id) => (maxPer ? Math.max(0, maxPer - (preCount[id] || 0)) : Infinity);
+	load.forEach((x, k) => { quota[x.id] = Math.min(room(x.id), Math.max(0, base + (k < rest ? 1 : 0) - (preCount[x.id] || 0))); });
 	// Sprengen feste Zuweisungen das Kontingent, fehlen Plätze für den Rest:
 	// die bekommt, wer insgesamt am wenigsten hat
 	let free = members.reduce((s, p) => s + quota[p.id], 0);
 	while (free < total) {
 		let pick = null;
 		for (const x of load) {
+			if (quota[x.id] >= room(x.id)) continue; // Obergrenze erreicht
 			const v = (preCount[x.id] || 0) + quota[x.id];
 			if (!pick || v < pick.v) pick = { id: x.id, v };
 		}
+		if (!pick) break;
 		quota[pick.id]++;
 		free++;
 	}
@@ -229,7 +234,7 @@ function computeWeek(input) {
 				if (c === Infinity) continue;
 				const before = cur[p.id].length;
 				const after = before + unit.length;
-				if (after > quota[p.id] + slack) continue;
+				if (after > quota[p.id] + slack || after > room(p.id)) continue;
 				const extra = Math.max(0, after - quota[p.id]) - Math.max(0, before - quota[p.id]);
 				cur[p.id].push(...unit);
 				dfs(k + 1, acc + c + extra * COST_OVER_QUOTA);
@@ -298,10 +303,18 @@ function activeIndex(days, dateKey) {
 
 const ALL = "*"; // feste Zuweisung an die ganze Familie
 
+// Ist jemand an diesem Tag befreit („nicht zu Hause“)? Regelmäßig an
+// Wochentagen (awayDays) oder in Zeiträumen (awayDates: [{ from, to }])
+function isAway(member, dateKey) {
+	if (!member) return false;
+	if (Array.isArray(member.awayDays) && member.awayDays.indexOf(fromKey(dateKey).getDay()) !== -1) return true;
+	return Array.isArray(member.awayDates) && member.awayDates.some((r) => r && r.from <= dateKey && dateKey <= r.to);
+}
+
 /**
  * Tagesplan einer Woche für Dienste, die nicht die ganze Woche bei einer
  * Person liegen: täglich rotierende Dienste und feste Zuweisungen an
- * einzelnen Wochentagen (die haben immer Vorrang, auch „ganze Familie“).
+ * einzelnen Wochentagen (die haben Vorrang, auch „ganze Familie“).
  *
  * Täglich rotierende Dienste werden Tag für Tag GEMEINSAM verteilt – mit
  * derselben Logik wie die Wochen (computeWeek): gleich viele Dienste je
@@ -310,24 +323,35 @@ const ALL = "*"; // feste Zuweisung an die ganze Familie
  * zählen dabei mit (Wochendienste nicht – die wiegen weniger als ein Dienst
  * an jedem Tag).
  *
+ * Wer an einem Tag befreit ist (nicht zu Hause), bekommt an dem Tag nichts;
+ * sein fester Dienst wird an dem Tag unter den Anwesenden fair verteilt.
+ * maxPerDay begrenzt die Tagesdienste je Person und Tag; was darüber
+ * hinausgeht, bleibt frei (Hinweis).
+ *
  * @param {object} input
  * @param {string} input.start     erster Tag der Woche ("YYYY-MM-DD")
  * @param {string} input.end       erster Tag der nächsten Woche (exklusiv)
- * @param {Array}  input.members   aktive Mitglieder [{ id, role }]
+ * @param {Array}  input.members   aktive Mitglieder [{ id, role, awayDays?, awayDates? }]
  * @param {Array}  input.duties    aktive Dienste [{ id, roles, rotation, every, days, fixed }]
  * @param {object} [input.weekAssign] Wochenverteilung (nur zur Information)
  * @param {Array}  input.history   Tagespläne früherer Wochen, chronologisch
+ * @param {number} [input.maxPerDay] höchstens so viele Tagesdienste je Person und Tag (0 = frei)
  * @param {string} [input.pairMode] wie bei den Wochen (feste Paare)
  * @param {Array}  [input.fixedPairs]
  * @returns {{ days: object, gaps: Array }} days: { dutyId: { datum: memberId | "*" | null } }
  */
 function computeDays(input) {
-	const members = input.members || [];
-	const ids = new Set(members.map((m) => m.id));
+	const allMembers = input.members || [];
+	const memberById = {};
+	allMembers.forEach((m) => { memberById[m.id] = m; });
+	const ids = new Set(allMembers.map((m) => m.id));
 	const out = { days: {}, gaps: [] };
 	const dates = [];
 	for (let k = input.start; k < input.end; k = addDays(k, 1)) dates.push(k);
 	const duties = input.duties || [];
+	const maxPerDay = Number(input.maxPerDay) > 0 ? Number(input.maxPerDay) : 0;
+	const order = {};
+	duties.forEach((d, i) => { order[d.id] = i; });
 
 	// Wer hatte wann welchen Tagesdienst (Historie + diese Woche)
 	const owner = {};    // dutyId → { datum → memberId | "*" | null }
@@ -336,7 +360,7 @@ function computeDays(input) {
 		(owner[did] = owner[did] || {})[date] = pid;
 		if (!pid) return;
 		const day = (byDate[date] = byDate[date] || {});
-		(pid === ALL ? members.map((m) => m.id) : [pid]).forEach((p) => { (day[p] = day[p] || []).push(did); });
+		(pid === ALL ? allMembers.filter((m) => !isAway(m, date)).map((m) => m.id) : [pid]).forEach((p) => { (day[p] = day[p] || []).push(did); });
 	};
 	const since = addDays(input.start, -28);
 	for (const map of input.history || []) {
@@ -353,9 +377,11 @@ function computeDays(input) {
 	const activeOn = (d, dow) => !(Array.isArray(d.days) && d.days.length && d.days.indexOf(dow) === -1);
 	const fixedOf = (d) => (Array.isArray(d.fixed) ? d.fixed : []);
 
-	// 1) Feste Tage zuerst (Vorrang); „jeden Tag“ an die ganze Familie
-	//    gilt an allen Tagen des Dienstes
+	// 1) Feste Tage zuerst (Vorrang); „jeden Tag“ an die ganze Familie gilt
+	//    an allen Tagen des Dienstes. Ist die feste Person an dem Tag nicht
+	//    da, wird der Dienst an dem Tag ganz normal verteilt (reassign).
 	const fixedDay = {}; // dutyId → { dow → memberId }
+	const reassign = {}; // datum → [dutyId]
 	for (const d of duties) {
 		const fx = fixedOf(d);
 		const all = fx.find((f) => f.day === -1);
@@ -372,62 +398,75 @@ function computeDays(input) {
 			if (map[dow] === undefined) continue;
 			const pid = map[dow];
 			if (pid === ALL) { put(d.id, date, ALL); continue; }
-			const ok = ids.has(pid);
-			put(d.id, date, ok ? pid : null);
-			if (!ok) out.gaps.push({ dutyId: d.id, date, reason: "paused", memberId: pid });
+			if (!ids.has(pid)) {
+				put(d.id, date, null);
+				out.gaps.push({ dutyId: d.id, date, reason: "paused", memberId: pid });
+				continue;
+			}
+			if (isAway(memberById[pid], date)) {
+				(reassign[date] = reassign[date] || []).push(d.id);
+				out.gaps.push({ dutyId: d.id, date, reason: "away", memberId: pid });
+				continue;
+			}
+			put(d.id, date, pid);
 		}
 	}
 
-	// 2) Täglich rotierende Dienste: je Tag gemeinsam verteilen
+	// 2) Je Tag gemeinsam verteilen: täglich rotierende Dienste und feste
+	//    Dienste, deren Person an dem Tag nicht da ist
 	const daily = duties.filter((d) => d.rotation === "daily" && !fixedOf(d).some((f) => f.day === -1));
-	if (!daily.length || !members.length) {
-		daily.forEach((d) => dates.forEach((date) => {
-			const dow = fromKey(date).getDay();
-			if (activeOn(d, dow) && !(fixedDay[d.id] && fixedDay[d.id][dow] !== undefined)) {
-				put(d.id, date, null);
-				out.gaps.push({ dutyId: d.id, date, reason: "nobody" });
-			}
-		}));
-		return out;
-	}
-	const n = members.length;
+	const dutyById = {};
+	duties.forEach((d) => { dutyById[d.id] = d; });
 	for (const date of dates) {
 		const dow = fromKey(date).getDay();
-		const today = daily.filter((d) => activeOn(d, dow) && !(fixedDay[d.id] && fixedDay[d.id][dow] !== undefined));
-		if (!today.length) continue;
+		const todayDuties = daily.filter((d) => activeOn(d, dow) && !(fixedDay[d.id] && fixedDay[d.id][dow] !== undefined))
+			.concat((reassign[date] || []).map((did) => dutyById[did]))
+			.sort((a, b) => order[a.id] - order[b.id]);
+		if (!todayDuties.length) continue;
+		const present = allMembers.filter((m) => !isAway(m, date));
+		const presentIds = new Set(present.map((m) => m.id));
+		if (!present.length) {
+			todayDuties.forEach((d) => { put(d.id, date, null); out.gaps.push({ dutyId: d.id, date, reason: "nobody" }); });
+			continue;
+		}
 
 		// Schon feststehend und zählt beim Kontingent mit: Rhythmus „alle N Tage“
 		// (gleicher Block wie der vorige Einsatztag), feste Tage einzelner Personen
 		const preassigned = {};
 		const carried = {};
-		for (const d of today) {
+		for (const d of todayDuties) {
 			const every = Math.max(1, d.every || 1);
-			if (every < 2) continue;
+			if (every < 2 || d.rotation !== "daily") continue;
 			const block = Math.floor(activeIndex(d.days, date) / every);
 			for (let back = 1; back <= 7 * every + 7; back++) {
 				const pd = addDays(date, -back);
 				const pdow = fromKey(pd).getDay();
 				if (!activeOn(d, pdow) || (fixedDay[d.id] && fixedDay[d.id][pdow] !== undefined)) continue;
 				const po = owner[d.id] && owner[d.id][pd];
-				if (po && po !== ALL && ids.has(po) && Math.floor(activeIndex(d.days, pd) / every) === block
-					&& allowed(members.find((m) => m.id === po), d)) carried[d.id] = po;
+				if (po && po !== ALL && presentIds.has(po) && Math.floor(activeIndex(d.days, pd) / every) === block
+					&& allowed(memberById[po], d)) carried[d.id] = po;
 				break;
 			}
 		}
 		Object.assign(preassigned, carried);
 		for (const did of Object.keys(fixedDay)) {
 			const pid = fixedDay[did][dow];
-			if (pid && pid !== ALL && ids.has(pid)) preassigned["fix:" + did] = pid;
+			if (pid && pid !== ALL && presentIds.has(pid)) preassigned["fix:" + did] = pid;
 		}
 
-		// Verlauf: die letzten Tage lückenlos (für Zyklus, „gestern“, Häufigkeit)
-		const history = [];
-		for (let back = RECENT_WEEKS; back >= 1; back--) {
-			const map = byDate[addDays(date, -back)] || {};
-			const clean = {};
-			Object.keys(map).forEach((p) => { clean[p] = map[p].slice(); });
-			history.push(clean);
+		// Obergrenze je Person und Tag: passt nicht alles hinein, bleiben die
+		// letzten Dienste der Liste frei
+		let rotating = todayDuties.filter((d) => !carried[d.id]);
+		if (maxPerDay) {
+			const pre = {};
+			Object.keys(preassigned).forEach((k) => { pre[preassigned[k]] = (pre[preassigned[k]] || 0) + 1; });
+			const capacity = present.reduce((s, m) => s + Math.max(0, maxPerDay - (pre[m.id] || 0)), 0);
+			if (rotating.length > capacity) {
+				rotating.slice(capacity).forEach((d) => { put(d.id, date, null); out.gaps.push({ dutyId: d.id, date, reason: "limit" }); });
+				rotating = rotating.slice(0, capacity);
+			}
 		}
+
 		// Feste Tage später in dieser Woche zählen schon mit (sonst käme, wer am
 		// Sonntag fest dran ist, unter der Woche genauso oft wie alle anderen)
 		const extraLoad = {};
@@ -439,25 +478,35 @@ function computeDays(input) {
 				if (pid && pid !== ALL && ids.has(pid) && daily.some((d) => d.id === did)) extraLoad[pid] = (extraLoad[pid] || 0) + 1;
 			}
 		}
+
+		// Verlauf: die letzten Tage lückenlos (für Zyklus, „gestern“, Häufigkeit)
+		const history = [];
+		for (let back = RECENT_WEEKS; back >= 1; back--) {
+			const map = byDate[addDays(date, -back)] || {};
+			const clean = {};
+			Object.keys(map).forEach((p) => { clean[p] = map[p].slice(); });
+			history.push(clean);
+		}
 		const dayNo = Math.max(0, daysBetween(EPOCH, date));
-		const rotating = today.filter((d) => !carried[d.id]);
 		const res = computeWeek({
-			members,
+			members: present,
 			duties: rotating.map((d) => ({ id: d.id, roles: d.roles })),
 			preassigned,
 			order: duties.map((d) => d.id),
 			history,
-			cyclePos: dayNo % n,
+			cyclePos: dayNo % present.length,
 			extraLoad,
+			maxPer: maxPerDay,
 			key: date,
 			pairMode: input.pairMode,
 			fixedPairs: input.fixedPairs
 		});
-		for (const d of today) {
+		for (const d of todayDuties) {
+			if (out.days[d.id] && out.days[d.id][date] === null && out.gaps.some((g) => g.dutyId === d.id && g.date === date && g.reason === "limit")) continue;
 			let pid = carried[d.id] || null;
 			if (!pid) pid = Object.keys(res.assign).find((p) => res.assign[p].indexOf(d.id) !== -1) || null;
 			put(d.id, date, pid);
-			if (!pid) out.gaps.push({ dutyId: d.id, date, reason: "nobody" });
+			if (!pid) out.gaps.push({ dutyId: d.id, date, reason: maxPerDay ? "limit" : "nobody" });
 		}
 	}
 	return out;
@@ -465,6 +514,7 @@ function computeDays(input) {
 
 module.exports = {
 	ALL,
+	isAway,
 	computeWeek,
 	computeDays,
 	periodOf,

@@ -47,6 +47,8 @@ const CLOCK_TOLERANCE_MS = 10 * 60 * 1000;
 const ROTATIONS = ["weekly", "daily", "monthly", "fixed"];
 const EVERY_MAX = { weekly: 4, daily: 7, monthly: 6, fixed: 1 };
 const MAX_FIXED = 7;
+const MAX_AWAY = 12;     // Zeiträume „nicht zu Hause“ je Person
+const MAX_PER_DAY = 8;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const MEMBER_COLORS = ["#4ade80", "#facc15", "#a78bfa", "#f472b6", "#38bdf8", "#fb923c", "#2dd4bf", "#e879f9"];
@@ -85,7 +87,8 @@ function defaults() {
 			historyWeeks: 26,
 			cycleStart: "",
 			pairMode: "varying",
-			fixedPairs: []
+			fixedPairs: [],
+			maxPerDay: 0
 		},
 		members: [],
 		duties: DEFAULT_DUTIES.map((d) => cleanDuty(Object.assign({}, d, { roles: ROLES.slice(), active: true }))),
@@ -124,6 +127,15 @@ function cleanAvatar(a) {
 	return { type: "initials" };
 }
 
+// „Nicht zu Hause“: Zeiträume [{ from, to }] (ISO-Daten, to ≥ from)
+function cleanAway(list) {
+	if (!Array.isArray(list)) return [];
+	return list.filter((x) => x && /^\d{4}-\d{2}-\d{2}$/.test(x.from) && /^\d{4}-\d{2}-\d{2}$/.test(x.to) && x.from <= x.to)
+		.map((x) => ({ from: x.from, to: x.to }))
+		.sort((a, b) => (a.from < b.from ? -1 : 1))
+		.slice(0, MAX_AWAY);
+}
+
 function cleanMember(m) {
 	return {
 		id: String(m.id),
@@ -131,6 +143,8 @@ function cleanMember(m) {
 		role: ROLES.indexOf(m.role) !== -1 ? m.role : "adult",
 		color: HEX_RE.test(m.color) ? m.color : MEMBER_COLORS[0],
 		avatar: cleanAvatar(m.avatar),
+		awayDays: cleanDays(m.awayDays),
+		awayDates: cleanAway(m.awayDates),
 		active: m.active !== false,
 		deleted: m.deleted === true
 	};
@@ -213,7 +227,7 @@ function cleanDayMap(m) {
 
 function cleanGaps(list) {
 	return Array.isArray(list) ? list.filter((g) => g && typeof g.dutyId === "string" && DATE_RE.test(g.date)).map((g) => ({
-		dutyId: g.dutyId, date: g.date, reason: g.reason === "paused" ? "paused" : "nobody", memberId: typeof g.memberId === "string" ? g.memberId : undefined
+		dutyId: g.dutyId, date: g.date, reason: ["paused", "away", "limit"].indexOf(g.reason) !== -1 ? g.reason : "nobody", memberId: typeof g.memberId === "string" ? g.memberId : undefined
 	})) : [];
 }
 
@@ -233,7 +247,8 @@ function normalize(raw) {
 			historyWeeks: Math.min(104, Math.max(8, Number(s.historyWeeks) || 26)),
 			cycleStart: typeof s.cycleStart === "string" ? s.cycleStart : "",
 			pairMode: s.pairMode === "fixed" ? "fixed" : "varying",
-			fixedPairs: Array.isArray(s.fixedPairs) ? s.fixedPairs.filter((p) => Array.isArray(p) && p.length === 2).map((p) => [String(p[0]), String(p[1])]) : []
+			fixedPairs: Array.isArray(s.fixedPairs) ? s.fixedPairs.filter((p) => Array.isArray(p) && p.length === 2).map((p) => [String(p[0]), String(p[1])]) : [],
+			maxPerDay: Number.isInteger(s.maxPerDay) && s.maxPerDay >= 0 && s.maxPerDay <= MAX_PER_DAY ? s.maxPerDay : 0
 		},
 		members: Array.isArray(raw.members) ? raw.members.map(cleanMember) : [],
 		duties: Array.isArray(raw.duties) ? raw.duties.map(cleanDuty) : base.duties,
@@ -393,8 +408,13 @@ function computeFor(data, weekStart, simulated) {
 	const cycleStart = data.settings.cycleStart || "";
 	const inCycle = prev.filter((w) => w.start >= cycleStart).length;
 	const duties = activeDuties(data);
+	const weekEnd = rot.nextBoundary(weekStart, data.settings.rotationWeekday);
+	// Wer die ganze Woche nicht zu Hause ist, bekommt auch keinen Wochendienst
+	const weekDates = [];
+	for (let k = weekStart; k < weekEnd; k = rot.addDays(k, 1)) weekDates.push(k);
+	const weekMembers = members.filter((m) => !weekDates.every((k) => rot.isAway(m, k)));
 	const memberById = {};
-	members.forEach((m) => { memberById[m.id] = m; });
+	weekMembers.forEach((m) => { memberById[m.id] = m; });
 	const last = prev[prev.length - 1];
 
 	const preassigned = {};
@@ -417,7 +437,7 @@ function computeFor(data, weekStart, simulated) {
 		rotating.push(d);
 	}
 	const res = rot.computeWeek({
-		members: members.map((m) => ({ id: m.id, role: m.role })),
+		members: weekMembers.map((m) => ({ id: m.id, role: m.role })),
 		duties: rotating.map((d) => ({ id: d.id, roles: d.roles })),
 		preassigned,
 		order: duties.map((d) => d.id),
@@ -429,8 +449,9 @@ function computeFor(data, weekStart, simulated) {
 	});
 	const dayRes = rot.computeDays({
 		start: weekStart,
-		end: rot.nextBoundary(weekStart, data.settings.rotationWeekday),
-		members: members.map((m) => ({ id: m.id, role: m.role })),
+		end: weekEnd,
+		members: members.map((m) => ({ id: m.id, role: m.role, awayDays: m.awayDays, awayDates: m.awayDates })),
+		maxPerDay: data.settings.maxPerDay,
 		duties: duties.map((d) => ({ id: d.id, roles: d.roles, rotation: d.rotation, every: d.every, days: d.days, fixed: d.fixed })),
 		weekAssign: res.assign,
 		history: prev.map((w) => w.days),
@@ -441,7 +462,8 @@ function computeFor(data, weekStart, simulated) {
 	const gaps = dayRes.gaps.slice();
 	blocked.forEach((did) => {
 		const f = duties.find((d) => d.id === did).fixed[0];
-		gaps.push({ dutyId: did, date: weekStart, reason: "paused", memberId: f.memberId });
+		const m = members.find((x) => x.id === f.memberId);
+		gaps.push({ dutyId: did, date: weekStart, reason: m ? "away" : "paused", memberId: f.memberId });
 	});
 	return {
 		assign: res.assign,
@@ -561,7 +583,7 @@ function fairness(data, uptoIdx) {
 		for (const did of Object.keys(days)) {
 			for (const date of Object.keys(days[did])) {
 				const pid = days[did][date];
-				const list = pid === rot.ALL ? Object.keys(counts) : [pid];
+				const list = pid === rot.ALL ? members.filter((m) => !rot.isAway(m, date)).map((m) => m.id) : [pid];
 				list.forEach((p) => { if (p && counts[p]) counts[p][did] = (counts[p][did] || 0) + 1; });
 			}
 		}
@@ -632,7 +654,7 @@ function datesOf(start, end) {
 
 // Wer hat heute welchen Dienst? Wochendienste plus Tagesdienste des Tages –
 // ein fester Tag oder eine Tagesänderung geht dem Wochen-Inhaber vor.
-function todayOf(week, dateKey) {
+function todayOf(week, dateKey, members) {
 	const assign = shown(week);
 	const days = effectiveDays(week);
 	const out = {};
@@ -643,7 +665,7 @@ function todayOf(week, dateKey) {
 	for (const did of Object.keys(days)) {
 		const pid = days[did][dateKey];
 		if (!pid) continue;
-		const list = pid === rot.ALL ? Object.keys(assign) : [pid];
+		const list = pid === rot.ALL ? Object.keys(assign).filter((p) => !rot.isAway((members || []).find((m) => m.id === p), dateKey)) : [pid];
 		for (const p of list) {
 			out[p] = out[p] || [];
 			if (!out[p].some((x) => x.dutyId === did)) out[p].push({ dutyId: did, day: true, all: pid === rot.ALL });
@@ -661,7 +683,8 @@ function view(now) {
 	const stored = data.weeks.map((w) => ({ start: w.start, assign: shown(w) }));
 	if (current) {
 		current.reasons = explain(data, stored.slice(0, idx), current);
-		current.today = todayOf(data.weeks[idx], todayKey);
+		current.today = todayOf(data.weeks[idx], todayKey, data.members);
+		current.away = data.members.filter((m) => !m.deleted && rot.isAway(m, todayKey)).map((m) => m.id);
 		current.todayKey = todayKey;
 	}
 
@@ -695,6 +718,11 @@ function view(now) {
 	}
 	warnings.push(...ruleWarnings(data));
 	if (current) {
+		const limit = current.gaps.filter((g) => g.reason === "limit" && g.date >= todayKey);
+		if (limit.length) {
+			const days = [...new Set(limit.map((g) => DAY_NAMES[rot.fromKey(g.date).getDay()].slice(0, 2)))].join(", ");
+			warnings.push(`Höchstens ${data.settings.maxPerDay} Dienste pro Person und Tag: ${limit.length === 1 ? "1 Tagesdienst bleibt" : limit.length + " Tagesdienste bleiben"} diese Woche frei (${days}).`);
+		}
 		const nobody = [...new Set(current.gaps.filter((g) => g.reason === "nobody").map((g) => g.dutyId))].map(dutyName);
 		if (nobody.length) warnings.push(`Tagesdienst ohne passende Person (Rolle): ${nobody.join(", ")}`);
 		const uneven = unevenText(data, current.assign);
@@ -789,10 +817,13 @@ function setMembers(revision, list, now) {
 				role,
 				color: checkColor(field, item.color || MEMBER_COLORS[i % MEMBER_COLORS.length]),
 				avatar,
+				awayDays: cleanDays(item.awayDays !== undefined ? item.awayDays : existing && existing.awayDays),
+				awayDates: checkAway(field, item.name, item.awayDates !== undefined ? item.awayDates : existing && existing.awayDates, now || new Date()),
 				active: item.active !== false,
 				deleted: false
 			});
 		});
+		const awayBefore = JSON.stringify(data.members.filter((m) => !m.deleted).map((m) => [m.id, m.awayDays, m.awayDates]));
 		const keep = new Set(next.map((m) => m.id));
 		const removed = data.members.filter((m) => !keep.has(m.id)).map((m) => Object.assign({}, m, { deleted: true }));
 		data.members = next.concat(removed);
@@ -803,7 +834,47 @@ function setMembers(revision, list, now) {
 			if (d.rotation === "fixed" && !d.fixed.length) { d.rotation = "weekly"; d.every = 1; }
 		}
 		if (fingerprint(data) !== before) restartCycle(data, now || new Date());
+		// „Nicht zu Hause“ wirkt sofort: Tagesplan der laufenden Woche ab heute neu
+		const awayAfter = JSON.stringify(data.members.filter((m) => !m.deleted).map((m) => [m.id, m.awayDays, m.awayDates]));
+		if (awayAfter !== awayBefore) refreshDaysFromToday(data, now || new Date());
 	}, now);
+}
+
+// Zeiträume „nicht zu Hause“ prüfen; längst vergangene fallen weg
+function checkAway(field, name, list, now) {
+	if (list === undefined || list === null) return [];
+	if (!Array.isArray(list)) throw new ValidationError(field, "Abwesenheiten müssen eine Liste sein");
+	const who = String(name || "").trim() || "Mitglied";
+	const old = rot.addDays(rot.toKey(now), -30);
+	const out = [];
+	for (const x of list) {
+		if (!x || !DATE_RE.test(String(x.from)) || !DATE_RE.test(String(x.to))) throw new ValidationError(field, `${who}: Bitte bei „nicht zu Hause“ Von- und Bis-Datum angeben`);
+		if (x.to < x.from) throw new ValidationError(field, `${who}: Das Bis-Datum liegt vor dem Von-Datum`);
+		if (x.to < old) continue;
+		out.push({ from: x.from, to: x.to });
+	}
+	if (out.length > MAX_AWAY) throw new ValidationError(field, `${who}: Höchstens ${MAX_AWAY} Zeiträume`);
+	return cleanAway(out);
+}
+
+// Tagesplan der laufenden Woche ab heute neu berechnen (vergangene Tage
+// bleiben) – wenn jemand „nicht zu Hause“ ist oder die Tagesobergrenze sich ändert
+function refreshDaysFromToday(data, now) {
+	const todayKey = rot.toKey(now);
+	const idx = currentWeekIndex(data, todayKey);
+	if (idx < 0) return;
+	const week = data.weeks[idx];
+	const res = computeFor(data, week.start);
+	const next = {};
+	const ids = new Set(Object.keys(week.days || {}).concat(Object.keys(res.days)));
+	for (const did of ids) {
+		const row = {};
+		Object.keys((week.days || {})[did] || {}).forEach((k) => { if (k < todayKey) row[k] = week.days[did][k]; });
+		Object.keys(res.days[did] || {}).forEach((k) => { if (k >= todayKey) row[k] = res.days[did][k]; });
+		if (Object.keys(row).length) next[did] = row;
+	}
+	week.days = next;
+	week.gaps = (week.gaps || []).filter((g) => g.date < todayKey).concat(res.gaps.filter((g) => g.date >= todayKey));
 }
 
 // Verteilung eines Dienstes aus dem Portal prüfen (verständliche Fehler)
@@ -886,6 +957,11 @@ function setSettings(revision, patch, now) {
 			const w = Number(patch.previewWeeks);
 			if (!Number.isInteger(w) || w < 1 || w > 8) throw new ValidationError("settings.previewWeeks", "Vorschau: 1–8 Wochen");
 			s.previewWeeks = w;
+		}
+		if (patch.maxPerDay !== undefined) {
+			const n = Number(patch.maxPerDay);
+			if (!Number.isInteger(n) || n < 0 || n > MAX_PER_DAY) throw new ValidationError("settings.maxPerDay", `Höchstens 0 (unbegrenzt) bis ${MAX_PER_DAY} Dienste pro Tag`);
+			if (s.maxPerDay !== n) { s.maxPerDay = n; refreshDaysFromToday(data, now || new Date()); }
 		}
 		if (patch.pairMode !== undefined) {
 			if (["varying", "fixed"].indexOf(patch.pairMode) === -1) throw new ValidationError("settings.pairMode", "Unbekannter Paar-Modus");

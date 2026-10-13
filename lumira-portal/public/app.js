@@ -188,6 +188,7 @@
         window.LumiraFamilyPlan.init({
           api: api,
           toast: toast,
+          datePicker: datePicker,
           getSettings: function () { return SETTINGS; },
           setSettings: function (s) { SETTINGS = s; renderModulePreview(); },
           onPlanChange: function (plan) { setFamilyMembers(plan.members || []); renderStartFamily(plan); renderMemberChip(plan.members || []); }
@@ -1345,7 +1346,9 @@
         chips.appendChild(chip);
       });
       var hasDays = Object.keys(w.days || {}).some(function (did) { return Object.keys(w.days[did]).some(function (k) { return w.days[did][k] === id; }); });
-      if (!items.length) chips.appendChild(el("span", "save-hint", (w.assign[id] || []).length || hasDays ? "heute frei" : "diese Woche frei"));
+      var away = (w.away || []).indexOf(id) !== -1;
+      if (!items.length) chips.appendChild(el("span", "save-hint", away ? "heute nicht da" : (w.assign[id] || []).length || hasDays ? "heute frei" : "diese Woche frei"));
+      else if (away) chips.appendChild(el("span", "save-hint", "heute nicht da"));
       row.appendChild(chips);
       wrap.appendChild(row);
     });

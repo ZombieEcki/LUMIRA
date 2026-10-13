@@ -78,7 +78,9 @@ Familienmitgliedern verknüpft.
 | Eine Änderung zurücknehmen | *↺ automatisch* bzw. *Automatische Verteilung wiederherstellen* | Die berechnete Verteilung gilt wieder. |
 | Alle Vorab-Änderungen verwerfen | *Wochenplan → Rotationsplan neu generieren* | Kommende Wochen wieder automatisch, die laufende bleibt. |
 | Laufende Woche komplett neu verteilen | *Übersicht → Aktuelle Woche neu verteilen* | Nur auf ausdrücklichen Wunsch (fragt nach). |
-| Jemand ist im Urlaub | *Familienmitglieder*: Aktiv-Schalter aus | Ab nächster Woche verteilen sich seine Dienste auf die anderen. |
+| Jemand ist nicht zu Hause (Urlaub, Training, Klassenfahrt) | *Familienmitglieder → „nicht da …“*: regelmäßig an Wochentagen oder Zeiträume | Sofort ab heute: an diesen Tagen keine Tagesdienste, ein fester Dienst geht an jemand Anwesenden; die ganze Woche weg → auch kein Wochendienst. |
+| Jemand macht länger nicht mit | *Familienmitglieder*: Aktiv-Schalter aus | Ab nächster Woche verteilen sich seine Dienste auf die anderen. |
+| Nicht zu viel an einem Tag | *Einstellungen → Tagesdienste pro Person* | Höchstens N Tagesdienste je Person und Tag; was nicht hineinpasst, bleibt frei (Hinweis). Wirkt sofort ab heute. |
 | Nachsehen, warum jemand einen Dienst hat | *Wochenplan → Warum so?* (oder Maus über den Dienst) | Kurze Begründung je Zuordnung. |
 | Prüfen, ob es fair zugeht | *Wochenplan → Wie oft hatte wer was?* | Tabelle der letzten 12 Wochen. |
 

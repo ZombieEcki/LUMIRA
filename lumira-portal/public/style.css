@@ -438,6 +438,16 @@ details.help p { font-size:.85rem; color:var(--muted); margin-top:8px; }
 .fp-move { display:inline-flex; gap:4px; }
 .fp-move .btn-x, .fp-mrow > .btn-x, .fp-drow > .btn-x { width:40px; height:40px; padding:0; background:var(--card); }
 .fp-dprev { min-width:150px; }
+/* Abwesenheit („nicht zu Hause“) je Mitglied */
+.fp-awaybtn { display:inline-flex; align-items:center; gap:6px; max-width:240px; }
+.fp-awaybtn span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fp-awaybtn.has-away { color:var(--ink); background:color-mix(in srgb, var(--accent) 18%, var(--card)); }
+.fp-away { display:flex; flex-direction:column; gap:8px; }
+.fp-away .fp-days { align-self:flex-start; }
+.fp-away-l { font-size:.78rem; font-weight:700; color:var(--muted); margin-top:4px; }
+.fp-away-list { display:flex; flex-direction:column; gap:8px; }
+.fp-away-r { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.fp-away-d { width:170px; max-width:100%; }
 /* Verteilung je Dienst (zweite Zeile) und feste Zuweisungen */
 .fp-dwrap { display:flex; flex-direction:column; gap:0; border-radius:18px; background:var(--field); }
 .fp-dwrap > .fp-drow { background:transparent; }

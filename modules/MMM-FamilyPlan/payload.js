@@ -68,7 +68,9 @@ function buildPayload(raw, now) {
 	const todayOwner = {};
 	Object.keys(days).forEach((did) => { if (Object.prototype.hasOwnProperty.call(days[did], todayKey)) todayOwner[did] = days[did][todayKey]; });
 	// „*“ = ganze Familie
-	const isMine = (owner, mid) => owner === mid || owner === "*";
+	const byMember = {};
+	(Array.isArray(raw.members) ? raw.members : []).forEach((m) => { if (m && m.id) byMember[m.id] = m; });
+	const isMine = (owner, mid) => owner === mid || (owner === "*" && !isAway(byMember[mid], todayKey));
 	const hasDayDuty = {};
 	const anyAll = Object.keys(days).some((did) => Object.keys(days[did]).some((k) => days[did][k] === "*"));
 	Object.keys(days).forEach((did) => Object.keys(days[did]).forEach((k) => { if (days[did][k] && days[did][k] !== "*") hasDayDuty[days[did][k]] = true; }));
@@ -108,7 +110,8 @@ function buildPayload(raw, now) {
 				textColor: textOn(color),
 				avatar: avatarUrl(m.avatar),
 				// keine Dienste: heute frei (Tagesdienste an anderen Tagen) bzw. die ganze Woche
-				free: list.length ? null : (hasDayDuty[m.id] || anyAll ? "heute" : "woche"),
+				// keine Dienste: heute nicht da / heute frei / die ganze Woche frei
+				free: list.length ? null : isAway(m, todayKey) ? "weg" : (hasDayDuty[m.id] || anyAll ? "heute" : "woche"),
 				duties: list.map((id) => {
 					const d = duties[id];
 					const dc = HEX_RE.test(d.color) ? d.color : "#9ca3af";
@@ -130,6 +133,13 @@ function buildPayload(raw, now) {
 }
 
 // Tagesplan der Woche inklusive manueller Änderungen: { dutyId: { datum: memberId|null } }
+// „Nicht zu Hause“ (wie lumira-portal/lib/familyplan-rotation.js isAway)
+function isAway(member, dateKey) {
+	if (!member) return false;
+	if (Array.isArray(member.awayDays) && member.awayDays.indexOf(fromKey(dateKey).getDay()) !== -1) return true;
+	return Array.isArray(member.awayDates) && member.awayDates.some((x) => x && x.from <= dateKey && dateKey <= x.to);
+}
+
 function dayPlan(week) {
 	const out = {};
 	[week.days, week.manualDays].forEach((map) => {

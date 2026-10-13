@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 126 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 130 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -153,6 +153,10 @@ um den aktuellen Stand zu sehen.
 - [x] Fix: tägliche Dienste werden je Tag gemeinsam fair verteilt (gleich viele je Person
       und Tag, Zyklus, nie zweimal hintereinander) statt Dienst für Dienst
 - [x] Feste Zuweisung an die **ganze Familie** (z. B. Putzen freitags für alle)
+- [x] **Nicht zu Hause**: je Person regelmäßig an Wochentagen oder Zeiträume; an diesen
+      Tagen keine Tagesdienste, feste Dienste gehen an Anwesende, ganze Woche weg → kein
+      Wochendienst; wirkt sofort ab heute; Spiegel/Startseite „Heute nicht da“
+- [x] **Höchstens N Tagesdienste pro Person und Tag** (Einstellungen), Rest bleibt frei mit Hinweis
 - [x] Hinweise: feste Person pausiert, Rolle passt nicht, ungleiche Verteilung
 - [x] Alte familyplan.json ohne neue Felder: alles wöchentlich wie bisher
 - [ ] Auf dem Familien-Spiegel prüfen
