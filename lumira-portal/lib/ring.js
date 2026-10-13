@@ -25,6 +25,8 @@ const RETRY_MS = [30e3, 2 * 60e3, 5 * 60e3, 15 * 60e3];
 // blockieren das gern – dann klappt alles außer dem Klingeln.
 const PUSH_HOST = "mtalk.google.com";
 const PUSH_PORT = 5228;
+// Alle 2 s ein Vollbild von der Klingel anfordern (siehe startStream)
+const KEYFRAME_MS = 2000;
 
 // Push-Kanal prüfen: Name auflösen, TCP-Verbindung aufbauen
 function probePush(host = PUSH_HOST, port = PUSH_PORT, timeoutMs = 6000) {
@@ -77,7 +79,7 @@ function isAuthProblem(err) {
 }
 
 // loadLib: zum Testen austauschbar; standardmäßig ring-client-api (ESM)
-function createRing({ home, onDing = () => {}, loadLib, log = console, timers = { setTimeout, clearTimeout }, pushProbe = probePush } = {}) {
+function createRing({ home, onDing = () => {}, loadLib, log = console, timers = { setTimeout, clearTimeout }, pushProbe = probePush, keyframeMs = KEYFRAME_MS } = {}) {
 	home = path.resolve(home);
 	const authPath = path.join(home, "ring-auth.json");
 	// RingRestClient (Anmeldung) gibt das Paket nur über den Unterpfad heraus
@@ -377,15 +379,24 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 			video: VIDEO_ARGS[opts.mode] || VIDEO_ARGS.copy,
 			output: [
 				"-f", "hls",
-				"-hls_time", "1",
-				"-hls_list_size", "6",
+				"-hls_time", "2",
+				"-hls_list_size", "5",
 				"-hls_flags", "delete_segments+independent_segments",
 				"-hls_segment_filename", path.join(dir, "seg%05d.ts"),
 				path.join(dir, "stream.m3u8")
 			]
 		});
+		// Ring schickt per WebRTC ein Vollbild (Keyframe) fast nur am Anfang.
+		// Ohne neue Vollbilder beginnen die HLS-Stücke mitten in einer
+		// Bildfolge – der Spiegel zeigt dann verschmierte, lila Flächen, und
+		// jede kleine Lücke im Datenstrom bleibt sichtbar. Darum regelmäßig
+		// eines anfordern: Jedes Stück beginnt sauber, Fehler heilen nach ≤ 2 s.
+		const keyframes = setInterval(() => {
+			try { session.requestKeyFrame(); } catch (e) { /* Anruf schon zu */ }
+		}, keyframeMs);
+		subs.push(session.onCallEnded.subscribe(() => clearInterval(keyframes)));
 		return {
-			stop: () => session.stop(),
+			stop: () => { clearInterval(keyframes); session.stop(); },
 			onEnded: (cb) => { subs.push(session.onCallEnded.subscribe(() => cb())); }
 		};
 	}

@@ -127,6 +127,7 @@ Kommt mit LUMIRA mit – nichts extra zu installieren:
 | „Ende-zu-Ende-Verschlüsselung ist an“ | Mit Ring-E2EE gibt Ring kein Live-Video heraus. In der Ring-App abschalten oder ohne Video nutzen. |
 | „Die Klingel liefert kein Video (Zeitüberschreitung)“ | Klingel offline/schwaches WLAN an der Tür, oder ffmpeg fehlt (`ffmpeg -version`). Die Meldung erscheint trotzdem. |
 | Video-Fenster bleibt schwarz („LIVE“ steht da) | Beim laufenden Klingeln zeigt das Portal unter der Meldung, was der Spiegel meldet („Spiegel: kein Bild – …“) und was die Klingel liefert („Stream: h264 1920×1080 …“). Abhilfe: Live-Video → **Bildübertragung: Umwandeln** (640 px, H.264 Baseline – spielt jeder Player ab). Nach 12 Sekunden ohne Bild zeigt der Spiegel statt der schwarzen Fläche einen Hinweis. |
+| Bild verschmiert, lila oder grüne Flächen | Das Video kommt an, aber ohne regelmäßige Vollbilder. LUMIRA fordert seit dieser Version alle 2 Sekunden eines bei der Klingel an – Störungen verschwinden nach spätestens 2 Sekunden. Bleibt es, Bildübertragung **Umwandeln** wählen. |
 | Video ruckelt auf dem Pi 3 | Größe „klein“ oder „mittel“ wählen; die Klingel liefert Full-HD, der Pi 3 muss es ohne Grafik-Beschleunigung abspielen. |
 | Kein Ton | Lautsprecher/Ausgang am Pi prüfen (wie beim Alarmton), Lautstärke im Portal > 0. |
 

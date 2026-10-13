@@ -21,7 +21,8 @@
     "enabled": false,
     "position": "top_left",
     "maxWidth": "300px",
-    "layout": "stacked"
+    "layout": "stacked",
+    "scale": 100
   },
   "location": {
     "name": "Berlin",

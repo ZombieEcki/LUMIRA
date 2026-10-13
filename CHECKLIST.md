@@ -100,7 +100,7 @@ um den aktuellen Stand zu sehen.
       automatische Backups im Portal wiederherstellen (auch bei beschädigter
       Datei), Bedienungsanleitung [docs/FAMILIENPLAN.md](docs/FAMILIENPLAN.md)
 - [x] Avatare: eigene Erstellung des LUMIRA-Teams (Quelle in media/README.md)
-- [x] Unit-Tests (`npm test` in `lumira-portal/`, 130 Tests)
+- [x] Unit-Tests (`npm test` in `lumira-portal/`, 132 Tests)
 
 ### Portal: Updates & Info
 - [x] **Updates für MagicMirror² und externe Module** (z. B. MMM-RainRadarDWD):
@@ -157,6 +157,7 @@ um den aktuellen Stand zu sehen.
       Tagen keine Tagesdienste, feste Dienste gehen an Anwesende, ganze Woche weg → kein
       Wochendienst; wirkt sofort ab heute; Spiegel/Startseite „Heute nicht da“
 - [x] **Höchstens N Tagesdienste pro Person und Tag** (Einstellungen), Rest bleibt frei mit Hinweis
+- [x] Größe des Familienplans auf dem Spiegel einstellbar (70–200 %, Übersicht → Auf dem Spiegel)
 - [x] Hinweise: feste Person pausiert, Rolle passt nicht, ungleiche Verteilung
 - [x] Alte familyplan.json ohne neue Felder: alles wöchentlich wie bisher
 - [ ] Auf dem Familien-Spiegel prüfen
@@ -235,6 +236,8 @@ um den aktuellen Stand zu sehen.
 - [x] Schwarzes Video: Spiegel meldet zurück (läuft / kein Bild / Fehler), Portal zeigt
       Stream-Infos (ffprobe), nach 12 s ohne Bild Hinweis statt schwarzer Fläche,
       Einstellung „Bildübertragung: Umwandeln“ (640 px H.264 Baseline)
+- [x] Fix verschmiertes/lila Bild: alle 2 s ein Vollbild (Keyframe) bei der Klingel anfordern,
+      HLS-Stücke 2 s – jedes Stück beginnt sauber
 - [ ] Auf echter Pi-Hardware mit Ring-Klingel prüfen (Push, Video-Flüssigkeit Pi 3,
       Ton, Akku-Klingel)
 

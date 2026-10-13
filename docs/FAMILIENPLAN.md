@@ -29,7 +29,7 @@ mit, ist aber zunächst ausgeschaltet.
    auf Erwachsene oder Kinder beschränken (z. B. Kochdienst nur für
    Erwachsene).
 3. **Auf dem Spiegel einschalten:** *Übersicht → Auf dem Spiegel →
-   „Familienplan anzeigen“* einschalten, Darstellung und Breite wählen,
+   „Familienplan anzeigen“* einschalten, Darstellung, Größe (70–200 %) und Breite wählen,
    *Speichern*. Der Spiegel startet einmal neu und zeigt den Plan oben links.
 4. **Optional:** *Einstellungen*: Wechseltag (Standard Montag), Überschrift,
    wie viele Wochen die Vorschau zeigt, und ob die Dienste jede Woche neu

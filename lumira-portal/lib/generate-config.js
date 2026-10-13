@@ -56,6 +56,7 @@ function buildModules(settings) {
 			config: {
 				maxWidth: familyPlan.maxWidth || "300px",
 				layout: familyPlan.layout === "inline" ? "inline" : "stacked",
+				scale: Number(familyPlan.scale) >= 60 && Number(familyPlan.scale) <= 200 ? Number(familyPlan.scale) : 100,
 				showHeader: true,
 				showWeekRange: true,
 				hideOnAlarmPhases: alarmOn ? [1] : []

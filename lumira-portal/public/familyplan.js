@@ -188,8 +188,8 @@
 
   // ----- Übersicht -----
   function renderOverview(panel) {
-    var s = ctx.getSettings().familyPlan || { enabled: false, layout: "stacked", maxWidth: "300px" };
-    var mirror = card("Auf dem Spiegel", "Ein- und Ausschalten, Darstellung und Breite. Speichern startet MagicMirror einmal neu.");
+    var s = ctx.getSettings().familyPlan || { enabled: false, layout: "stacked", maxWidth: "300px", scale: 100 };
+    var mirror = card("Auf dem Spiegel", "Ein- und Ausschalten, Darstellung, Größe und Breite. Speichern startet MagicMirror einmal neu.");
     var t1 = el("div", "toggle");
     t1.appendChild(el("span", "tl2", "Familienplan anzeigen"));
     var enabled = !!s.enabled;
@@ -206,10 +206,19 @@
     l2.appendChild(el("span", "opt", " (wie der bisherige Bereich)"));
     var inp = el("input", "mono-in"); inp.type = "text"; inp.id = "fp-maxwidth"; inp.value = s.maxWidth || "300px";
     f2.appendChild(l2); f2.appendChild(inp);
-    g.appendChild(f1); g.appendChild(f2); mirror.appendChild(g);
+    var f3 = el("div", "field"); var l3 = el("label", null, "Größe auf dem Spiegel"); l3.htmlFor = "fp-scale";
+    var sc = el("select"); sc.id = "fp-scale";
+    [70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 180, 200].forEach(function (n) {
+      var o = el("option", null, n + " %" + (n === 100 ? " (normal)" : n < 100 ? " – kleiner" : " – größer")); o.value = n;
+      if ((Number(s.scale) || 100) === n) o.selected = true;
+      sc.appendChild(o);
+    });
+    f3.appendChild(l3); f3.appendChild(sc);
+    f3.appendChild(el("p", "save-hint", "Schrift, Bilder und Breite wachsen gleichmäßig mit."));
+    g.appendChild(f1); g.appendChild(f2); g.appendChild(f3); mirror.appendChild(g);
     mirror.appendChild(saveRow("Speichern", function (btn, hint) {
       btn.disabled = true; hint.textContent = "Speichere …";
-      ctx.api("/api/settings", { method: "POST", body: { familyPlan: { enabled: enabled, layout: sel.value, maxWidth: inp.value.trim() } } })
+      ctx.api("/api/settings", { method: "POST", body: { familyPlan: { enabled: enabled, layout: sel.value, maxWidth: inp.value.trim(), scale: Number(sc.value) } } })
         .then(function (settings) { ctx.setSettings(settings); btn.disabled = false; hint.textContent = "Gespeichert – MagicMirror startet neu."; ctx.toast("Gespeichert"); })
         .catch(function (err) { btn.disabled = false; hint.textContent = "Fehler: " + err.message; });
     }));

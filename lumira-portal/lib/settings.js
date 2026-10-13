@@ -160,6 +160,9 @@ function validate(settings) {
 		if (["stacked", "inline"].indexOf(fp.layout) === -1) {
 			throw new ValidationError("familyPlan.layout", "Darstellung muss \"stacked\" oder \"inline\" sein");
 		}
+		if (fp.scale !== undefined && (!Number.isInteger(Number(fp.scale)) || Number(fp.scale) < 60 || Number(fp.scale) > 200)) {
+			throw new ValidationError("familyPlan.scale", "Größe zwischen 60 und 200 %");
+		}
 	}
 	return true;
 }

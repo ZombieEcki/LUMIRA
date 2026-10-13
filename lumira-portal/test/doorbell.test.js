@@ -419,3 +419,25 @@ test("Push-Prüfung: nicht auflösbarer Name und gesperrter Port verständlich",
 	const closed = await ringLib.probePush("127.0.0.2", 1, 500);
 	assert.equal(closed.ok, false);
 });
+
+test("Live-Video: Klingel wird regelmäßig um ein Vollbild gebeten, beim Beenden nicht mehr", async () => {
+	const home = path.join(HOME, "ring-keyframe");
+	fs.mkdirSync(home, { recursive: true });
+	fs.writeFileSync(path.join(home, "ring-auth.json"), JSON.stringify({ refreshToken: "T" }));
+	const { st, lib } = fakeLib();
+	let kf = 0;
+	let args = null;
+	const ended = subject();
+	const ring = ringLib.createRing({ home, loadLib: async () => lib, log: quiet, pushProbe: okProbe, keyframeMs: 20 });
+	await ring.setEnabled(true);
+	st.bell.streamVideo = async (o) => { args = o; return { requestKeyFrame: () => { kf++; }, stop: () => ended.next(), onCallEnded: ended }; };
+	const h = await ring.startStream("111", home, { mode: "copy" });
+	await wait(110);
+	assert.ok(kf >= 3, "mehrere Vollbilder angefordert: " + kf);
+	assert.deepEqual(args.video, ["-c:v", "copy"]);
+	h.stop();
+	const n = kf;
+	await wait(80);
+	assert.equal(kf, n, "nach dem Beenden keine Anforderungen mehr");
+	ring.disconnect();
+});

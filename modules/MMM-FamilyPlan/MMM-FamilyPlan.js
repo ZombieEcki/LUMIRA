@@ -17,6 +17,7 @@
 Module.register("MMM-FamilyPlan", {
 	defaults: {
 		maxWidth: "300px",       // nicht breiter als der bisherige Bereich
+		scale: 100,              // Größe in Prozent (60–200): alles wächst gleichmäßig mit
 		layout: "stacked",       // "stacked" = Dienste untereinander, "inline" = nebeneinander
 		showHeader: true,
 		showWeekRange: true,
@@ -76,6 +77,10 @@ Module.register("MMM-FamilyPlan", {
 		// breit und "inline" könnte nie nebeneinander umbrechen.
 		wrapper.style.width = this.config.maxWidth;
 		wrapper.style.maxWidth = "100%";
+		// Größe (Portal → Familienplan → Übersicht): Schrift, Avatare, Abstände
+		// und Breite wachsen zusammen – zoom macht genau das in Chromium/Electron
+		const scale = Number(this.config.scale);
+		if (scale >= 60 && scale <= 200 && scale !== 100) wrapper.style.zoom = String(scale / 100);
 
 		if (!p) {
 			wrapper.appendChild(this.el("div", "fp-hint dimmed small", "Familienplan lädt …"));

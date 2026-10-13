@@ -57,3 +57,10 @@ test("Ungültige Schalter werden abgelehnt", () => {
 	// Unbekannte Felder verwirft das Speichern still (wie überall in settings.json)
 	assert.equal(settingsLib.patch({ modules: { toaster: true } }).modules.toaster, undefined);
 });
+
+test("Familienplan-Größe: 60–200 %, landet in der config.js", () => {
+	assert.throws(() => settingsLib.patch({ familyPlan: { scale: 250 } }), settingsLib.ValidationError);
+	const s = settingsLib.patch({ edition: "fire", familyPlan: { enabled: true, scale: 130 } });
+	const fp = buildModules(s).find((m) => m.module === "MMM-FamilyPlan");
+	assert.equal(fp.config.scale, 130);
+});
