@@ -16,6 +16,7 @@
   var previewMsg = null;
   var shotTimer = null;
   var shotUrl = null;
+  var ownAddBtn = null; // „+ Eigene Kategorie“ – wandert beim Zeichnen in die Liste
 
   var ANCHORS = [
     ["top_left", "oben links"], ["top_center", "oben mittig"], ["top_right", "oben rechts"],
@@ -117,6 +118,7 @@
     if (c.days && c.days.length === 1 && c.days[0] === 1) t.push("nur montags");
     if (c.days && c.days.length === 2) t.push("nur am Wochenende");
     if (c.need === "alarm") t.push("Feuerwehr");
+    if (c.group === "duty") t.push(L().isEnabled(c, C, legacy()) ? "nach einem Einsatz und im normalen Mix" : "nur nach einem Einsatz – Schalter: auch im normalen Mix");
     if (c.group === "calendar") t.push("Stichwörter: " + L().wordList(C.words && C.words[c.key] !== undefined ? C.words[c.key] : c.words).join(", "));
     return t.join(" · ");
   }
@@ -141,7 +143,7 @@
         edit.type = "button";
         edit.addEventListener("click", function () { openEditor(c.key); });
         right.appendChild(edit);
-        if (g[0] !== "time" && g[0] !== "duty") {
+        if (g[0] !== "time") {
           var sw = el("button", "sw");
           sw.type = "button";
           sw.setAttribute("role", "switch");
@@ -150,6 +152,14 @@
           sw.addEventListener("click", function () {
             var en = {};
             en[c.key] = !L().isEnabled(c, C, legacy());
+            // mindestens eine allgemeine Kategorie bleibt an
+            if (!en[c.key] && c.group === "general") {
+              var test = L().cleanSettings(Object.assign({}, C, { enabled: Object.assign({}, C.enabled, en) }));
+              if (!L().anyGeneralOn(test, legacy(), flags(), C.categories)) {
+                ctx.toast("Mindestens eine Kategorie muss an bleiben.");
+                return;
+              }
+            }
             queue({ enabled: en }, true);
             renderCats();
           });
@@ -157,10 +167,11 @@
         }
         row.appendChild(right);
         row.classList.toggle("is-off", g[0] !== "time" && g[0] !== "duty" && !L().isEnabled(c, C, legacy()));
+        if (g[0] === "duty") sw.setAttribute("aria-label", c.label + " auch im normalen Mix");
         box.appendChild(row);
       });
       // eigene Kategorien gehören zu den allgemeinen Sprüchen
-      if (g[0] === "general") box.appendChild($("#sp-own-add"));
+      if (g[0] === "general") box.appendChild(ownAddBtn);
     });
     var anyOn = all.some(function (c) { return c.group === "general" && visibleCat(c) && L().isEnabled(c, C, legacy()) && baseItems(c).length; });
     $("#sp-none").hidden = anyOn;
@@ -589,7 +600,8 @@
       w[ed.cat.key] = $("#sp-words").value;
       queue({ words: w }, false);
     });
-    $("#sp-own-add").addEventListener("click", newOwn);
+    ownAddBtn = $("#sp-own-add");
+    ownAddBtn.addEventListener("click", newOwn);
     $("#sp-shot-reload").addEventListener("click", shot);
     $("#sp-import").addEventListener("change", function () {
       var f = this.files && this.files[0];

@@ -253,6 +253,9 @@ um den aktuellen Stand zu sehen.
 - [x] Darstellung: „wie bisher“ oder frei platziert (9 Felder, px/%), Breite, Höhe (Schrift
       verkleinert statt abschneiden), Schrift, Innenabstand, Symbol groß darunter/inline/aus;
       Portal-Vorschau, Live-Bild, Überschneidungen
+- [x] Übergabe 13.10.2026 1:1: +86 Sprüche für Tageszeit, Herzlich, Motivierend, Humorvoll und
+      Nach dem Einsatz, Versaut/Zweideutig (40), Flachwitze (50); „Nach dem Einsatz“ per
+      Schalter auch im normalen Mix; mindestens eine allgemeine Kategorie bleibt an
 - [ ] Auf dem Pi 3 nach dem MagicMirror-Fix prüfen (Emojis, Überblenden bei freier Position)
 
 ### Spiegel: Türklingel (Ring, MMM-Doorbell)

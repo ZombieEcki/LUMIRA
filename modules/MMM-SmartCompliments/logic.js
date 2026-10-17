@@ -255,16 +255,24 @@
 		return null;
 	}
 
-	// Allgemeiner Mix: Tageszeit/Wochentag/Jahreszeit … (extra) + Kategorien
+	// Allgemeiner Mix: Tageszeit/Wochentag/Jahreszeit … (extra) + Kategorien;
+	// „Nach dem Einsatz“ nur, wenn ausdrücklich für den Mix eingeschaltet
 	function generalPools(st, cats, s, now) {
 		var pools = (st.extra || []).filter(function (p) { return p && p.items && p.items.length; }).map(function (p) {
 			return { cat: { key: p.key, icon: p.icon || "" }, items: p.items };
 		});
 		cats.forEach(function (c) {
-			if (c.group !== "general" || !isEnabled(c, s, st.legacy) || !allowed(c, now, st.flags)) return;
+			if ((c.group !== "general" && c.group !== "duty") || !isEnabled(c, s, st.legacy) || !allowed(c, now, st.flags)) return;
 			pools.push({ cat: c, items: itemsOf(c, s, st.lists) });
 		});
 		return pools;
+	}
+
+	// Ist mindestens eine allgemeine Kategorie an (und nicht leer)?
+	function anyGeneralOn(s, legacy, flags, lists) {
+		return allCategories(s).some(function (c) {
+			return c.group === "general" && (c.need !== "alarm" || (flags && flags.alarm)) && isEnabled(c, s, legacy) && itemsOf(c, s, lists).length;
+		});
 	}
 
 	// st: { now, settings, lists, legacy, flags, weather, warnings, events, thresholds, extra, history, random }
@@ -347,7 +355,7 @@
 	var api = {
 		ANCHORS: ANCHORS, ICON_MODES: ICON_MODES, GROUP_KEYS: GROUP_KEYS, DEFAULTS: DEFAULTS,
 		cleanSettings: cleanSettings, allCategories: allCategories, isEnabled: isEnabled, allowed: allowed,
-		itemsOf: itemsOf, itemKey: itemKey, weatherTriggers: weatherTriggers, activeWarnings: activeWarnings,
+		itemsOf: itemsOf, itemKey: itemKey, anyGeneralOn: anyGeneralOn, weatherTriggers: weatherTriggers, activeWarnings: activeWarnings,
 		wordList: wordList, calendarHits: calendarHits, fill: fill, choose: choose,
 		splitEmoji: splitEmoji, render: render, fit: fit
 	};

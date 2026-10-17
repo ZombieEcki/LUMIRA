@@ -49,11 +49,17 @@ test("Katalog: 20 neue Kategorien mit je 12 Sprüchen, eindeutige Schlüssel, So
 	assert.equal(cat("herzlich").list, "familyMessages");
 	assert.equal(cat("morning").list, "morningMessages");
 	assert.equal(cat("afterDuty").list, "afterDutyMessages");
-	// leer angelegt; Versaut ab Werk aus
-	assert.deepEqual(cat("versaut").items, []);
+	// Übergabe 13.10.2026, 1:1 übernommen; Versaut ab Werk aus
+	assert.equal(cat("versaut").items.length, 40);
 	assert.equal(cat("versaut").on, false);
-	assert.deepEqual(cat("flachwitze").items, []);
+	assert.equal(cat("flachwitze").items.length, 50);
 	assert.equal(cat("flachwitze").on, true);
+	const added = { morning: 22, forenoon: 13, afternoon: 19, evening: 16, night: 12, herzlich: 23, motivierend: 26, humorvoll: 19, afterDuty: 17 };
+	Object.keys(added).forEach((k) => assert.equal(cat(k).items.length, added[k], k + ": bisherige + neue Sprüche"));
+	assert.ok(cat("morning").items.includes("Erst Kaffee, dann Welt retten ☕🚒"), "bisherige bleiben");
+	assert.ok(cat("morning").items.includes("Erst Kaffee, dann Weltrettung. Wir wollen schließlich professionell bleiben."));
+	assert.ok(cat("flachwitze").items.includes("Was sagt die Null zur Acht? Schicker Gürtel!"));
+	assert.equal(cat("afterDuty").on, false, "„Nach dem Einsatz“ im normalen Mix: ab Werk aus");
 	// nur Mo / Wochenende, Feuerwehr nur in der Feuerwehr-Ausgabe
 	assert.deepEqual(cat("montag").days, [1]);
 	assert.deepEqual(cat("wochenende").days, [6, 0]);
@@ -95,6 +101,10 @@ test("Auswahl: ausgeschaltet heißt nie – auch nicht als Ersatz; Wochentag und
 	Catalog.CATEGORIES.forEach((c) => { enabled[c.key] = false; });
 	seen = catsSeen(state({ settings: L.cleanSettings({ enabled }) }), 300);
 	assert.deepEqual([...seen], ["morning"]);
+	// „Nach dem Einsatz“ im Mix nur, wenn eingeschaltet – und nur in der Feuerwehr-Ausgabe
+	assert.ok(!catsSeen(state({ flags: { alarm: true } })).has("afterDuty"));
+	assert.ok(catsSeen(state({ flags: { alarm: true }, settings: L.cleanSettings({ enabled: { afterDuty: true } }) })).has("afterDuty"));
+	assert.ok(!catsSeen(state({ settings: L.cleanSettings({ enabled: { afterDuty: true } }) })).has("afterDuty"));
 	// alte Stimmungs-Schalter gelten, bis im Portal geschaltet wurde
 	seen = catsSeen(state({ legacy: { humorvoll: false } }));
 	assert.ok(!seen.has("humorvoll"));
@@ -206,6 +216,13 @@ test("compliments.json: Schalter, eigene Kategorien, Darstellung, verständliche
 	assert.throws(() => lib.patch({ display: { anchor: "irgendwo" } }), /Unbekannte Position/);
 	assert.throws(() => lib.patch({ words: { herzlich: "x" } }), /nur für Kalender/);
 	assert.throws(() => lib.patch({ own: [{ key: "böse", label: "x", items: [] }] }), /ungültiger Schlüssel/);
+	// mindestens eine allgemeine Kategorie bleibt an
+	const allOff = {};
+	Catalog.CATEGORIES.filter((c) => c.group === "general").forEach((c) => { allOff[c.key] = false; });
+	assert.throws(() => lib.patch({ enabled: allOff }), /Mindestens eine Kategorie/);
+	v = lib.patch({ enabled: Object.assign({}, allOff, { flachwitze: true }) });
+	assert.equal(v.enabled.flachwitze, true, "eine reicht");
+	v = lib.patch({ enabled: { herzlich: true, motivierend: true, humorvoll: true, familienwahnsinn: true } });
 });
 
 test("compliments.json: alte Datei (Version 1) bleibt gültig, Sicherung einspielen ersetzt alles", () => {

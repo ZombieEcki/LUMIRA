@@ -260,8 +260,19 @@ function validate(data, own) {
 	return true;
 }
 
+// Wie früher bei den Stimmungen: mindestens eine allgemeine Kategorie bleibt an
+function checkAnyGeneral(data) {
+	let moods = {};
+	try { moods = (settingsLib.load().compliments || {}).moods || {}; } catch (e) { moods = {}; }
+	const legacy = { herzlich: moods.herzlich !== false, motivierend: moods.motivierend !== false, humorvoll: moods.humorvoll !== false };
+	if (!Logic.anyGeneralOn(Logic.cleanSettings(data), legacy, { alarm: true }, data.categories)) {
+		throw new ValidationError("enabled", "Mindestens eine Kategorie muss an bleiben");
+	}
+}
+
 function save(data) {
 	validate(data, data.own);
+	checkAnyGeneral(data);
 	return store.write(mergeKnown(null, Object.assign({}, data, { version: 2, updatedAt: new Date().toISOString() })));
 }
 

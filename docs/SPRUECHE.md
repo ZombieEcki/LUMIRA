@@ -30,6 +30,8 @@ Bei jedem Wechsel (Standard: alle 30 Sekunden) in dieser Reihenfolge:
 Weitere Regeln:
 - Zuletzt gezeigte Sprüche kommen nicht wieder, Standard: die letzten 10.
 - **Ausgeschaltete Kategorien und Sprüche erscheinen nie**, auch nicht als Ersatz.
+- **Mindestens eine allgemeine Kategorie bleibt an** – die letzte lässt sich
+  nicht ausschalten (wie früher bei den drei Stimmungen).
 - **Fehlende oder veraltete Daten** gelten nicht als Tatsache. Es gibt dann
   einfach allgemeine Sprüche. Veraltet heißt: Wetter älter als 3 Stunden,
   Warnung älter als 90 Minuten oder abgelaufen.
@@ -39,21 +41,23 @@ Weitere Regeln:
 
 | Gruppe | Kategorien |
 |---|---|
-| Allgemein (bisher) | Herzlich, Motivierend, Humorvoll |
+| Allgemein (bisher, erweitert) | Herzlich (23), Motivierend (26), Humorvoll (19) |
 | Allgemein (neu, je 12 Sprüche) | Familienwahnsinn, Freche Sprüche, Liebe & Partnerschaft, Kinderweisheiten, Mutmacher, Sarkasmus, Sofa-Philosophie, Feuerwehr & Kameradschaft¹, Glücksmomente, Lumiras Tagesorakel, Wissen mit Witz, Denk mal nach², Wortspiele, Montagsmotivation³, Wochenendmodus³, Kleine Challenges, Komplimente, Nerd-Ecke, Chaos-Prognose, Zitate mit Twist |
-| Allgemein (leer angelegt) | Flachwitze, Versaut/Zweideutig (ab Werk **aus**) |
+| Allgemein | Flachwitze (50), Versaut/Zweideutig (40, zweideutig, nicht explizit – ab Werk **aus**) |
 | Eigene | beliebig viele (bis 20), eigener Name und Symbol |
 | Anlass | Amtliche Wetterwarnung · Sonnig, Regen, Schnee, Gewitter, Nebel, Hitze, Frost, Wind · Geburtstag im Kalender, Feuerwehrtermin¹, Sport & Training, Familienausflug |
-| Tageszeit (immer dabei) | Morgens, Vormittags, Nachmittags, Abends, Nachts |
-| Nach dem Einsatz¹ | Danke-Botschaften nach einem Feuerwehreinsatz |
+| Tageszeit (immer dabei) | Morgens (22), Vormittags (13), Nachmittags (19), Abends (16), Nachts (12) |
+| Nach dem Einsatz¹ (17) | Danke- und Kameradschafts-Sprüche nach einem Feuerwehreinsatz; mit dem Schalter auch im normalen Mix |
 
 ¹ nur in der Feuerwehr-Ausgabe · ² Rätsel mit getrennter Lösung, die nach einer
 einstellbaren Zeit unter dem Rätsel erscheint · ³ nur montags bzw. nur
 samstags und sonntags
 
-Jede Kategorie (außer Tageszeit und „Nach dem Einsatz“) hat einen eigenen
-Schalter. Die Schlüssel in `compliments.json` sind dauerhaft und eindeutig,
-z. B. `familienwahnsinn`, `raetsel`, `versaut`, `kal_sport`, `wetter_regen`.
+Jede Kategorie außer Tageszeit hat einen eigenen Schalter. Bei „Nach dem
+Einsatz“ heißt er „auch im normalen Mix“ (ab Werk aus) – nach einem echten
+Einsatz erscheinen die Sprüche immer. Die Schlüssel in `compliments.json` sind
+dauerhaft und eindeutig, z. B. `familienwahnsinn`, `raetsel`, `versaut`,
+`flachwitze`, `kal_sport`, `wetter_regen`.
 
 **Beim Einbau bereinigt:** Diese Sprüche aus der Vorlage doppelten sich mit
 anderen und wurden ersetzt:
@@ -63,6 +67,12 @@ anderen und wurden ersetzt:
 - *Montagsmotivation* 5 (Abwandlung des eingebauten Montagsspruchs).
 
 *Sofa-Philosophie* 2 ist sprachlich geglättet.
+
+**Übergabe 13.10.2026:** Die Sprüche für Tageszeit, Herzlich, Motivierend,
+Humorvoll, Nach dem Einsatz, Versaut/Zweideutig und Flachwitze sind 1:1
+übernommen und an die eingebauten Sprüche angehängt (bisherige bleiben). Wer
+für eine Kategorie eine eigene Liste hat, sieht die neuen eingebauten Sprüche
+dort nicht – „Auf Standard zurücksetzen“ holt sie.
 
 ## 3. Sprüche verwalten
 
