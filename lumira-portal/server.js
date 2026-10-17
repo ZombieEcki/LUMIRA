@@ -347,6 +347,11 @@ const PRESET_AVATAR_DIR = [
 	path.join(MM_ROOT, "modules", "MMM-FamilyPlan", "avatars"),
 	path.join(__dirname, "..", "modules", "MMM-FamilyPlan", "avatars")
 ].filter(Boolean).find((dir) => fs.existsSync(dir));
+// Symbole und Hintergrundbilder der Wetteranzeige (für die Vorschau)
+const WEATHER_MODULE_DIR = [
+	path.join(MM_ROOT, "modules", "MMM-LumiraWeather"),
+	path.join(__dirname, "..", "modules", "MMM-LumiraWeather")
+].find((dir) => fs.existsSync(path.join(dir, "icons")));
 const PRESET_FILE_RE = /^(adult|child)-\d{2}\.jpg$/;
 const MEMBER_ID_RE = /^m_[a-z0-9]{4,12}$/;
 const AVATAR_MIME = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
@@ -519,6 +524,10 @@ app.delete("/api/familyplan/avatar/:memberId", requireAuth, (req, res) => {
 });
 
 if (PRESET_AVATAR_DIR) app.use("/avatars", express.static(PRESET_AVATAR_DIR, { maxAge: "1d" }));
+if (WEATHER_MODULE_DIR) {
+	app.use("/wx-assets/icons", express.static(path.join(WEATHER_MODULE_DIR, "icons"), { maxAge: "7d" }));
+	app.use("/wx-assets/backgrounds", express.static(path.join(WEATHER_MODULE_DIR, "backgrounds"), { maxAge: "7d" }));
+}
 app.use("/avatar-uploads", requireAuth, express.static(familyplanLib.AVATAR_UPLOAD_DIR, { maxAge: "1h" }));
 // Font Awesome liefert das Portal selbst mit (public/vendor/fa) – früher aus
 // der MagicMirror-Installation, deren Pfad sich je nach Version unterscheidet.
@@ -959,13 +968,19 @@ app.post("/api/ring/reconnect", requireAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Regenradar & Wetterwarnungen (Spiegel → Radar & Warnungen), siehe
-// lib/weather.js und modules/MMM-LumiraWeather. Wirkt live über weather.json.
+// Regenradar & Wetterwarnungen (Spiegel → Radar & Warnungen) und
+// Wetteranzeige (Spiegel → Wetteranzeige), siehe lib/weather.js und
+// modules/MMM-LumiraWeather. Wirkt live über weather.json.
 // ---------------------------------------------------------------------------
 const weather = weatherLib.createWeather({ home: settingsLib.LUMIRA_HOME });
 
 app.get("/api/weather", requireAuth, (req, res) => {
 	try { res.json(weather.view()); } catch (err) { res.status(500).json({ error: "Interner Fehler" }); }
+});
+
+// Wetterdaten für die Vorschau der Designs (Spiegel → Wetteranzeige)
+app.get("/api/weather/forecast", requireAuth, async (req, res) => {
+	try { res.json(await weather.forecast()); } catch (err) { res.status(500).json({ error: "Interner Fehler" }); }
 });
 
 app.put("/api/weather", requireAuth, (req, res) => {

@@ -120,6 +120,19 @@ Der Ring-Token verlässt `~/.lumira/ring-auth.json` nie. Anleitung:
 | `POST /api/ring/login` → `POST /api/ring/code` | Anmeldung: E-Mail + Passwort, dann Bestätigungscode |
 | `POST /api/ring/cancel` · `/logout` · `/reconnect` | Anmeldung abbrechen, abmelden (Token löschen), neu verbinden |
 
+## Wetter-API
+
+Wetteranzeige, Regenradar und Warnungen (`lib/weather.js`, Modul
+`MMM-LumiraWeather`). PIN-geschützt, wirkt live über `~/.lumira/weather.json`
+ohne Neustart. Anleitung: [docs/WETTER.md](../docs/WETTER.md).
+
+| Endpunkt | Wirkung |
+|----------|---------|
+| `GET /api/weather` | Einstellungen (`radar`, `warnings`, `weather`), Standort, Rückmeldung des Spiegels (`report`: Überschneidungen, Bildschirmgröße) |
+| `PUT /api/weather` | Teiländerung, z. B. `{ weather: { design: "photo", show: { rain: true } } }` – verständliche Fehler bei ungültigen Werten |
+| `GET /api/weather/forecast` | Wetterdaten für die Vorschau: Stand des Spiegels (≤ 30 min alt), sonst eigener Abruf bei Open-Meteo (10 min zwischengespeichert) |
+| `GET /wx-assets/icons/*`, `/wx-assets/backgrounds/*` | Symbole und Hintergrundbilder des Moduls (für die Vorschau) |
+
 ## Familienplan-API
 
 Alle Routen PIN-geschützt, keine löst einen MagicMirror-Neustart aus

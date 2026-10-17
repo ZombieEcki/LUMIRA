@@ -7,6 +7,8 @@
  *    Niederschlagsradar; läuft automatisch von „vor 1 h“ über „Jetzt“ bis
  *    „+2 h“ (Vorhersage des DWD) und wieder von vorn.
  *  - Warnungen: die aktuellen DWD-Warnungen genau für den Standort.
+ *  - Wetteranzeige: aktuelles Wetter und Vorhersage (Open-Meteo) in einem
+ *    von 12 Designs (view.js / view.css), eigener Schalter.
  *
  * Einstellungen kommen live aus dem LUMIRA-Portal (Spiegel → Radar &
  * Warnungen) über ~/.lumira/weather.json. Die Kacheln hängen direkt am
@@ -20,11 +22,11 @@ Module.register("MMM-LumiraWeather", {
 	defaults: {},
 
 	getStyles: function () {
-		return ["MMM-LumiraWeather.css"];
+		return ["MMM-LumiraWeather.css", "view.css"];
 	},
 
 	getScripts: function () {
-		return ["geo.js"];
+		return ["geo.js", "view.js"];
 	},
 
 	start: function () {
@@ -39,7 +41,11 @@ Module.register("MMM-LumiraWeather", {
 		this.pause = 0;
 		this.lastReport = "";
 		this.reportTimer = null;
-		window.addEventListener("resize", () => { this.mapKey = ""; this.render(); });
+		this.wxEl = null;
+		this.wxKey = "";
+		window.addEventListener("resize", () => { this.mapKey = ""; this.wxKey = ""; this.render(); });
+		// Uhrzeit (Design „Detailliert“), Tageswechsel, „veraltet“
+		setInterval(() => this.renderWeather(), 30000);
 		this.sendSocketNotification("LW_INIT");
 	},
 
@@ -72,29 +78,37 @@ Module.register("MMM-LumiraWeather", {
 		return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
 	},
 
-	// Position, Größe, Transparenz, Schrift einer Kachel
-	applyBox: function (el, b, autoHeight) {
+	// Position und Größe einer Kachel; Abstände in px oder % des Bildschirms
+	applyPos: function (el, b, autoHeight) {
 		const s = el.style;
 		s.left = s.right = s.top = s.bottom = "";
 		const t = [];
 		const [v, h] = b.anchor.split("_");
-		if (v === "top") s.top = b.y + "px";
-		else if (v === "bottom") s.bottom = b.y + "px";
-		else { s.top = "calc(50% + " + b.y + "px)"; t.push("translateY(-50%)"); }
-		if (h === "left") s.left = b.x + "px";
-		else if (h === "right") s.right = b.x + "px";
-		else { s.left = "calc(50% + " + b.x + "px)"; t.push("translateX(-50%)"); }
+		const ux = b.unit === "pct" ? "vw" : "px";
+		const uy = b.unit === "pct" ? "vh" : "px";
+		if (v === "top") s.top = b.y + uy;
+		else if (v === "bottom") s.bottom = b.y + uy;
+		else { s.top = "calc(50% + " + b.y + uy + ")"; t.push("translateY(-50%)"); }
+		if (h === "left") s.left = b.x + ux;
+		else if (h === "right") s.right = b.x + ux;
+		else { s.left = "calc(50% + " + b.x + ux + ")"; t.push("translateX(-50%)"); }
 		s.transform = t.join(" ");
 		s.width = b.width + "px";
 		if (autoHeight) { s.height = ""; s.maxHeight = b.height + "px"; } else { s.height = b.height + "px"; s.maxHeight = ""; }
-		s.background = "rgba(14, 16, 22, " + (b.opacity / 100).toFixed(2) + ")";
-		s.fontSize = (15 * b.fontScale / 100).toFixed(1) + "px";
+	},
+
+	// … dazu Transparenz und Schrift (Radar, Warnungen)
+	applyBox: function (el, b, autoHeight) {
+		this.applyPos(el, b, autoHeight);
+		el.style.background = "rgba(14, 16, 22, " + (b.opacity / 100).toFixed(2) + ")";
+		el.style.fontSize = (15 * b.fontScale / 100).toFixed(1) + "px";
 	},
 
 	// ------------------------------------------------------------------ Anzeige
 	render: function () {
 		const st = this.state;
 		const c = st && st.config;
+		this.renderWeather();
 		if (!c || !c.enabled) {
 			this.removeRadar();
 			this.removeWarnings();
@@ -352,10 +366,54 @@ Module.register("MMM-LumiraWeather", {
 		this.warnEl = null;
 	},
 
+	// ------------------------------------------------------------------ Wetteranzeige
+	renderWeather: function () {
+		const st = this.state;
+		const c = st && st.config;
+		if (!c || !c.weather || !c.weather.enabled || !window.LumiraWeatherView) { this.removeWeather(); return; }
+		const w = c.weather;
+		const fx = st.forecast || {};
+		const now = new Date();
+		// „veraltet“: älter als zwei Abrufabstände, mindestens 1 Stunde
+		const stale = !!fx.updatedAt && now.getTime() - Date.parse(fx.updatedAt) > Math.max(60, 2 * w.interval) * 60000;
+		if (!this.wxEl) {
+			this.wxEl = this.el("div", "lw-wxpanel");
+			document.body.appendChild(this.wxEl);
+			this.wxKey = "";
+		}
+		this.applyPos(this.wxEl, w, true);
+		const tick = w.show.date ? Math.floor(now.getTime() / 60000) : now.getDate() + "|" + now.getHours();
+		const key = JSON.stringify([w, c.location.name, fx.updatedAt, fx.error, stale, tick]);
+		if (key === this.wxKey) return;
+		this.wxKey = key;
+		window.LumiraWeatherView.build(this.wxEl, fx.data, w, {
+			baseClass: "lw-wxpanel",
+			name: c.location.name,
+			now,
+			updatedAt: fx.updatedAt,
+			error: fx.error,
+			stale,
+			iconUrl: (n) => this.file("icons/" + n + ".svg"),
+			bgUrl: (n) => this.file("backgrounds/" + n + ".jpg")
+		});
+		// erst nach dem Laden der Symbole messen
+		setTimeout(() => {
+			if (!this.wxEl) return;
+			window.LumiraWeatherView.fit(this.wxEl);
+			this.scheduleReport();
+		}, 300);
+	},
+
+	removeWeather: function () {
+		if (this.wxEl) this.wxEl.remove();
+		this.wxEl = null;
+		this.wxKey = "";
+	},
+
 	// ------------------------------------------------------------------ Rückmeldung
 	// Überdeckt eine Kachel andere Module (Uhr, Familienplan, Kalender …)?
 	NAMES: {
-		clock: "Uhr", weather: "Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
+		clock: "Uhr", weather: "bisheriges Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
 		"MMM-SmartCompliments": "Sprüche", "MMM-RainRadarDWD": "altes Regenradar", "MMM-aPagerAlarm": "Alarm", "MMM-LumiraStatus": "Portal-Hinweis"
 	},
 
@@ -373,10 +431,14 @@ Module.register("MMM-LumiraWeather", {
 			const name = Object.keys(this.NAMES).find((k) => m.classList.contains(k));
 			if (name) mods.push({ name: this.NAMES[name], r });
 		});
+		// die eigenen Kacheln untereinander
+		[[this.radarEl, "Regenradar"], [this.warnEl, "Warnungen"], [this.wxEl, "Wetteranzeige"]].forEach((x) => {
+			if (x[0]) mods.push({ name: x[1], r: x[0].getBoundingClientRect(), el: x[0] });
+		});
 		const hits = (el) => {
 			if (!el) return [];
 			const a = el.getBoundingClientRect();
-			return mods.filter((m) => a.left < m.r.right - 2 && a.right > m.r.left + 2 && a.top < m.r.bottom - 2 && a.bottom > m.r.top + 2)
+			return mods.filter((m) => m.el !== el && a.left < m.r.right - 2 && a.right > m.r.left + 2 && a.top < m.r.bottom - 2 && a.bottom > m.r.top + 2)
 				.map((m) => m.name).filter((x, i, arr) => arr.indexOf(x) === i);
 		};
 		const off = (el) => {
@@ -386,8 +448,8 @@ Module.register("MMM-LumiraWeather", {
 		};
 		const rep = {
 			screen: { width: window.innerWidth, height: window.innerHeight },
-			overlaps: { radar: hits(this.radarEl), warnings: hits(this.warnEl) },
-			offscreen: { radar: off(this.radarEl), warnings: off(this.warnEl) }
+			overlaps: { radar: hits(this.radarEl), warnings: hits(this.warnEl), weather: hits(this.wxEl) },
+			offscreen: { radar: off(this.radarEl), warnings: off(this.warnEl), weather: off(this.wxEl) }
 		};
 		const key = JSON.stringify(rep);
 		if (key === this.lastReport) return;

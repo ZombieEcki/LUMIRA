@@ -19,6 +19,7 @@
 <!-- Gewähltes Farbschema vor dem ersten Zeichnen setzen (kein Aufblitzen) -->
 <script>try { var t = localStorage.getItem("lumira-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="weather-view.css">
 <!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
 <link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
 <link rel="stylesheet" href="vendor/fa/css/solid.min.css">
@@ -585,6 +586,85 @@
         </div>
       </section>
 
+      <!-- Wetteranzeige (weather.js, MMM-LumiraWeather, weather-view.js) -->
+      <section class="page cols" data-page="wetteranzeige">
+        <p class="page-lead">Eigene Wetteranzeige mit aktuellem Wetter und Vorhersage – 12 Designs, frei platzierbar, Transparenz einstellbar.
+          Änderungen sind nach wenigen Sekunden auf dem Spiegel zu sehen, ohne Neustart.</p>
+        <div class="stack">
+        <div class="card wx-box" data-wx="weather">
+          <h2>Wetteranzeige</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Spiegel zeigen<small id="wd-on-sub">aus</small></span>
+            <button class="sw" data-k="enabled" role="switch" aria-label="Wetteranzeige auf dem Spiegel"></button>
+          </div>
+          <p class="save-hint" id="wd-loc"></p>
+          <p class="save-hint" id="wd-data"></p>
+          <p class="save-hint" id="wd-old" hidden>Das bisherige Wetter ist noch eingeschaltet. Passt die neue Anzeige, unter <a href="#module">Spiegel → Module</a> „Wetter“ ausschalten.</p>
+        </div>
+
+        <div class="card">
+          <h2>Design</h2>
+          <p class="sub">Mit den echten Wetterdaten von gerade eben. Beim Wechsel wird die empfohlene Breite gesetzt – danach frei änderbar.</p>
+          <div class="wd-designs" id="wd-designs" role="radiogroup" aria-label="Design"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small wx-shot-reload">Live-Bild neu laden</button></div>
+          <p class="sub">Oben das gewählte Design in echter Größe (verkleinert, falls breiter als hier), darunter das Live-Bild vom Spiegel.</p>
+          <div class="wd-stage" id="wd-stage"><div class="wd-stage-in" id="wd-preview"></div></div>
+          <p class="save-hint" id="wd-fit" hidden></p>
+          <div class="wx-shot"><img class="wx-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note wx-shot-note">Live-Bild wird geladen …</p></div>
+          <div class="wx-report" data-parts="weather"></div>
+        </div>
+        </div>
+
+        <div class="stack">
+        <div class="card wx-box" data-wx="weather">
+          <h2>Angezeigte Werte</h2>
+          <p class="sub">Was die Wetterquelle nicht liefert, bleibt einfach weg.</p>
+          <div id="wd-fields"></div>
+          <div class="grid2">
+            <div class="field"><label for="wd-days">Vorhersage</label>
+              <select id="wd-days" data-k="days">
+                <option value="2">2 Tage</option><option value="3">3 Tage</option><option value="4">4 Tage</option>
+                <option value="5">5 Tage</option><option value="6">6 Tage</option><option value="7">7 Tage</option>
+              </select></div>
+            <div class="field"><label for="wd-wind">Wind in</label>
+              <select id="wd-wind" data-k="wind">
+                <option value="kmh">km/h</option><option value="ms">m/s</option><option value="bft">Beaufort (Bft)</option>
+              </select></div>
+            <div class="field"><label for="wd-interval">Aktualisieren</label>
+              <select id="wd-interval" data-k="interval">
+                <option value="10">alle 10 Minuten</option><option value="15">alle 15 Minuten</option>
+                <option value="30">alle 30 Minuten</option><option value="60">jede Stunde</option>
+              </select></div>
+          </div>
+        </div>
+
+        <div class="card wx-box" data-wx="weather">
+          <h2>Aussehen</h2>
+          <div class="grid2">
+            <div class="field"><label for="wd-padding">Innenabstand</label>
+              <select id="wd-padding" data-k="padding">
+                <option value="0">keiner</option><option value="8">klein (8 px)</option><option value="12">12 px</option>
+                <option value="16">normal (16 px)</option><option value="20">20 px</option><option value="24">groß (24 px)</option><option value="32">32 px</option>
+              </select></div>
+            <div class="field" id="wd-photo-field"><label for="wd-photo">Deckkraft des Bildes <span id="wd-photo-val"></span></label>
+              <input type="range" class="db-range" id="wd-photo" data-k="photoOpacity" min="10" max="100" step="5"></div>
+          </div>
+          <div class="toggle">
+            <span class="tl2">Rahmen<small>feine helle Linie um die Kachel</small></span>
+            <button class="sw" data-k="border" role="switch" aria-label="Rahmen"></button>
+          </div>
+          <div class="toggle">
+            <span class="tl2">Schatten</span>
+            <button class="sw" data-k="shadow" role="switch" aria-label="Schatten"></button>
+          </div>
+          <div class="wx-layout"></div>
+        </div>
+        </div>
+      </section>
+
       <!-- Radar & Warnungen (weather.js, MMM-LumiraWeather) -->
       <section class="page cols" data-page="wetterkarte">
         <p class="page-lead">Regenradar und amtliche Wetterwarnungen des Deutschen Wetterdienstes als eigene Kacheln auf dem Spiegel –
@@ -601,10 +681,10 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="wx-shot-reload">Neu laden</button></div>
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small wx-shot-reload">Neu laden</button></div>
           <p class="sub">Live-Bild vom Spiegel – zeigt die Kacheln, wie sie gerade wirklich stehen.</p>
-          <div class="wx-shot" id="wx-shot"><img id="wx-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note" id="wx-shot-note">Live-Bild wird geladen …</p></div>
-          <div id="wx-report"></div>
+          <div class="wx-shot"><img class="wx-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note wx-shot-note">Live-Bild wird geladen …</p></div>
+          <div class="wx-report" data-parts="radar,warnings"></div>
         </div>
         </div>
 
@@ -945,6 +1025,7 @@
 <script src="doorbell-gong.js"></script>
 <script src="doorbell.js"></script>
 <script src="weather-geo.js"></script>
+<script src="weather-view.js"></script>
 <script src="weather.js"></script>
 <script src="app.js"></script>
 </body>

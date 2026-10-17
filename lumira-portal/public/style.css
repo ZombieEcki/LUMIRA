@@ -781,7 +781,7 @@ body.crop-open { overflow:hidden; }
 .wx-shot img { display:none; width:100%; height:auto; }
 .wx-shot.has-img img { display:block; }
 .wx-shot.has-img .mp-note { display:none; }
-#wx-report { margin-top:10px; }
+
 .wx-l-h { font-size:.78rem; font-weight:700; color:var(--muted); margin:16px 0 8px; }
 .wx-l-row { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
 .wx-pos { display:grid; grid-template-columns:repeat(3, 34px); grid-template-rows:repeat(3, 24px); gap:4px; padding:6px; border-radius:12px;
@@ -792,6 +792,23 @@ body.crop-open { overflow:hidden; }
 .wx-nums { flex:1; min-width:220px; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:0 12px; }
 .wx-nums .field { margin-top:0; }
 .wx-nums label { font-size:.74rem; }
+.wx-report { margin-top:10px; }
+/* ---------- Wetteranzeige (weather.js + weather-view.js/.css) ---------- */
+.page[data-page="wetteranzeige"] > .stack { margin-bottom:16px; }
+.wd-designs { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; margin-top:10px; }
+.wd-design { display:flex; flex-direction:column; gap:6px; padding:6px; border-radius:var(--r-sm, 12px); border:2px solid transparent;
+  background:var(--field); cursor:pointer; text-align:left; color:inherit; font:inherit; min-width:0; }
+.wd-design:hover { border-color:var(--line-2); }
+.wd-design[aria-checked="true"] { border-color:var(--accent); }
+.wd-thumb { position:relative; height:118px; border-radius:8px; overflow:hidden;
+  background:radial-gradient(120% 90% at 30% 20%, #2a3346 0%, #10141c 60%, #07090d 100%); }
+.wd-thumb-in { position:absolute; left:50%; top:50%; transform-origin:center center; pointer-events:none; }
+.wd-name { font-size:.76rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wd-stage { position:relative; overflow:hidden; border-radius:12px; padding:12px; margin-bottom:10px;
+  background:radial-gradient(120% 90% at 30% 20%, #2a3346 0%, #10141c 60%, #07090d 100%); }
+.wd-stage-in { transform-origin:top left; }
+#wd-fields .toggle.is-na { opacity:.5; }
+#wd-fields .toggle.is-na .sw { cursor:not-allowed; }
 #db-event-mirror.is-bad { color:var(--danger); font-weight:600; }
 .db-diag-rows { display:grid; gap:8px; margin:10px 0; }
 .db-diag-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--r-sm); background:var(--field); font-size:.85rem; }

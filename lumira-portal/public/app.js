@@ -736,7 +736,7 @@
   var AREAS = [
     { id: "start", label: "Start", icon: "home", pages: [["start", "Übersicht"]] },
     { id: "familie", label: "Familie", icon: "users", need: "hasFamily", pages: [["familienplan", "Familienplan"], ["familie", "Termine"], ["spruche", "Sprüche"]] },
-    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["klingel", "Klingel"], ["wetterkarte", "Radar & Warnungen"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
+    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["klingel", "Klingel"], ["wetteranzeige", "Wetteranzeige"], ["wetterkarte", "Radar & Warnungen"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
     { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarmierung"]] },
     { id: "mehr", label: "Mehr", icon: "more", pages: [["info", "Info & Updates"], ["app", "Als App"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit"]] }
   ];
@@ -769,7 +769,7 @@
     if (!area) { name = "start"; area = areaOf("start"); }
     currentPage = name;
     if (name === "klingel" && window.LumiraDoorbell) window.LumiraDoorbell.reload();
-    if (name === "wetterkarte" && window.LumiraWeather) window.LumiraWeather.show();
+    if ((name === "wetterkarte" || name === "wetteranzeige") && window.LumiraWeather) window.LumiraWeather.show(name);
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
       var on = b.getAttribute("data-area-btn") === area.id;

@@ -1,7 +1,7 @@
 {
   "name": "mmm-lumiraweather",
-  "version": "1.0.0",
-  "description": "MagicMirror² – Regenradar (DWD, animiert bis +2 h) und amtliche Wetterwarnungen als frei platzierbare Glas-Kacheln, gesteuert im LUMIRA-Portal.",
+  "version": "1.1.0",
+  "description": "MagicMirror² – Wetteranzeige in 12 Designs (Open-Meteo), Regenradar (DWD, animiert bis +2 h) und amtliche Wetterwarnungen als frei platzierbare Kacheln, gesteuert im LUMIRA-Portal.",
   "main": "MMM-LumiraWeather.js",
   "keywords": [
     "MagicMirror",

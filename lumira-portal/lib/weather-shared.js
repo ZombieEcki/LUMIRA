@@ -13,14 +13,18 @@ const num = (v, min, max, d) => {
 	return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : d;
 };
 
-// Gemeinsame Teile einer Kachel (Position, Größe, Transparenz, Schrift)
+// Gemeinsame Teile einer Kachel (Position, Größe, Transparenz, Schrift).
+// Abstände in px oder in % der Bildschirmbreite/-höhe (unit "pct").
 function cleanBox(b, d) {
 	b = b || {};
+	const unit = b.unit === "pct" ? "pct" : "px";
+	const lim = unit === "pct" ? 100 : 3000;
 	return {
 		enabled: b.enabled === undefined ? d.enabled : !!b.enabled,
 		anchor: ANCHORS.indexOf(b.anchor) === -1 ? d.anchor : b.anchor,
-		x: num(b.x, -3000, 3000, d.x),
-		y: num(b.y, -3000, 3000, d.y),
+		unit,
+		x: num(b.x, -lim, lim, d.x),
+		y: num(b.y, -lim, lim, d.y),
 		width: num(b.width, 160, 1600, d.width),
 		height: num(b.height, 100, 1200, d.height),
 		opacity: num(b.opacity, 0, 100, d.opacity),
@@ -38,14 +42,37 @@ const DEFAULTS = {
 	warnings: {
 		enabled: true, anchor: "top_right", x: 0, y: 400, width: 340, height: 140, opacity: 35, fontScale: 100,
 		whenNone: "hide", minSeverity: 1, max: 3, details: false
+	},
+	// Wetteranzeige (eigener Schalter, unabhängig von Radar & Warnungen)
+	weather: {
+		enabled: false, anchor: "top_right", x: 0, y: 0, width: 400, height: 600, opacity: 35, fontScale: 100,
+		design: "classic", days: 5, wind: "kmh", interval: 15, padding: 16, border: true, shadow: true, photoOpacity: 85,
+		show: {
+			location: true, feels: true, desc: false, decimals: true, humidity: true, wind: true, pressure: true,
+			uv: true, rain: false, sun: false, date: false, updated: false
+		}
 	}
 };
+
+// Muss zu view.js (DESIGNS, FIELDS) passen – der Test prüft das
+const DESIGN_IDS = ["classic", "compact", "card", "vertical", "minimal", "detailed", "bar", "circle", "photo", "large", "icons", "elegant"];
+const WIND_UNITS = ["kmh", "ms", "bft"];
+const INTERVALS = [10, 15, 30, 60];
+
+function cleanShow(s, d) {
+	s = s || {};
+	const out = {};
+	Object.keys(d).forEach((k) => { out[k] = s[k] === undefined ? d[k] : !!s[k]; });
+	return out;
+}
 
 function cleanConfig(raw) {
 	const r = raw || {};
 	const d = DEFAULTS;
 	const rr = r.radar || {};
 	const ww = r.warnings || {};
+	const fx = r.weather || {};
+	const dw = d.weather;
 	const loc = r.location || {};
 	const lat = Number(loc.lat);
 	const lon = Number(loc.lon);
@@ -70,7 +97,72 @@ function cleanConfig(raw) {
 			minSeverity: num(ww.minSeverity, 1, 4, d.warnings.minSeverity),
 			max: num(ww.max, 1, 6, d.warnings.max),
 			details: !!ww.details
+		}),
+		weather: Object.assign(cleanBox(fx, dw), {
+			design: DESIGN_IDS.indexOf(fx.design) === -1 ? dw.design : fx.design,
+			days: num(fx.days, 2, 7, dw.days),
+			wind: WIND_UNITS.indexOf(fx.wind) === -1 ? dw.wind : fx.wind,
+			interval: INTERVALS.indexOf(Number(fx.interval)) === -1 ? dw.interval : Number(fx.interval),
+			padding: num(fx.padding, 0, 40, dw.padding),
+			border: fx.border === undefined ? dw.border : !!fx.border,
+			shadow: fx.shadow === undefined ? dw.shadow : !!fx.shadow,
+			photoOpacity: num(fx.photoOpacity, 10, 100, dw.photoOpacity),
+			show: cleanShow(fx.show, dw.show)
 		})
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Wetterdaten (Open-Meteo, Modelle u. a. des DWD; kostenlos, ohne Schlüssel)
+// ---------------------------------------------------------------------------
+function forecastUrl(lat, lon) {
+	return "https://api.open-meteo.com/v1/forecast?latitude=" + Number(lat).toFixed(4) + "&longitude=" + Number(lon).toFixed(4) +
+		"&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m,wind_direction_10m,pressure_msl,uv_index" +
+		"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset" +
+		"&timezone=auto&timeformat=unixtime&forecast_days=8&wind_speed_unit=kmh";
+}
+
+const val = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+// Antwort → { offset, current, days[] }; fehlende Werte bleiben null
+function parseForecast(json) {
+	if (!json || typeof json !== "object" || !json.current || !json.daily || !Array.isArray(json.daily.time)) return null;
+	const c = json.current;
+	const dd = json.daily;
+	const offset = val(json.utc_offset_seconds) || 0;
+	const at = (k, i) => (Array.isArray(dd[k]) ? val(dd[k][i]) : null);
+	const days = dd.time.map((t, i) => {
+		const local = new Date((t + offset) * 1000);
+		return {
+			key: local.toISOString().slice(0, 10),
+			wd: local.getUTCDay(),
+			code: at("weather_code", i),
+			max: at("temperature_2m_max", i),
+			min: at("temperature_2m_min", i),
+			pop: at("precipitation_probability_max", i),
+			rain: at("precipitation_sum", i),
+			sunrise: at("sunrise", i),
+			sunset: at("sunset", i)
+		};
+	}).filter((d) => d.code !== null || d.max !== null);
+	const code = val(c.weather_code);
+	if (code === null && val(c.temperature_2m) === null) return null;
+	return {
+		offset,
+		timezone: String(json.timezone || ""),
+		current: {
+			time: val(c.time),
+			temp: val(c.temperature_2m),
+			feels: val(c.apparent_temperature),
+			code,
+			isDay: c.is_day === undefined ? null : c.is_day === 1,
+			humidity: val(c.relative_humidity_2m),
+			wind: val(c.wind_speed_10m),
+			windDir: val(c.wind_direction_10m),
+			pressure: val(c.pressure_msl),
+			uv: val(c.uv_index)
+		},
+		days
 	};
 }
 
@@ -167,4 +259,7 @@ function warningsUrl(lat, lon) {
 
 const RADAR_CAPS_URL = "https://maps.dwd.de/geoserver/dwd/Niederschlagsradar/ows?service=WMS&version=1.3.0&request=GetCapabilities";
 
-module.exports = { ANCHORS, SEVERITY, SPEED_MS, DEFAULTS, cleanConfig, extentEnd, radarFrames, parseWarnings, niceEvent, warningsUrl, RADAR_CAPS_URL };
+module.exports = {
+	ANCHORS, SEVERITY, SPEED_MS, DEFAULTS, DESIGN_IDS, WIND_UNITS, INTERVALS, cleanConfig, extentEnd, radarFrames, parseWarnings, niceEvent, warningsUrl, RADAR_CAPS_URL,
+	forecastUrl, parseForecast
+};

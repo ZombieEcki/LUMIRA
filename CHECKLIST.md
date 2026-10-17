@@ -224,6 +224,21 @@ um den aktuellen Stand zu sehen.
       Spiegel meldet Überschneidungen mit Uhr/Familienplan/Kalender & Co.
 - [ ] Auf dem Spiegel prüfen, dann altes MMM-RainRadarDWD abschalten/entfernen
 
+### Spiegel: Wetteranzeige (MMM-LumiraWeather, dritte Kachel)
+- [x] Aktuelles Wetter + Vorhersage von Open-Meteo (Modelle u. a. des DWD, ohne Schlüssel),
+      Abruf im node_helper alle 10–60 min, letzter Stand in `~/.lumira/weather-data.json`;
+      alter Stand bleibt mit „veraltet“, fehlende Werte werden weggelassen
+- [x] 12 Designs aus einem Baukasten (`view.js`/`view.css`, auch im Portal für die
+      Vorschau); farbige Meteocons (statisch, MIT); „Modern mit Hintergrund“ mit 9 eigenen
+      Landschaftsbildern je nach Wetter und Tageszeit
+- [x] Position (9 Felder), Abstände in px oder %, Breite, Höhe höchstens (Schrift
+      verkleinert sich statt abzuschneiden), Deckkraft, Schrift, Innenabstand, Rahmen,
+      Schatten; Werte einzeln ein-/ausblendbar; Wind km/h, m/s oder Beaufort
+- [x] Portal: Spiegel → **Wetteranzeige** mit Designauswahl (echte Daten), Vorschau in
+      echter Größe, Live-Bild, Überschneidungen (auch zwischen Radar/Warnungen/Wetter)
+- [ ] Nach dem MagicMirror-Fix auf dem Pi 3 parallel testen, dann „Wetter“ unter
+      Spiegel → Module abschalten
+
 ### Spiegel: Türklingel (Ring, MMM-Doorbell)
 - [x] Neues Modul `MMM-Doorbell`: beim Klingeln kompakte Meldung in der Mitte (Text,
       Leuchtrahmen, Dauer), Klingelton (eingebautes Ding-Dong oder eigener Ton, Lautstärke),

@@ -1,0 +1,144 @@
+/* MMM-LumiraWeather – Wetteranzeige (12 Designs). Auf dem Spiegel und im
+ * Portal (public/weather-view.css, gleicher Inhalt). Alle Größen in em –
+ * die Schriftgröße der Kachel skaliert das ganze Design. Kein Weichzeichner
+ * (zu teuer für den Raspberry Pi 3). */
+
+.lwv {
+	position: relative;
+	box-sizing: border-box;
+	overflow: hidden;
+	border-radius: 16px;
+	color: #f4f5f7;
+	font-family: "Roboto Condensed", "Roboto", "Segoe UI", sans-serif;
+	font-weight: 400;
+	line-height: 1.2;
+	text-align: left;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.lwv.has-border { border: 1px solid rgba(255, 255, 255, 0.16); }
+.lwv.has-shadow { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35); }
+.lwv.is-stale .lwv-body { opacity: 0.6; }
+
+.lwv-body { position: relative; display: flex; flex-direction: column; gap: 0.7em; }
+
+.lwv-ic { display: block; flex: none; width: 2em; height: 2em; }
+.lwv-ic-hero { width: 4.6em; height: 4.6em; margin: -0.5em -0.3em -0.5em -0.5em; }
+.lwv-ic-xl { width: 6.2em; height: 6.2em; margin: -0.6em; }
+.lwv-ic-day { width: 2.4em; height: 2.4em; margin: -0.2em 0; }
+.lwv-ic-det { width: 1.6em; height: 1.6em; margin: -0.25em 0; }
+
+.lwv-loc { font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lwv-t { font-size: 3.1em; font-weight: 300; line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
+.lwv-feels, .lwv-desc { font-size: 0.9em; color: rgba(255, 255, 255, 0.78); margin-top: 0.3em; white-space: nowrap; }
+.lwv-desc { color: #fff; }
+.lwv-tb { min-width: 0; }
+
+.lwv-hero { display: flex; align-items: center; gap: 0.6em; }
+.lwv-center { justify-content: center; text-align: center; }
+.lwv-hero-sm .lwv-ic-hero { width: 3.4em; height: 3.4em; }
+.lwv-hero-sm .lwv-t { font-size: 2.4em; }
+.lwv-hero-lg .lwv-ic-hero { width: 5.6em; height: 5.6em; }
+.lwv-hero-lg .lwv-t { font-size: 3.6em; }
+
+.lwv-hr { height: 1px; background: rgba(255, 255, 255, 0.16); flex: none; }
+.lwv-vr { width: 1px; align-self: stretch; background: rgba(255, 255, 255, 0.2); flex: none; }
+
+/* Vorhersage */
+.lwv-days { display: flex; gap: 0.3em; }
+.lwv-day { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.35em; }
+.lwv-dn { font-size: 0.9em; }
+.lwv-dt { font-size: 0.85em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lwv-dt b { font-weight: 400; }
+.lwv-min { color: rgba(255, 255, 255, 0.7); }
+.lwv-pop { font-size: 0.72em; color: #8fd3ff; }
+
+.lwv-rows { flex-direction: column; gap: 0.45em; }
+.lwv-rows .lwv-day { flex-direction: row; gap: 0.5em; }
+.lwv-rows .lwv-dn { width: 3.3em; }
+.lwv-rows .lwv-ic-day { width: 2em; height: 2em; }
+.lwv-rows .lwv-dt { margin-left: auto; }
+.lwv-rows .lwv-pop { width: 2.6em; text-align: right; }
+
+/* Messwerte */
+.lwv-det { display: flex; flex-direction: column; gap: 0.45em; font-size: 0.85em; min-width: 0; }
+.lwv-di { display: flex; align-items: center; gap: 0.45em; white-space: nowrap; }
+.lwv-dl { color: rgba(255, 255, 255, 0.78); }
+.lwv-dv { margin-left: auto; padding-left: 0.8em; font-variant-numeric: tabular-nums; }
+.lwv-det-inline { flex-direction: row; gap: 1.2em; align-items: center; }
+.lwv-det-inline .lwv-di { flex-direction: column; gap: 0.3em; }
+.lwv-det-inline .lwv-dl { display: none; }
+.lwv-det-inline .lwv-dv { margin: 0; padding: 0; }
+.lwv-det-inline .lwv-ic-det { width: 2em; height: 2em; }
+
+.lwv-foot { font-size: 0.7em; color: rgba(255, 255, 255, 0.6); }
+.lwv-foot.is-stale { color: #ffcf6e; }
+.lwv-wait { font-size: 0.9em; color: rgba(255, 255, 255, 0.75); }
+
+/* 3 Modern mit Karte */
+.lwv-inner { display: flex; align-items: center; gap: 0.6em; padding: 0.9em 1em; border-radius: 12px; background: rgba(255, 255, 255, 0.07); }
+.lwv-inner-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5em; }
+.lwv-d-card .lwv-loc { font-size: 1em; color: rgba(255, 255, 255, 0.85); }
+
+/* 5 Transparent minimal */
+.lwv-d-minimal .lwv-loc { text-align: center; }
+.lwv-d-minimal .lwv-hero { justify-content: center; }
+
+/* 6 Detailliert */
+.lwv-top { display: flex; align-items: flex-start; gap: 0.8em; }
+.lwv-top .lwv-loc { flex: 1; margin-top: 0.6em; }
+.lwv-date { margin-left: auto; text-align: right; font-size: 0.85em; }
+.lwv-clock { font-size: 1.3em; }
+.lwv-mid { display: flex; align-items: center; gap: 1em; }
+.lwv-mid .lwv-hero { flex: none; }
+.lwv-mid .lwv-det { flex: 1; padding-left: 1em; border-left: 1px solid rgba(255, 255, 255, 0.16); }
+.lwv-d-detailed .lwv-t { font-size: 2.7em; }
+
+/* 7 Horizontale Leiste */
+.lwv-bar { display: flex; align-items: center; gap: 0.8em; }
+.lwv-bar-txt { flex: none; min-width: 0; display: flex; flex-direction: column; gap: 0.25em; }
+.lwv-bar-t { display: flex; align-items: baseline; gap: 0.6em; }
+.lwv-bar .lwv-loc { font-size: 1em; }
+.lwv-bar .lwv-t { font-size: 1.9em; }
+.lwv-bar .lwv-feels { margin: 0; padding-left: 0.6em; border-left: 1px solid rgba(255, 255, 255, 0.3); }
+.lwv-bar .lwv-days { flex: 1; margin-left: 0.6em; gap: 0.6em; }
+
+/* 8 Kreis */
+.lwv-d-circle .lwv-body { align-items: center; }
+.lwv-ring { position: relative; width: 100%; max-width: 15em; aspect-ratio: 1; }
+.lwv-ring-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lwv-ring-track, .lwv-ring-val { fill: none; stroke-width: 5; stroke-linecap: round; }
+.lwv-ring-track { stroke: rgba(255, 255, 255, 0.18); }
+.lwv-ring-val { stroke: #fbbf24; filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.6)); }
+.lwv-ring-lbl { fill: rgba(255, 255, 255, 0.7); font-size: 6px; text-anchor: middle; }
+.lwv-ring-in { position: absolute; inset: 14%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.lwv-ic-ring { width: 3.6em; height: 3.6em; margin: -0.5em 0 -0.3em; }
+.lwv-ring-in .lwv-t { font-size: 2.6em; }
+.lwv-ring-in .lwv-feels, .lwv-ring-in .lwv-desc { margin-top: 0.25em; }
+
+/* 9 Modern mit Hintergrund */
+.lwv-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lwv-bg.is-night { filter: brightness(0.55); }
+.lwv-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.5) 100%); }
+.lwv-d-photo .lwv-days { padding-top: 0.5em; }
+.lwv-d-photo .lwv-t, .lwv-d-photo .lwv-loc { text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7); }
+
+/* 10 Klar & groß */
+.lwv-large { display: flex; align-items: center; gap: 1em; }
+.lwv-large .lwv-t { font-size: 4.4em; }
+.lwv-large .lwv-feels { font-size: 1.05em; }
+.lwv-large-side { min-width: 0; display: flex; flex-direction: column; gap: 0.3em; }
+.lwv-large-side .lwv-loc { white-space: normal; }
+
+/* 11 Icon-only */
+.lwv-d-icons .lwv-dt { font-size: 1em; }
+
+/* 12 Elegant mit Details */
+.lwv-elegant { display: flex; align-items: center; gap: 1.4em; }
+.lwv-el-left { flex: none; display: flex; flex-direction: column; gap: 0.4em; }
+.lwv-elegant .lwv-t { font-size: 2.7em; }
+.lwv-elegant .lwv-det { flex: none; }
+.lwv-elegant .lwv-days { flex: 1; min-width: 0; gap: 0.6em; padding-left: 1.2em; border-left: 1px solid rgba(255, 255, 255, 0.16); }
+
+/* 4 Vertikal: langer Ortsname darf umbrechen */
+.lwv-d-vertical .lwv-loc { white-space: normal; }

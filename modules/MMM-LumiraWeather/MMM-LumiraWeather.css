@@ -36,6 +36,9 @@
 .lw-rel.is-future { background: rgba(56, 152, 255, 0.35); }
 .lw-clock { font-variant-numeric: tabular-nums; }
 
+/* Wetteranzeige: Aussehen kommt aus view.css, hier nur die Lage */
+.lw-wxpanel, .lw-wxpanel.lwv { position: fixed; z-index: 5; }
+
 /* ---------------------------------------------------------------- Karte */
 .lw-map {
 	position: relative;
