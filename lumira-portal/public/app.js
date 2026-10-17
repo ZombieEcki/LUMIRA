@@ -9,7 +9,6 @@
 
   var STATUS = null;
   var SETTINGS = null;
-  var COMPLIMENTS = null;
 
   function api(path, opts) {
     opts = opts || {};
@@ -154,9 +153,6 @@
   function showApp() {
     return api("/api/settings").then(function (settings) {
       SETTINGS = settings;
-      return api("/api/compliments").catch(function () { return null; });
-    }).then(function (compliments) {
-      COMPLIMENTS = compliments;
       show($("#app"));
       applyEdition();
       populateForm();
@@ -168,7 +164,6 @@
       wireAppPage();
       wireStandortSearch();
       wireAlarmSound();
-      wireSpruche();
       $("#addBday").addEventListener("click", function () {
         var first = FP_MEMBERS[0];
         $("#bdays").appendChild(bdayRow(first ? { memberId: first.id, name: first.name, date: "" } : { name: "", date: "" }));
@@ -201,6 +196,14 @@
         window.LumiraAmbient.init({ toast: toast, onStatus: renderAmbientStart });
         $("#start-amb-sw").addEventListener("click", function () {
           window.LumiraAmbient.setEnabled($("#start-amb-sw").getAttribute("aria-checked") !== "true");
+        });
+      }
+      if (STATUS.edition.flags.hasFamily && window.LumiraSpruche) {
+        window.LumiraSpruche.init({
+          toast: toast,
+          getSettings: function () { return SETTINGS; },
+          alarmOn: alarmEnabled,
+          currentPage: function () { return currentPage; }
         });
       }
       if (window.LumiraWeather) {
@@ -303,11 +306,6 @@
     $("#alarm-sound-hint").textContent = s.alarm.soundFile ? "Eigener Ton: " + s.alarm.soundFile : "Standardton";
     $("#alarm-sound-reset").hidden = !s.alarm.soundFile;
 
-    var moods = (s.compliments && s.compliments.moods) || {};
-    setSwitch($("#mood-herzlich"), moods.herzlich !== false);
-    setSwitch($("#mood-motivierend"), moods.motivierend !== false);
-    setSwitch($("#mood-humorvoll"), moods.humorvoll !== false);
-    renderSpruchCards();
   }
 
   function setSwitch(el, on) {
@@ -770,6 +768,7 @@
     currentPage = name;
     if (name === "klingel" && window.LumiraDoorbell) window.LumiraDoorbell.reload();
     if ((name === "wetterkarte" || name === "wetteranzeige") && window.LumiraWeather) window.LumiraWeather.show(name);
+    if (name === "spruche" && window.LumiraSpruche) window.LumiraSpruche.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
       var on = b.getAttribute("data-area-btn") === area.id;
@@ -1719,115 +1718,6 @@
           $("#alarm-sound-reset").hidden = true;
           toast("Alarmton zurückgesetzt");
         }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
-    });
-  }
-
-  // ---------------------------------------------------------------------
-  // Sprüche (compliments.json) – Kategorien + Stimmung
-  // ---------------------------------------------------------------------
-  var SPRUCH_CATEGORIES = [
-    { key: "morningMessages", label: "Morgens" },
-    { key: "forenoonMessages", label: "Vormittags" },
-    { key: "afternoonMessages", label: "Nachmittags" },
-    { key: "eveningMessages", label: "Abends" },
-    { key: "nightMessages", label: "Nachts" },
-    { key: "familyMessages", label: "Herzlich" },
-    { key: "motivationMessages", label: "Motivierend" },
-    { key: "humorMessages", label: "Humorvoll" },
-    { key: "afterDutyMessages", label: "Nach dem Einsatz", need: "hasAlarm" }
-  ];
-
-  function complimentsCat(key) {
-    if (COMPLIMENTS && COMPLIMENTS.categories && Array.isArray(COMPLIMENTS.categories[key])) {
-      return COMPLIMENTS.categories[key];
-    }
-    return [];
-  }
-
-  function renderSpruchCards() {
-    var wrap = $("#spruch-cards");
-    if (!wrap) return;
-    var flags = STATUS.edition.flags;
-    wrap.innerHTML = "";
-    SPRUCH_CATEGORIES.forEach(function (cat) {
-      if (cat.need && !flags[cat.need]) return;
-      var card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = '<h2>' + cat.label + '</h2>' +
-        '<p class="sub">Leer lassen = eingebaute Standardsprüche verwenden.</p>' +
-        '<div class="bdays" data-cat="' + cat.key + '"></div>' +
-        '<button type="button" class="btn-add" data-add="' + cat.key + '">+ Spruch hinzufügen</button>';
-      wrap.appendChild(card);
-      var list = $('[data-cat="' + cat.key + '"]', card);
-      complimentsCat(cat.key).forEach(function (text) { list.appendChild(spruchRow(text)); });
-      $('[data-add="' + cat.key + '"]', card).addEventListener("click", function () {
-        list.appendChild(spruchRow(""));
-      });
-    });
-  }
-
-  function spruchRow(text) {
-    var row = document.createElement("div");
-    row.className = "calrow";
-    row.innerHTML = '<input type="text" placeholder="Spruch (Zeilenumbruch mit \\n)">' +
-      '<button type="button" class="btn-x" title="entfernen">✕</button>';
-    $("input", row).value = text || "";
-    $("button", row).addEventListener("click", function () { row.remove(); });
-    return row;
-  }
-
-  function collectSpruchCategories() {
-    var out = {};
-    SPRUCH_CATEGORIES.forEach(function (cat) {
-      var list = $('[data-cat="' + cat.key + '"]');
-      if (!list) return;
-      out[cat.key] = $all("input", list).map(function (input) { return input.value.trim(); })
-        .filter(function (t) { return t; });
-    });
-    return out;
-  }
-
-  function wireSpruche() {
-    $("#save-spruche").addEventListener("click", saveSpruche);
-  }
-
-  function saveSpruche() {
-    var btn = $("#save-spruche");
-    var hint = $("#spruche-hint");
-    var moods = {
-      herzlich: switchOn($("#mood-herzlich")),
-      motivierend: switchOn($("#mood-motivierend")),
-      humorvoll: switchOn($("#mood-humorvoll"))
-    };
-    if (!moods.herzlich && !moods.motivierend && !moods.humorvoll) {
-      hint.textContent = "Mindestens eine Stimmung muss aktiv bleiben.";
-      return;
-    }
-    btn.disabled = true;
-    hint.textContent = "Speichere …";
-
-    // Stimmung nur speichern (mit MagicMirror-Neustart), wenn sie sich geändert
-    // hat – die Sprüche selbst brauchen keinen Neustart (Live-Reload).
-    var prev = (SETTINGS.compliments && SETTINGS.compliments.moods) || {};
-    var moodsChanged = (prev.herzlich !== false) !== moods.herzlich ||
-      (prev.motivierend !== false) !== moods.motivierend ||
-      (prev.humorvoll !== false) !== moods.humorvoll;
-
-    var steps = [];
-    if (moodsChanged) {
-      steps.push(api("/api/settings", { method: "POST", body: { compliments: { moods: moods } } })
-        .then(function (settings) { SETTINGS = settings; }));
-    }
-    steps.push(api("/api/compliments", { method: "POST", body: { categories: collectSpruchCategories() } })
-      .then(function (data) { COMPLIMENTS = data; }));
-
-    Promise.all(steps).then(function () {
-      btn.disabled = false;
-      hint.textContent = moodsChanged ? "Gespeichert – MagicMirror startet neu." : "Gespeichert.";
-      toast("Sprüche gespeichert");
-    }).catch(function (err) {
-      btn.disabled = false;
-      hint.textContent = "Fehler: " + err.message;
     });
   }
 

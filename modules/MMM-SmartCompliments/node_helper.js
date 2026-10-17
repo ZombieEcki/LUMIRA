@@ -13,7 +13,10 @@
  *     dass MagicMirror neu gestartet werden muss (siehe
  *     concept/smartcompliments-json.md). Die Datei liegt bewusst in
  *     ~/.lumira/ (nicht im Modulordner – der wird bei jedem Update per
- *     rsync --delete geleert).
+ *     rsync --delete geleert). Dazu gehören auch Kategorien an/aus, eigene
+ *     Kategorien, Anlässe und Darstellung (Teil "settings" der Nachricht).
+ *  3) Schreibt die Rückmeldung der Anzeige (was steht gerade da, überdeckt
+ *     es etwas?) nach ~/.lumira/compliments-mirror.json – fürs Portal.
  *
  * By Liam Eckhof
  * MIT Licensed.
@@ -28,6 +31,8 @@ const os = require("os");
 
 const LUMIRA_HOME = process.env.LUMIRA_HOME || path.join(os.homedir(), ".lumira");
 const COMPLIMENTS_PATH = process.env.LUMIRA_COMPLIMENTS_PATH || path.join(LUMIRA_HOME, "compliments.json");
+const REPORT_PATH = path.join(LUMIRA_HOME, "compliments-mirror.json");
+const SETTINGS_KEYS = ["enabled", "off", "own", "words", "display", "behavior"];
 
 module.exports = NodeHelper.create({
 
@@ -41,6 +46,8 @@ module.exports = NodeHelper.create({
 	},
 
 	socketNotificationReceived: function (notification, payload) {
+		if (notification === "SC_REPORT") { this.writeReport(payload); return; }
+		if (notification === "SC_CONFIG" && this.started) { this.pushCompliments(); return; }
 		if (notification === "SC_CONFIG" && !this.started) {
 			this.config = payload;
 			// Sprüche immer laden/überwachen (unabhängig vom Schalter-Server)
@@ -68,6 +75,8 @@ module.exports = NodeHelper.create({
 			out.weekdayMessages = raw.weekdayMessages || {};
 			out.holidayMessages = raw.holidayMessages || {};
 			out.templates = raw.templates || {};
+			out.settings = {};
+			SETTINGS_KEYS.forEach((k) => { if (raw[k] !== undefined) out.settings[k] = raw[k]; });
 			return out;
 		} catch (err) {
 			console.error(this.name + ": compliments.json konnte nicht gelesen werden: " + err.message);
@@ -103,6 +112,25 @@ module.exports = NodeHelper.create({
 			});
 		} catch (err) {
 			console.error(self.name + ": Sprüche-Überwachung konnte nicht gestartet werden: " + err.message);
+		}
+	},
+
+	// Rückmeldung der Anzeige fürs Portal
+	writeReport: function (p) {
+		if (!p || typeof p !== "object") return;
+		const out = {
+			at: new Date().toISOString(),
+			screen: { width: Number(p.screen && p.screen.width) || 0, height: Number(p.screen && p.screen.height) || 0 },
+			text: String(p.text || "").slice(0, 400),
+			cat: String(p.cat || "").slice(0, 40),
+			overlaps: Array.isArray(p.overlaps) ? p.overlaps.map((x) => String(x).slice(0, 40)).slice(0, 12) : [],
+			offscreen: !!p.offscreen
+		};
+		try {
+			fs.writeFileSync(REPORT_PATH + ".tmp", JSON.stringify(out));
+			fs.renameSync(REPORT_PATH + ".tmp", REPORT_PATH);
+		} catch (err) {
+			console.error(this.name + ": Rückmeldung nicht gespeichert: " + err.message);
 		}
 	},
 

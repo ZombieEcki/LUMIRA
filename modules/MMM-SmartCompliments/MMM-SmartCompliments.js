@@ -4,17 +4,23 @@
  * Intelligenter Ersatz für das Standardmodul "compliments".
  * Zeigt immer genau EINE Botschaft an und entscheidet per Priorität,
  * welche gerade am sinnvollsten ist (Uhrzeit, Wochentag, Jahreszeit,
- * Wetter, Kalender, Geburtstage, Hochzeitstag, Familienaufgaben …).
+ * Wetter, amtliche Warnungen, Kalender, Geburtstage, Hochzeitstag …).
  *
  * Kommuniziert mit MMM-aPagerAlarm: während eines Einsatzes (Zustand 1–3)
  * blendet sich dieses Modul vollständig aus. Der Alarm hat immer Vorrang.
  *
  * Auswahl-Logik (kurz):
- *   - Tier A (exklusiv, wenn zutreffend): Geburtstag heute, Hochzeitstag heute,
- *     aktive Wetterwarnung, Feiertag heute.
- *   - Tier B (Familienmix): Tageszeit, Wochentag, Jahreszeit, Wetterhinweis,
- *     Kalender, Aufgaben, Erinnerungen, Familie, Motivation, Humor.
- *   - Die letzten `rememberLastMessages` Nachrichten werden nicht wiederholt.
+ *   - Nach einem Einsatz: Danke-Botschaften (gemischt oder exklusiv).
+ *   - Exklusiv, wenn zutreffend: Geburtstag heute, Jahrestag heute, Feiertag.
+ *   - Anlässe in einstellbarer Reihenfolge (amtliche Wetterwarnung vom DWD,
+ *     Kalendertermin mit Stichwort, Wetterlage) – im eingestellten Anteil.
+ *   - Sonst der Mix: Tageszeit, Wochentag, Jahreszeit, Kalender, Erinnerungen,
+ *     Countdowns und alle eingeschalteten Kategorien (catalog.js).
+ *   - Zuletzt gezeigte Sprüche werden nicht wiederholt.
+ * Die Auswahl selbst steht in logic.js (auch im Portal und in den Tests).
+ *
+ * Sprüche, Kategorien, Anlässe und Darstellung kommen live aus
+ * ~/.lumira/compliments.json (LUMIRA-Portal → Familie → Sprüche).
  *
  * By Liam Eckhof
  * MIT Licensed.
@@ -26,7 +32,7 @@ Module.register("MMM-SmartCompliments", {
 	// Standard-Konfiguration
 	// ------------------------------------------------------------------
 	defaults: {
-		updateInterval: 30000,       // Wechselintervall der Nachrichten (ms)
+		updateInterval: 30000,       // Wechselintervall (ms), solange das Portal nichts anderes sagt
 		fadeSpeed: 3000,             // Ein-/Ausblendzeit (ms)
 		emojis: true,                // Emojis anzeigen (false = entfernen)
 
@@ -44,28 +50,17 @@ Module.register("MMM-SmartCompliments", {
 		afterDutyEnabled: true,      // nach Einsatzende Danke-Botschaften zeigen
 		afterDutyExclusive: false,   // true = nur Danke; false = gemischt mit normalen Sprüchen
 		afterDutyDurationMinutes: 0, // 0 = bis Mitternacht, sonst X Minuten nach Einsatzende
-		afterDutyMessages: [
-			"❤️ Danke, dass du heute für andere da warst.",
-			"🚒 Schön, dass du wieder sicher zuhause bist.",
-			"❤️ Heute warst du im Einsatz – jetzt gehört der Tag wieder dir.",
-			"👨‍🚒 Danke für deinen Einsatz heute.",
-			"❤️ Wir sind stolz auf dich."
-		],
 
-		weatherIntegration: true,    // via Wettermodul-Notification
+		weatherIntegration: true,    // Wetter (MMM-LumiraWeather oder Standard-Wettermodul)
 		calendarIntegration: true,   // via CALENDAR_EVENTS
-		choresIntegration: true,     // via choresNotification
-		choresNotification: "CHORES_UPDATE", // erwartet { open, done }
 
-		rememberLastMessages: 10,    // wie viele Nachrichten nicht wiederholen
+		rememberLastMessages: 10,    // wie viele Nachrichten nicht wiederholen (Portal: „Wechsel“)
 
-		// Stimmungen: welche der "reinen Charakter"-Kategorien im Zufallsmix
-		// vorkommen (vom LUMIRA-Portal steuerbar, siehe compliments-Konzept).
-		// Alle anderen Pool-Bestandteile (Tageszeit, Wochentag, Wetter …)
-		// bleiben davon unberührt.
-		moodHerzlich: true,          // familyMessages
-		moodMotivierend: true,       // motivationMessages
-		moodHumorvoll: true,         // humorMessages
+		// Alte Stimmungs-Schalter (config.js); gelten nur, bis im Portal die
+		// Kategorien selbst geschaltet wurden
+		moodHerzlich: true,
+		moodMotivierend: true,
+		moodHumorvoll: true,
 
 		// Persönliche Ereignisse
 		birthdays: [                 // { name, date: "MM-TT" }
@@ -83,92 +78,14 @@ Module.register("MMM-SmartCompliments", {
 			// { label: "Weihnachten", date: "12-24" }
 		],
 
-		// Wetter-Schwellen für Warnungen
-		heatTemp: 30,                // ab dieser °C: Hitzewarnung
-		frostTemp: 0,                // ab/unter dieser °C: Frostwarnung
-		stormWindKmh: 50,            // ab dieser km/h: Sturmwarnung
+		// Wetter-Schwellen (Anlässe Hitze, Frost, Wind)
+		heatTemp: 30,                // ab dieser °C
+		frostTemp: 0,                // ab/unter dieser °C
+		stormWindKmh: 50,            // ab dieser km/h
 
-		// ---- Nachrichtenlisten (alle frei überschreibbar) ----
-		morningMessages: [
-			"Guten Morgen, Sonnenschein! ☀️",
-			"Der Kaffee wartet schon ☕",
-			"Heute wird ein guter Tag 🌅",
-			"Aufstehen und strahlen! ✨",
-			"Neuer Tag, neues Glück 🍀",
-			"Heute kannst du alles schaffen 💪",
-			"Erst Kaffee, dann Welt retten ☕🚒",
-			"Starte mit einem Lächeln 😊",
-			"Die Welt wartet auf dich 🌍",
-			"Jeder Tag ist eine neue Chance 🌈"
-		],
-		forenoonMessages: [
-			"Läuft bei dir! 💪",
-			"Schon genug Wasser getrunken? 💧",
-			"Bald ist Mittagspause 🍽️"
-		],
-		afternoonMessages: [
-			"Läuft bei dir! 💪",
-			"Halbzeit – weiter so! ⏳",
-			"Du machst das großartig 🙌",
-			"Schon genug Wasser getrunken? 💧",
-			"Nicht nachlassen 🚀",
-			"Der Feierabend kommt näher 😄",
-			"Du bist auf dem richtigen Weg 👍",
-			"Kleine Pause? 🍪",
-			"Heute läuft's richtig gut 😎"
-		],
-		eveningMessages: [
-			"Feierabend! 🌙",
-			"Zeit zum Entspannen 🛋️",
-			"Familienzeit ❤️",
-			"Der Tag war deiner 🏆",
-			"Jetzt Füße hochlegen 🍿",
-			"Zeit für einen gemütlichen Abend ✨"
-		],
-		nightMessages: [
-			"Gute Nacht 😴",
-			"Morgen wartet ein neuer Tag 🌅"
-		],
-
-		familyMessages: [
-			"Du siehst heute fantastisch aus! 😍",
-			"Schön, dass es dich gibt 💛",
-			"Bleib so wie du bist 🌈",
-			"Familie ist das Wichtigste ❤️",
-			"Zuhause ist da, wo die Familie ist 🏡",
-			"Genieße die kleinen Momente 🌼",
-			"Du bist unbezahlbar ❤️",
-			"Nicht jeder Held trägt einen Umhang 🚒",
-			"Retten. Löschen. Bergen. Schützen. ❤️‍🔥",
-			"Möge dein Funkmelder heute ruhig bleiben 📟",
-			"Danke für deinen Einsatz 👨‍🚒"
-		],
-		motivationMessages: [
-			"Lächeln nicht vergessen 😊",
-			"Du bist ein Held 🦸",
-			"Mach heute etwas, worauf du morgen stolz bist 🏆",
-			"Du schaffst mehr als du glaubst 💪",
-			"Jeder Tag ist ein Neuanfang 🌅",
-			"Du bist stärker als dein innerer Schweinehund 🐷",
-			"Ein Lächeln kostet nichts 😊",
-			"Heute wird legendär 🌟",
-			"Vergiss nicht zu trinken 💧",
-			"Du bist heute die beste Version von dir 💯",
-			"Alles beginnt mit dem ersten Schritt 👣",
-			"Heute ist dein Tag! 🎉",
-			"Manchmal reicht ein Lächeln, um den Tag zu verändern 😊",
-			"Glück ist selbstgemacht 🍀"
-		],
-		humorMessages: [
-			"Das Leben ist zu kurz für schlechte Laune 😄",
-			"Kaffee löst zwar nicht alles... aber vieles ☕",
-			"Kalorien zählen heute nicht 🍕😂",
-			"Der Kühlschrank glaubt an dich 🧀😂",
-			"Erwachsen sein ist auch nur Improvisation 🤣",
-			"Heute bitte keine peinlichen WhatsApps verschicken 📱",
-			"Das Leben ist schön – besonders mit Kaffee ☕"
-		],
-
+		// Die Listen der Kategorien (Tageszeit, Herzlich … ) stehen in catalog.js.
+		// Wer ohne LUMIRA-Portal arbeitet, kann sie hier weiter überschreiben
+		// (morningMessages, familyMessages, humorMessages … wie bisher).
 		weekdayMessages: {
 			1: [
 				"Montag... Kaffee hilft! ☕",
@@ -224,43 +141,43 @@ Module.register("MMM-SmartCompliments", {
 			"12-25": ["🎄 Frohe Weihnachten."],
 			"12-26": ["🎄 Schöne Feiertage."],
 			"12-31": ["🎆 Guten Rutsch ins neue Jahr!"]
-		},
-
-		// Wetterhinweise (nicht kritisch)
-		weatherHints: {
-			rain: ["Schirm nicht vergessen. ☔"],
-			snow: ["Vielleicht fällt heute Schnee. ❄️"]
-		},
-		// Wetterwarnungen (kritisch, Tier A)
-		weatherWarnings: {
-			heat: ["Heute wird es heiß.\nViel trinken. 💧"],
-			frost: ["Heute Morgen könnte es glatt sein.\nFahrt vorsichtig."],
-			storm: ["Heute wird es windig.\nLose Gegenstände sichern."]
 		}
 	},
 
 	// ------------------------------------------------------------------
 	// Interner Zustand
 	// ------------------------------------------------------------------
-	history: [],            // zuletzt gezeigte Nachrichten
-	currentMessage: "",     // aktuell angezeigte Nachricht
+	history: [],            // zuletzt gezeigte Sprüche (Schlüssel)
+	current: null,          // aktuell angezeigt: { text, icon, answer?, id }
+	revealed: false,        // Rätsel-Lösung schon sichtbar?
 	updateTimer: null,      // Wechsel-Interval
+	revealTimer: null,
 	firefighterActive: false,// unterdrückt Anzeige, wenn true (nur in hideOnAlarmPhases)
 	einsatzOngoing: false,  // läuft gerade ein Einsatz (Phase 1–3)?
 	manuallyHidden: false,  // manuell per URL ausgeschaltet
 	dutyEndedAt: 0,         // Zeitpunkt, zu dem der letzte Einsatz endete (Nachwirkung)
-	weather: null,          // { temp, windKmh, type }
+	weatherLumira: null,    // { temp, windKmh, code, isDay, at } aus MMM-LumiraWeather
+	weatherOld: null,       // { temp, windKmh, type, at } aus dem Standard-Wettermodul
+	warnings: null,         // { list, at } amtliche DWD-Warnungen
 	calendarEvents: [],     // Kalendertermine
-	chores: null,           // { open, done }
+	lists: {},              // eigene Listen aus compliments.json (categories)
+	settings: null,         // bereinigte Einstellungen (logic.cleanSettings)
+	panel: null,            // frei platzierte Anzeige (position: fixed)
 
 	getStyles: function () {
-		return ["MMM-SmartCompliments.css"];
+		return ["MMM-SmartCompliments.css", "view.css"];
+	},
+
+	getScripts: function () {
+		return ["catalog.js", "logic.js"];
 	},
 
 	start: function () {
 		Log.info("Starting module: " + this.name);
 		this.history = [];
+		this.lists = {};
 		this.manuallyHidden = !!this.config.startHidden;
+		this.settings = null;
 
 		// node_helper starten: lädt die Sprüche aus compliments.json (immer)
 		// und – falls aktiviert – den manuellen Schalter-Server.
@@ -268,9 +185,25 @@ Module.register("MMM-SmartCompliments", {
 			manualControlEnabled: !!this.config.manualControlEnabled,
 			port: this.config.manualControlPort
 		});
+		window.addEventListener("resize", () => this.paint(false));
+	},
 
-		this.updateMessage();
-		this.updateTimer = setInterval(() => this.updateMessage(), this.config.updateInterval);
+	// Erst nach dem Laden von catalog.js/logic.js loslegen
+	notificationReceived: function (notification, payload, sender) {
+		if (notification === "MODULE_DOM_CREATED") {
+			if (!this.settings) this.settings = window.LumiraSpruchLogic.cleanSettings(null);
+			this.updateMessage();
+			this.restartTimer();
+			return;
+		}
+		this.handleNotification(notification, payload, sender);
+	},
+
+	restartTimer: function () {
+		clearInterval(this.updateTimer);
+		const s = this.settings;
+		const ms = s ? s.behavior.interval * 1000 : this.config.updateInterval;
+		this.updateTimer = setInterval(() => this.updateMessage(), ms);
 	},
 
 	// Nachrichten vom node_helper
@@ -281,31 +214,27 @@ Module.register("MMM-SmartCompliments", {
 			else if (action === "on") { this.manuallyHidden = false; }
 			else if (action === "toggle") { this.manuallyHidden = !this.manuallyHidden; }
 			Log.info(this.name + ": manueller Schalter -> " + (this.manuallyHidden ? "AUS" : "AN"));
-			this.updateDom(this.config.fadeSpeed);
+			this.paint(true);
 			return;
 		}
-		// Vom Portal gepflegte Sprüche (compliments.json), live nachgeladen
+		// Vom Portal gepflegte Sprüche und Einstellungen (compliments.json), live nachgeladen
 		if (notification === "SC_COMPLIMENTS") {
-			this.applyComplimentsOverrides(payload);
-			return;
+			this.applyCompliments(payload);
 		}
 	},
 
-	// Übernimmt vom Portal gepflegte Texte in this.config. Nur nicht-leere
-	// Listen überschreiben – leer/fehlend heißt "eingebauten Default behalten".
-	applyComplimentsOverrides: function (payload) {
-		if (!payload || typeof payload !== "object") { return; }
-		const listKeys = [
-			"morningMessages", "forenoonMessages", "afternoonMessages",
-			"eveningMessages", "nightMessages",
-			"familyMessages", "motivationMessages", "humorMessages",
-			"afterDutyMessages"
-		];
-		listKeys.forEach((key) => {
-			if (Array.isArray(payload[key]) && payload[key].length) {
-				this.config[key] = payload[key].slice();
-			}
+	// Übernimmt compliments.json. Nur Darstellung geändert → derselbe Spruch
+	// wird neu gezeichnet (keine neue Auswahl); Inhalte geändert → neuer Spruch.
+	applyCompliments: function (payload) {
+		if (!payload || typeof payload !== "object" || !window.LumiraSpruchLogic) { return; }
+		const L = window.LumiraSpruchLogic;
+		const before = this.settings;
+		const beforeLists = JSON.stringify(this.lists);
+		const lists = {};
+		Object.keys(payload).forEach((key) => {
+			if (Array.isArray(payload[key])) { lists[key] = payload[key].slice(); }
 		});
+		this.lists = lists;
 		if (payload.weekdayMessages && typeof payload.weekdayMessages === "object") {
 			Object.keys(payload.weekdayMessages).forEach((d) => {
 				const list = payload.weekdayMessages[d];
@@ -322,13 +251,19 @@ Module.register("MMM-SmartCompliments", {
 			if (payload.templates.birthdayText) { this.config.birthdayText = payload.templates.birthdayText; }
 			if (payload.templates.weddingText) { this.config.weddingText = payload.templates.weddingText; }
 		}
-		this.updateMessage();
+		this.settings = L.cleanSettings(payload.settings || {});
+		const s = this.settings;
+		const contentChanged = !before || beforeLists !== JSON.stringify(this.lists) ||
+			JSON.stringify([before.enabled, before.off, before.own, before.words]) !== JSON.stringify([s.enabled, s.off, s.own, s.words]);
+		if (!before || before.behavior.interval !== s.behavior.interval) { this.restartTimer(); }
+		if (contentChanged || !this.current) { this.updateMessage(); }
+		else { this.paint(false); }
 	},
 
 	// ------------------------------------------------------------------
 	// Notifications von anderen Modulen
 	// ------------------------------------------------------------------
-	notificationReceived: function (notification, payload, sender) {
+	handleNotification: function (notification, payload) {
 		// Feuerwehr: MMM-aPagerAlarm meldet Zustandswechsel
 		if (notification === "APAGER_STATE" && this.config.firefighterIntegration) {
 			const state = payload && typeof payload.state === "number" ? payload.state : 0;
@@ -355,25 +290,24 @@ Module.register("MMM-SmartCompliments", {
 			return;
 		}
 
-		// Familienaufgaben (z. B. MMM-FamilyChores)
-		if (notification === this.config.choresNotification && this.config.choresIntegration) {
-			this.handleChores(payload);
+		// Eigenes Wettermodul: aktuelles Wetter (Open-Meteo) und amtliche Warnungen (DWD)
+		if (notification === "LUMIRA_WEATHER" && this.config.weatherIntegration && payload) {
+			const c = payload.current;
+			this.weatherLumira = c && payload.updatedAt ? {
+				temp: typeof c.temp === "number" ? c.temp : null,
+				windKmh: typeof c.wind === "number" ? c.wind : null,
+				code: typeof c.code === "number" ? c.code : null,
+				isDay: c.isDay,
+				at: Date.parse(payload.updatedAt)
+			} : null;
+			const w = payload.warnings;
+			this.warnings = w && w.updatedAt && Array.isArray(w.list) ? { list: w.list, at: Date.parse(w.updatedAt) } : null;
 			return;
 		}
 
-		// Wetter – mehrere gängige Notifications defensiv unterstützen
+		// Standard-Wettermodul – mehrere gängige Notifications defensiv unterstützen
 		if (this.config.weatherIntegration) {
 			this.handleWeather(notification, payload);
-		}
-	},
-
-	handleChores: function (payload) {
-		if (!payload) { return; }
-		if (typeof payload.open === "number") {
-			this.chores = { open: payload.open, done: payload.done || 0 };
-		} else if (Array.isArray(payload)) {
-			const open = payload.filter((t) => !t.done && !t.completed).length;
-			this.chores = { open: open, done: payload.length - open };
 		}
 	},
 
@@ -404,10 +338,11 @@ Module.register("MMM-SmartCompliments", {
 			return;
 		}
 
-		this.weather = {
+		this.weatherOld = {
 			temp: typeof temp === "number" ? temp : null,
 			windKmh: typeof windKmh === "number" ? windKmh : null,
-			type: type ? String(type).toLowerCase() : null
+			type: type ? String(type).toLowerCase() : null,
+			at: Date.now()
 		};
 	},
 
@@ -418,34 +353,90 @@ Module.register("MMM-SmartCompliments", {
 		return s * 3.6;
 	},
 
+	// Eigenes Wettermodul bevorzugt, solange frisch
+	currentWeather: function () {
+		const w = this.weatherLumira;
+		if (w && Date.now() - w.at < 3 * 3600000) { return w; }
+		return this.weatherOld;
+	},
+
 	// ------------------------------------------------------------------
 	// Nachrichtenauswahl
 	// ------------------------------------------------------------------
 	updateMessage: function () {
-		if (this.firefighterActive) {
-			this.currentMessage = "";
-			this.updateDom(this.config.fadeSpeed);
-			return;
+		if (!window.LumiraSpruchLogic) { return; }
+		clearTimeout(this.revealTimer);
+		this.revealed = false;
+		this.current = this.firefighterActive ? null : this.selectMessage();
+		if (this.current) {
+			this.history.push(this.current.id || this.current.text);
+			const keep = this.settings ? this.settings.behavior.remember : this.config.rememberLastMessages;
+			while (this.history.length > keep) { this.history.shift(); }
 		}
-		this.currentMessage = this.selectMessage();
-		this.updateDom(this.config.fadeSpeed);
+		this.paint(true);
+		// Rätsel: Lösung nach der eingestellten Zeit (spätestens zur Hälfte des Wechsels)
+		if (this.current && this.current.answer) {
+			const s = this.settings.behavior;
+			const ms = Math.min(s.riddleDelay, Math.max(3, s.interval / 2)) * 1000;
+			this.revealTimer = setTimeout(() => { this.revealed = true; this.revealAnswer(); }, ms);
+		}
+	},
+
+	msg: function (text) { return text ? { text: text, id: text, icon: "" } : null; },
+
+	// Listen: Portal (compliments.json) > config.js > eingebaut (catalog.js)
+	effectiveLists: function () {
+		const out = {};
+		window.LumiraSpruchCatalog.CATEGORIES.forEach((c) => {
+			const portal = this.lists[c.list];
+			const conf = this.config[c.list];
+			if (Array.isArray(portal) && portal.length) { out[c.list] = portal; }
+			else if (Array.isArray(conf) && conf.length) { out[c.list] = conf; }
+		});
+		return out;
 	},
 
 	selectMessage: function () {
+		const L = window.LumiraSpruchLogic;
+		const C = window.LumiraSpruchCatalog;
+		const s = this.settings || L.cleanSettings(null);
+		const lists = this.effectiveLists();
+		const list = (key) => L.itemsOf(C.byKey(key), s, lists);
+
 		// Nachwirkung nach dem Einsatz
 		if (this.afterDutyActive()) {
-			if (this.config.afterDutyExclusive) {
-				return this.selectFromPool(this.config.afterDutyMessages) || "";
-			}
-			// gemischt: etwa jede zweite Nachricht ist eine Danke-Botschaft
-			if (Math.random() < 0.5) {
-				return this.selectFromPool(this.config.afterDutyMessages) || "";
+			if (this.config.afterDutyExclusive || Math.random() < 0.5) {
+				return this.msg(this.selectFromPool(list("afterDuty")));
 			}
 		}
 
+		// Exklusiv: Geburtstag, Jahrestag, Feiertag
 		const tierA = this.buildTierA();
-		const pool = (tierA && tierA.length) ? tierA : this.buildAmbient();
-		return this.selectFromPool(pool) || "";
+		if (tierA && tierA.length) { return this.msg(this.selectFromPool(tierA)); }
+
+		const now = new Date();
+		const timeCat = C.byKey(this.timeOfDayKey(now.getHours()));
+		const extra = [
+			{ key: timeCat.key, icon: timeCat.icon, items: L.itemsOf(timeCat, s, lists) },
+			{ key: "weekday", items: this.config.weekdayMessages[now.getDay()] || [] },
+			{ key: "season", items: this.config.seasonMessages[this.currentSeason(now)] || [] },
+			{ key: "calendar", icon: "📅", items: this.calendarMessages() },
+			{ key: "reminder", icon: "🎈", items: this.reminderMessages() },
+			{ key: "countdown", icon: "⏳", items: this.countdownMessages() }
+		];
+		return L.choose({
+			now: now,
+			settings: s,
+			lists: lists,
+			legacy: { herzlich: this.config.moodHerzlich, motivierend: this.config.moodMotivierend, humorvoll: this.config.moodHumorvoll },
+			flags: { alarm: !!this.config.firefighterIntegration },
+			weather: this.currentWeather(),
+			warnings: this.warnings,
+			events: this.config.calendarIntegration ? this.calendarEvents : [],
+			thresholds: { heatTemp: this.config.heatTemp, frostTemp: this.config.frostTemp, stormWindKmh: this.config.stormWindKmh },
+			extra: extra,
+			history: this.history
+		});
 	},
 
 	// Ist die Einsatz-Nachwirkung gerade aktiv?
@@ -463,7 +454,7 @@ Module.register("MMM-SmartCompliments", {
 		return this.isSameDay(new Date(this.dutyEndedAt), new Date());
 	},
 
-	// Tier A: exklusive, seltene Ereignisse (Reihenfolge = Priorität)
+	// Exklusive, seltene Ereignisse (Reihenfolge = Priorität)
 	buildTierA: function () {
 		// Geburtstag heute
 		const bdayToday = this.birthdaysToday();
@@ -475,11 +466,6 @@ Module.register("MMM-SmartCompliments", {
 		if (annToday.length) {
 			return annToday.map((a) => this.anniversaryText(a));
 		}
-		// Wetterwarnung
-		const warn = this.activeWeatherWarnings();
-		if (warn.length) {
-			return warn;
-		}
 		// Feiertag heute
 		const holiday = this.config.holidayMessages[this.todayMMDD()];
 		if (holiday && holiday.length) {
@@ -488,58 +474,22 @@ Module.register("MMM-SmartCompliments", {
 		return null;
 	},
 
-	// Tier B: der große Familienmix (alles gleichrangig, wird gemischt)
-	buildAmbient: function () {
-		let pool = [];
-		const now = new Date();
-
-		// Tageszeit
-		pool = pool.concat(this.timeOfDayMessages(now.getHours()));
-		// Wochentag
-		const wd = this.config.weekdayMessages[now.getDay()];
-		if (wd) { pool = pool.concat(wd); }
-		// Jahreszeit
-		const season = this.config.seasonMessages[this.currentSeason(now)];
-		if (season) { pool = pool.concat(season); }
-		// Wetterhinweis (nicht kritisch)
-		pool = pool.concat(this.weatherHintMessages());
-		// Kalender
-		pool = pool.concat(this.calendarMessages());
-		// Aufgaben
-		pool = pool.concat(this.choresMessages());
-		// Erinnerungen (Geburtstag/Hochzeitstag bald)
-		pool = pool.concat(this.reminderMessages());
-		// Countdowns
-		pool = pool.concat(this.countdownMessages());
-		// Stimmungs-Kategorien (im Portal ein-/abschaltbar)
-		if (this.config.moodHerzlich)    { pool = pool.concat(this.config.familyMessages); }
-		if (this.config.moodMotivierend) { pool = pool.concat(this.config.motivationMessages); }
-		if (this.config.moodHumorvoll)   { pool = pool.concat(this.config.humorMessages); }
-
-		return pool;
-	},
-
 	selectFromPool: function (pool) {
 		if (!pool || !pool.length) { return null; }
 		let candidates = pool.filter((m) => this.history.indexOf(m) === -1);
 		if (!candidates.length) { candidates = pool; }
-		const msg = candidates[Math.floor(Math.random() * candidates.length)];
-		this.history.push(msg);
-		while (this.history.length > this.config.rememberLastMessages) {
-			this.history.shift();
-		}
-		return msg;
+		return candidates[Math.floor(Math.random() * candidates.length)];
 	},
 
 	// ------------------------------------------------------------------
 	// Kategorie-Helfer
 	// ------------------------------------------------------------------
-	timeOfDayMessages: function (hour) {
-		if (hour >= 5 && hour < 11) { return this.config.morningMessages; }
-		if (hour >= 11 && hour < 12) { return this.config.forenoonMessages; }
-		if (hour >= 12 && hour < 18) { return this.config.afternoonMessages; }
-		if (hour >= 18 && hour < 22) { return this.config.eveningMessages; }
-		return this.config.nightMessages;
+	timeOfDayKey: function (hour) {
+		if (hour >= 5 && hour < 11) { return "morning"; }
+		if (hour >= 11 && hour < 12) { return "forenoon"; }
+		if (hour >= 12 && hour < 18) { return "afternoon"; }
+		if (hour >= 18 && hour < 22) { return "evening"; }
+		return "night";
 	},
 
 	currentSeason: function (date) {
@@ -548,35 +498,6 @@ Module.register("MMM-SmartCompliments", {
 		if (m >= 6 && m <= 8) { return "summer"; }
 		if (m >= 9 && m <= 11) { return "autumn"; }
 		return "winter";
-	},
-
-	weatherHintMessages: function () {
-		if (!this.weather || !this.weather.type) { return []; }
-		const t = this.weather.type;
-		let out = [];
-		if (t.indexOf("rain") !== -1 || t.indexOf("regen") !== -1 || t.indexOf("drizzle") !== -1) {
-			out = out.concat(this.config.weatherHints.rain || []);
-		}
-		if (t.indexOf("snow") !== -1 || t.indexOf("schnee") !== -1) {
-			out = out.concat(this.config.weatherHints.snow || []);
-		}
-		return out;
-	},
-
-	activeWeatherWarnings: function () {
-		if (!this.weather) { return []; }
-		let out = [];
-		const w = this.weather;
-		if (typeof w.temp === "number" && w.temp >= this.config.heatTemp) {
-			out = out.concat(this.config.weatherWarnings.heat || []);
-		}
-		if (typeof w.temp === "number" && w.temp <= this.config.frostTemp) {
-			out = out.concat(this.config.weatherWarnings.frost || []);
-		}
-		if (typeof w.windKmh === "number" && w.windKmh >= this.config.stormWindKmh) {
-			out = out.concat(this.config.weatherWarnings.storm || []);
-		}
-		return out;
 	},
 
 	calendarMessages: function () {
@@ -600,15 +521,6 @@ Module.register("MMM-SmartCompliments", {
 			out.push("Morgen steht ein wichtiger Termin an.");
 		}
 		return out;
-	},
-
-	choresMessages: function () {
-		if (!this.config.choresIntegration || !this.chores) { return []; }
-		if (this.chores.open > 0) {
-			const n = this.chores.open;
-			return ["Heute " + (n === 1 ? "wartet noch eine Aufgabe." : "warten noch " + n + " Aufgaben.")];
-		}
-		return ["Super. Alle Aufgaben sind erledigt. ✅"];
 	},
 
 	reminderMessages: function () {
@@ -719,35 +631,150 @@ Module.register("MMM-SmartCompliments", {
 	// ------------------------------------------------------------------
 	// Darstellung
 	// ------------------------------------------------------------------
+	isFree: function () {
+		return !!(this.settings && this.settings.display.anchor !== "auto");
+	},
+
+	visible: function () {
+		return !this.manuallyHidden && !this.firefighterActive && !!(this.current && this.current.text);
+	},
+
+	// Ein Spruch-Element füllen und gestalten (gilt für beide Arten der Anzeige)
+	fillBox: function (box) {
+		const d = this.settings ? this.settings.display : window.LumiraSpruchLogic.DEFAULTS.display;
+		let msg = this.current;
+		if (msg && !this.config.emojis) { msg = Object.assign({}, msg, { icon: "" }); }
+		window.LumiraSpruchLogic.render(box, msg, this.config.emojis ? d : Object.assign({}, d, { icon: "off" }), { reveal: this.revealed });
+		box.style.setProperty("--sc-scale", (d.fontScale / 100).toFixed(2));
+		box.style.removeProperty("--sc-fit");
+		box.style.padding = d.padding ? d.padding + "px" : "";
+		box.style.maxWidth = d.width ? d.width + "px" : "";
+		box.style.width = d.width && this.isFree() ? d.width + "px" : "";
+		box.style.maxHeight = d.height ? d.height + "px" : "";
+		box.style.overflow = d.height ? "hidden" : "";
+	},
+
+	// Neu zeichnen; fade = neuer Spruch (weich überblenden)
+	paint: function (fade) {
+		if (this.isFree()) {
+			this.paintPanel(fade);
+			this.updateDom(0);
+		} else {
+			this.removePanel();
+			this.updateDom(fade ? this.config.fadeSpeed : 0);
+		}
+		clearTimeout(this.fitTimer);
+		this.fitTimer = setTimeout(() => {
+			const box = this.isFree() ? this.panel : document.querySelector("#" + this.identifier + " .smartcompliments");
+			if (box && this.settings && this.settings.display.height) { window.LumiraSpruchLogic.fit(box); }
+			this.report();
+		}, (fade ? this.config.fadeSpeed / 2 : 0) + 200);
+	},
+
 	getDom: function () {
 		const wrapper = document.createElement("div");
-		wrapper.className = "smartcompliments";
-
-		if (this.manuallyHidden || this.firefighterActive || !this.currentMessage) {
+		wrapper.className = "smartcompliments sc-msg";
+		if (this.isFree() || !this.visible()) {
 			wrapper.classList.add("sc-hidden");
 			return wrapper;
 		}
-
-		let text = this.currentMessage;
-		if (!this.config.emojis) {
-			text = this.stripEmojis(text);
-		}
-		// Zeilenumbrüche unterstützen – bewusst per DOM-Knoten statt innerHTML,
-		// da der Text seit der compliments.json-Anbindung aus einem Web-Formular
-		// stammen kann und nicht als HTML interpretiert werden darf.
-		const lines = String(text).split("\n");
-		lines.forEach((line, i) => {
-			if (i > 0) { wrapper.appendChild(document.createElement("br")); }
-			wrapper.appendChild(document.createTextNode(line));
-		});
+		this.fillBox(wrapper);
 		return wrapper;
 	},
 
-	stripEmojis: function (text) {
-		// entfernt gängige Emoji-Bereiche und doppelte Leerzeichen
-		return text
-			.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}️]/gu, "")
-			.replace(/\s{2,}/g, " ")
-			.trim();
+	// Frei platziert: eigenes Element am <body>, Überblenden per CSS
+	paintPanel: function (fade) {
+		if (!this.panel) {
+			this.panel = document.createElement("div");
+			this.panel.className = "smartcompliments sc-msg sc-free";
+			this.panel.style.transition = "opacity " + Math.round(this.config.fadeSpeed / 2) + "ms ease";
+			this.panel.style.opacity = "0";
+			document.body.appendChild(this.panel);
+		}
+		const p = this.panel;
+		const show = () => {
+			if (!this.panel) { return; }
+			this.fillBox(p);
+			this.position(p);
+			p.style.opacity = this.visible() ? "1" : "0";
+		};
+		clearTimeout(this.fadeTimer);
+		if (fade && p.style.opacity !== "0") {
+			p.style.opacity = "0";
+			this.fadeTimer = setTimeout(show, Math.round(this.config.fadeSpeed / 2));
+		} else {
+			show();
+		}
+	},
+
+	position: function (el) {
+		const d = this.settings.display;
+		const s = el.style;
+		s.left = s.right = s.top = s.bottom = "";
+		const t = [];
+		const [v, h] = d.anchor.split("_");
+		const ux = d.unit === "pct" ? "vw" : "px";
+		const uy = d.unit === "pct" ? "vh" : "px";
+		if (v === "top") s.top = d.y + uy;
+		else if (v === "bottom") s.bottom = d.y + uy;
+		else { s.top = "calc(50% + " + d.y + uy + ")"; t.push("translateY(-50%)"); }
+		if (h === "left") s.left = d.x + ux;
+		else if (h === "right") s.right = d.x + ux;
+		else { s.left = "calc(50% + " + d.x + ux + ")"; t.push("translateX(-50%)"); }
+		s.transform = t.join(" ");
+	},
+
+	removePanel: function () {
+		if (this.panel) { this.panel.remove(); }
+		this.panel = null;
+	},
+
+	revealAnswer: function () {
+		const box = this.isFree() ? this.panel : document.querySelector("#" + this.identifier + " .smartcompliments");
+		const a = box && box.querySelector(".sc-answer");
+		if (a) { a.classList.add("is-on"); }
+	},
+
+	// ------------------------------------------------------------------
+	// Rückmeldung fürs Portal: was steht gerade da, überdeckt es etwas?
+	// ------------------------------------------------------------------
+	NAMES: {
+		clock: "Uhr", weather: "Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
+		"MMM-RainRadarDWD": "altes Regenradar", "MMM-LumiraStatus": "Portal-Hinweis"
+	},
+
+	report: function () {
+		const free = this.isFree() && this.panel && this.visible();
+		const hits = [];
+		let off = false;
+		if (free) {
+			const a = this.panel.getBoundingClientRect();
+			const rects = [];
+			document.querySelectorAll(".module").forEach((m) => {
+				if (m.classList.contains(this.name) || m.classList.contains("MMM-Ambient") || m.classList.contains("MMM-Doorbell")) { return; }
+				const r = m.getBoundingClientRect();
+				if (r.width < 4 || r.height < 4 || getComputedStyle(m).visibility === "hidden") { return; }
+				const name = Object.keys(this.NAMES).find((k) => m.classList.contains(k));
+				if (name) { rects.push({ name: this.NAMES[name], r: r }); }
+			});
+			document.querySelectorAll(".lw-panel, .lw-wxpanel").forEach((el) => {
+				rects.push({ name: el.classList.contains("lw-wxpanel") ? "Wetteranzeige" : el.classList.contains("lw-radar") ? "Regenradar" : "Warnungen", r: el.getBoundingClientRect() });
+			});
+			rects.forEach((m) => {
+				if (a.left < m.r.right - 2 && a.right > m.r.left + 2 && a.top < m.r.bottom - 2 && a.bottom > m.r.top + 2 && hits.indexOf(m.name) === -1) { hits.push(m.name); }
+			});
+			off = a.left < -2 || a.top < -2 || a.right > window.innerWidth + 2 || a.bottom > window.innerHeight + 2;
+		}
+		const rep = {
+			screen: { width: window.innerWidth, height: window.innerHeight },
+			text: this.current ? this.current.text : "",
+			cat: this.current ? this.current.cat || "" : "",
+			overlaps: hits,
+			offscreen: off
+		};
+		const key = JSON.stringify(rep);
+		if (key === this.lastReport) { return; }
+		this.lastReport = key;
+		this.sendSocketNotification("SC_REPORT", rep);
 	}
 });

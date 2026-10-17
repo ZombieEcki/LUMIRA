@@ -807,6 +807,40 @@ body.crop-open { overflow:hidden; }
 .wd-stage { position:relative; overflow:hidden; border-radius:12px; padding:12px; margin-bottom:10px;
   background:radial-gradient(120% 90% at 30% 20%, #2a3346 0%, #10141c 60%, #07090d 100%); }
 .wd-stage-in { transform-origin:top left; }
+/* ---------- Sprüche (spruche.js + spruch/view.css) ---------- */
+.page[data-page="spruche"] > .stack { margin-bottom:16px; }
+.sp-stage { position:relative; overflow:hidden; border-radius:12px; margin:10px 0;
+  background:radial-gradient(120% 90% at 30% 20%, #2a3346 0%, #10141c 60%, #07090d 100%); }
+.sp-screen { position:absolute; left:0; top:0; transform-origin:top left; }
+.sp-screen .smartcompliments { position:absolute; margin:0; font-family:"Roboto Condensed", "Roboto", "Segoe UI", sans-serif; }
+.sp-pos-wrap { display:flex; flex-direction:column; gap:8px; align-items:flex-start; flex:none; }
+.sp-auto[aria-pressed="true"] { background:var(--inv); color:var(--inv-ink); border-color:var(--inv); }
+.sp-cat .tl2 { display:block; min-width:0; }
+.sp-cat .tl2 small { overflow-wrap:anywhere; }
+.sp-cat-ic { display:inline-block; width:1.6em; }
+.sp-cat-act { display:flex; align-items:center; gap:10px; flex:none; }
+.sp-cat.is-off .tl2 { opacity:.55; }
+.sp-ed-state { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0; font-size:.82rem; color:var(--muted); }
+.sp-ed-list { display:flex; flex-direction:column; gap:8px; }
+.sp-row { display:flex; align-items:center; gap:8px; }
+.sp-row-f { flex:1; min-width:0; display:flex; gap:6px; }
+.sp-row-f input { flex:1; min-width:0; }
+.sp-row.is-off .sp-row-f input { opacity:.5; text-decoration:line-through; }
+@media (max-width:600px) {
+  .sp-row { flex-wrap:wrap; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  .sp-row .sw { margin-right:auto; }
+  .sp-row-f { order:5; flex-basis:100%; flex-direction:column; }
+}
+.sp-bulk { margin-top:14px; }
+.sp-bulk summary { cursor:pointer; font-size:.85rem; font-weight:600; }
+.sp-bulk textarea { width:100%; margin:8px 0; box-sizing:border-box; }
+.sp-order { margin:0; padding-left:22px; display:flex; flex-direction:column; gap:6px; list-style:decimal; }
+.sp-order-i { display:list-item; }
+.sp-order-i > span { display:inline-block; }
+.sp-own-add { margin:6px 0 4px; }
+.sp-order-i .btn-x { margin-left:6px; vertical-align:middle; }
+.sp-order-i > span { min-width:140px; font-weight:600; font-size:.9rem; }
+.sp-editor { border:2px solid var(--accent); }
 #wd-fields .toggle.is-na { opacity:.5; }
 #wd-fields .toggle.is-na .sw { cursor:not-allowed; }
 #db-event-mirror.is-bad { color:var(--danger); font-weight:600; }

@@ -57,6 +57,27 @@ Module.register("MMM-LumiraWeather", {
 		if (notification !== "LW_STATE") return;
 		this.state = payload;
 		this.render();
+		this.broadcast();
+	},
+
+	// Für andere Module (z. B. MMM-SmartCompliments): aktuelles Wetter und
+	// amtliche Warnungen – nur, was wirklich geliefert wurde, mit Zeitstempel
+	broadcast: function () {
+		const st = this.state || {};
+		const c = st.config;
+		if (!c) return;
+		const fx = st.forecast || {};
+		const cur = c.weather.enabled && fx.data && fx.data.current;
+		const warnOn = (c.enabled && c.warnings.enabled) || c.weather.enabled;
+		const w = st.warnings || {};
+		this.sendNotification("LUMIRA_WEATHER", {
+			current: cur ? { temp: cur.temp, code: cur.code, isDay: cur.isDay, wind: cur.wind } : null,
+			updatedAt: cur ? fx.updatedAt : null,
+			warnings: warnOn && w.updatedAt ? {
+				list: (w.list || []).map((x) => ({ event: x.event, level: x.level, group: x.group, onset: x.onset, expires: x.expires })),
+				updatedAt: w.updatedAt
+			} : null
+		});
 	},
 
 	// ------------------------------------------------------------------ Hilfen

@@ -139,6 +139,11 @@ mehr gibt es nicht. Radar und Warnungen gelten für Deutschland.
 - Das Portal holt für die Vorschau selbst Daten bei Open-Meteo, wenn der
   Spiegel keine frischen hat (höchstens alle 10 Minuten).
 - Kein Weichzeichner hinter den Kacheln (kostet den Raspberry Pi 3 zu viel).
+- **Weitergabe an andere Module:** Die Anzeige sendet nach jeder Aktualisierung
+  `LUMIRA_WEATHER` mit aktuellem Wetter und amtlichen Warnungen (je mit
+  Zeitstempel) – die Sprüche nutzen das für Wetter- und Warn-Sprüche
+  ([SPRUECHE.md](SPRUECHE.md)). Die Warnungen werden deshalb auch geholt, wenn
+  nur die Wetteranzeige an ist.
 
 ## 6. Datensicherung
 

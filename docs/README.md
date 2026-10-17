@@ -8,6 +8,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 - [HOME_ASSISTANT.md](HOME_ASSISTANT.md) – Home-Assistant-Webhook einrichten (Portal-Anleitung)
 - [FAMILIENPLAN.md](FAMILIENPLAN.md) – Familienplan: Einrichtung, Bedienung, Rotationslogik, Datensicherung, Fehlerbehebung
 - [KLINGEL.md](KLINGEL.md) – Ring-Türklingel: Verbindung, Ton und Videodauer, Installation, Sicherheit, Fehlerbehebung
+- [SPRUECHE.md](SPRUECHE.md) – Sprüche: Kategorien, Anlässe (Wetter, Warnungen, Kalender), Darstellung, Schnittstellen, Sicherung, Rollback, Fehlerbehebung
 - [WETTER.md](WETTER.md) – Wetteranzeige (12 Designs), Regenradar und Wetterwarnungen (DWD): Einstellungen, Positionierung, Datenquellen, Fehlerbehebung
 - [../CHECKLIST.md](../CHECKLIST.md) – was ist fertig, was ist geplant
 - [../README.md](../README.md) – Projektüberblick & Schnellstart
@@ -17,7 +18,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 | Modul | Doku |
 |-------|------|
 | MMM-aPagerAlarm | [README](../modules/MMM-aPagerAlarm/README.md) · [CONFIG](../modules/MMM-aPagerAlarm/CONFIG.md) · [WEBHOOK](../modules/MMM-aPagerAlarm/WEBHOOK.md) · [CHANGELOG](../modules/MMM-aPagerAlarm/CHANGELOG.md) |
-| MMM-SmartCompliments | [README](../modules/MMM-SmartCompliments/README.md) · [CONFIG](../modules/MMM-SmartCompliments/CONFIG.md) |
+| MMM-SmartCompliments | [README](../modules/MMM-SmartCompliments/README.md) · [CONFIG](../modules/MMM-SmartCompliments/CONFIG.md) · [Anleitung](SPRUECHE.md) |
 | MMM-FamilyPlan | [README](../modules/MMM-FamilyPlan/README.md) · [Anleitung](FAMILIENPLAN.md) |
 | MMM-Doorbell | [README](../modules/MMM-Doorbell/README.md) · [Anleitung](KLINGEL.md) |
 | MMM-LumiraWeather | [README](../modules/MMM-LumiraWeather/README.md) · [Anleitung](WETTER.md) |

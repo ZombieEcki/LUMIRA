@@ -318,17 +318,38 @@ app.post("/api/system/reboot", requireAuth, (req, res) => {
 // Bewusst KEIN pm2-Neustart: das Modul lädt compliments.json selbst per
 // fs.watch live nach (siehe modules/MMM-SmartCompliments/node_helper.js).
 // ---------------------------------------------------------------------------
+function complimentsView() {
+	return Object.assign(complimentsLib.load(), { report: complimentsLib.report() });
+}
+
+function complimentsAction(res, fn) {
+	try {
+		fn();
+		res.json(complimentsView());
+	} catch (err) {
+		const status = err instanceof complimentsLib.ValidationError ? 400 : 500;
+		if (status === 500) console.error("[lumira-portal] Sprüche:", err);
+		res.status(status).json({ error: status === 500 ? "Interner Fehler" : err.message, field: err.field });
+	}
+}
+
 app.get("/api/compliments", requireAuth, (req, res) => {
-	res.json(complimentsLib.load());
+	res.json(complimentsView());
 });
 
 app.post("/api/compliments", requireAuth, (req, res) => {
-	try {
-		res.json(complimentsLib.patch(req.body || {}));
-	} catch (err) {
-		const status = err instanceof complimentsLib.ValidationError ? 400 : 500;
-		res.status(status).json({ error: err.message, field: err.field });
-	}
+	complimentsAction(res, () => complimentsLib.patch(req.body || {}));
+});
+
+// Sicherung: alle Sprüche und Einstellungen als Datei bzw. zurückspielen
+app.get("/api/compliments/export", requireAuth, (req, res) => {
+	const stamp = new Date().toISOString().slice(0, 10);
+	res.setHeader("Content-Disposition", `attachment; filename="lumira-sprueche-${stamp}.json"`);
+	res.type("application/json").send(JSON.stringify(complimentsLib.load(), null, 2));
+});
+
+app.post("/api/compliments/import", requireAuth, (req, res) => {
+	complimentsAction(res, () => complimentsLib.importAll(req.body));
 });
 
 // ---------------------------------------------------------------------------

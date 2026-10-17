@@ -1,18 +1,22 @@
 /* MMM-SmartCompliments.css
  * Ruhige, gut lesbare Familien-Botschaft. Eine Nachricht, mittig, weich.
- * Das Ein-/Ausblenden übernimmt MagicMirror über updateDom(fadeSpeed).
+ * Schrift, Symbol und Rätsel-Lösung: view.css.
+ * Das Ein-/Ausblenden übernimmt MagicMirror über updateDom(fadeSpeed),
+ * bei freier Position das Modul selbst (CSS-Übergang).
  */
 
 .smartcompliments {
-	text-align: center;
-	color: #ffffff;
-	font-weight: 400;
-	font-size: 2.0vw;
-	line-height: 1.4;
+	--sc-base: 2.0vw;
 	max-width: 80vw;
 	margin: 0 auto;
-	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-	letter-spacing: 0.5px;
+}
+
+/* Frei platziert (Portal → Sprüche → Darstellung) */
+.smartcompliments.sc-free {
+	position: fixed;
+	z-index: 4;
+	margin: 0;
+	pointer-events: none;
 }
 
 /* Unterdrückt (Feuerwehreinsatz) oder leer */
@@ -20,15 +24,10 @@
 	display: none;
 }
 
-/* Zweite Zeile etwas dezenter */
-.smartcompliments br + * {
-	opacity: 0.9;
-}
-
 /* Kleine Displays / Hochformat */
 @media (max-width: 900px), (orientation: portrait) {
 	.smartcompliments {
-		font-size: 5vw;
+		--sc-base: 5vw;
 		max-width: 90vw;
 	}
 }

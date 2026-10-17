@@ -20,6 +20,7 @@
 <script>try { var t = localStorage.getItem("lumira-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="weather-view.css">
+<link rel="stylesheet" href="spruch/view.css">
 <!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
 <link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
 <link rel="stylesheet" href="vendor/fa/css/solid.min.css">
@@ -331,23 +332,123 @@
       </section>
 
       <!-- Sprüche -->
-      <section class="page" data-page="spruche">
-        <p class="page-lead">Textbausteine und Stimmung der Familienbotschaften. Änderungen wirken sofort, ohne Neustart.</p>
+      <section class="page cols" data-page="spruche">
+        <p class="page-lead">Familienbotschaften auf dem Spiegel: Kategorien, Anlässe und Darstellung. Jede Änderung wird sofort gespeichert
+          und ist nach wenigen Sekunden auf dem Spiegel – ohne Neustart.</p>
+        <div class="stack">
         <div class="card">
-          <h2>Stimmung</h2>
-          <p class="sub">Welche Art Sprüche soll vorkommen? Mindestens eine muss aktiv bleiben.</p>
-          <div class="toggle-grid">
-          <div class="toggle"><span class="tl2">Herzlich</span>
-            <button class="sw" id="mood-herzlich" role="switch" aria-label="Herzlich"></button></div>
-          <div class="toggle"><span class="tl2">Motivierend</span>
-            <button class="sw" id="mood-motivierend" role="switch" aria-label="Motivierend"></button></div>
-          <div class="toggle"><span class="tl2">Humorvoll</span>
-            <button class="sw" id="mood-humorvoll" role="switch" aria-label="Humorvoll"></button></div>
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="sp-shot-reload">Live-Bild neu laden</button></div>
+          <p class="sub" id="sp-now">So sieht ein Spruch mit den Einstellungen unten aus. Bei „Bearbeiten“ zeigt 👁 einen bestimmten Spruch.</p>
+          <div class="sp-stage" id="sp-stage"><div class="sp-screen" id="sp-screen"><div class="smartcompliments sc-msg" id="sp-prev"></div></div></div>
+          <p class="save-hint" id="sp-prev-note"></p>
+          <div class="wx-shot" id="sp-shot"><img id="sp-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note" id="sp-shot-note">Live-Bild wird geladen …</p></div>
+          <div id="sp-report"></div>
+        </div>
+
+        <div class="card">
+          <h2>Darstellung</h2>
+          <p class="sub">Schrift und Aussehen bleiben wie bisher – hier nur Lage, Größe und Symbol.</p>
+          <div class="wx-l-row">
+            <div class="sp-pos-wrap">
+              <button type="button" class="btn small sp-auto" id="sp-auto" aria-pressed="true">Wie bisher</button>
+              <div class="wx-pos" id="sp-pos" role="group" aria-label="Position auf dem Spiegel"></div>
+            </div>
+            <div class="wx-nums">
+              <div class="field"><label for="sp-x" id="sp-x-l">Abstand waagerecht</label><input class="mono-in" type="number" id="sp-x" data-d="x"></div>
+              <div class="field"><label for="sp-y" id="sp-y-l">Abstand senkrecht</label><input class="mono-in" type="number" id="sp-y" data-d="y"></div>
+              <div class="field"><label for="sp-width">Breite (px, 0 = automatisch)</label><input class="mono-in" type="number" step="10" min="0" id="sp-width" data-d="width"></div>
+              <div class="field"><label for="sp-height">Höhe höchstens (px, 0 = frei)</label><input class="mono-in" type="number" step="10" min="0" id="sp-height" data-d="height"></div>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="sp-unit">Abstände in</label>
+              <select id="sp-unit" data-d="unit"><option value="px">Pixeln (px)</option><option value="pct">% des Bildschirms</option></select></div>
+            <div class="field"><label for="sp-font">Schriftgröße</label>
+              <select id="sp-font" data-d="fontScale"><option value="60">60 %</option><option value="70">70 %</option><option value="80">80 %</option><option value="90">90 %</option>
+                <option value="100">100 % (wie bisher)</option><option value="115">115 %</option><option value="130">130 %</option><option value="150">150 %</option><option value="175">175 %</option><option value="200">200 %</option></select></div>
+            <div class="field"><label for="sp-padding">Innenabstand</label>
+              <select id="sp-padding" data-d="padding"><option value="0">keiner (wie bisher)</option><option value="8">8 px</option><option value="16">16 px</option><option value="24">24 px</option><option value="40">40 px</option></select></div>
+            <div class="field"><label for="sp-icon">Symbol</label>
+              <select id="sp-icon" data-d="icon"><option value="below">groß unter dem Spruch</option><option value="inline">am Zeilenende (wie bisher)</option><option value="off">ohne Symbol</option></select></div>
+          </div>
+          <p class="save-hint">Lange Sprüche brechen automatisch um. Mit „Höhe höchstens“ wird die Schrift verkleinert, statt etwas abzuschneiden.</p>
+        </div>
+
+        <div class="card">
+          <h2>Wechsel</h2>
+          <div class="grid2">
+            <div class="field"><label for="sp-interval">Neuer Spruch alle</label>
+              <select id="sp-interval" data-b="interval"><option value="10">10 Sekunden</option><option value="20">20 Sekunden</option><option value="30">30 Sekunden</option>
+                <option value="45">45 Sekunden</option><option value="60">1 Minute</option><option value="120">2 Minuten</option><option value="300">5 Minuten</option><option value="600">10 Minuten</option></select></div>
+            <div class="field"><label for="sp-remember">Nicht wiederholen innerhalb</label>
+              <select id="sp-remember" data-b="remember"><option value="5">der letzten 5 Sprüche</option><option value="10">der letzten 10 Sprüche</option>
+                <option value="20">der letzten 20 Sprüche</option><option value="40">der letzten 40 Sprüche</option><option value="80">der letzten 80 Sprüche</option></select></div>
+            <div class="field"><label for="sp-riddle">„Denk mal nach“: Lösung nach</label>
+              <select id="sp-riddle" data-b="riddleDelay"><option value="5">5 Sekunden</option><option value="10">10 Sekunden</option><option value="15">15 Sekunden</option>
+                <option value="20">20 Sekunden</option><option value="30">30 Sekunden</option><option value="60">1 Minute</option></select></div>
+          </div>
+          <p class="save-hint" id="sp-riddle-note"></p>
+        </div>
+
+        <div class="card">
+          <h2>Sichern</h2>
+          <p class="sub">Alle Sprüche, Kategorien und Einstellungen als Datei – zum Aufheben oder für einen zweiten Spiegel.</p>
+          <div class="btn-row">
+            <a class="btn" href="/api/compliments/export" download>Sichern (Datei laden)</a>
+            <label class="btn" for="sp-import">Sicherung einspielen …</label>
+            <input type="file" id="sp-import" accept="application/json,.json" hidden>
           </div>
         </div>
-        <div id="spruch-cards" class="card-grid"></div>
-        <div class="save-row sticky"><button class="btn primary" id="save-spruche">Speichern</button>
-          <span class="save-hint" id="spruche-hint"></span></div>
+        </div>
+
+        <div class="stack">
+        <div class="card sp-editor" id="sp-editor" hidden>
+          <div class="card-head"><h2 id="sp-ed-title">Sprüche</h2><button type="button" class="btn small" id="sp-ed-close">Schließen</button></div>
+          <p class="sub" id="sp-ed-sub"></p>
+          <div id="sp-ed-own" hidden>
+            <div class="grid2">
+              <div class="field"><label for="sp-own-label">Name der Kategorie</label><input type="text" id="sp-own-label" maxlength="40"></div>
+              <div class="field"><label for="sp-own-icon">Symbol (Emoji)</label><input type="text" id="sp-own-icon" maxlength="8"></div>
+            </div>
+          </div>
+          <div class="field" id="sp-ed-words" hidden><label for="sp-words">Stichwörter im Termintitel (mit Komma getrennt)</label><input type="text" id="sp-words" maxlength="300"></div>
+          <div class="sp-ed-state"><span id="sp-ed-state"></span><button type="button" class="btn small ghost" id="sp-ed-reset" hidden>Auf Standard zurücksetzen</button></div>
+          <div id="sp-ed-list" class="sp-ed-list"></div>
+          <div class="btn-row"><button type="button" class="btn small" id="sp-ed-add">+ Spruch</button>
+            <button type="button" class="btn small ghost danger" id="sp-own-del" hidden>Kategorie löschen</button></div>
+          <details class="sp-bulk"><summary>Mehrere auf einmal einfügen</summary>
+            <textarea id="sp-bulk" rows="5" placeholder="Je Zeile ein Spruch"></textarea>
+            <button type="button" class="btn small" id="sp-bulk-add">Hinzufügen</button>
+          </details>
+        </div>
+
+        <div class="card">
+          <h2>Kategorien</h2>
+          <p class="sub">Was ausgeschaltet ist, erscheint nie – auch nicht als Ersatz. Tageszeit-Sprüche sind immer dabei.</p>
+          <p class="setup-banner" id="sp-none" hidden>⚠ Keine allgemeine Kategorie ist an – der Spiegel zeigt dann nur Tageszeit-Grüße, Termine und Anlässe.</p>
+          <div id="sp-cats"></div>
+          <button type="button" class="btn small sp-own-add" id="sp-own-add">+ Eigene Kategorie</button>
+        </div>
+
+        <div class="card">
+          <h2>Anlässe</h2>
+          <p class="sub">Passt gerade ein Anlass, kommt ein passender Spruch – im eingestellten Anteil, sonst der normale Mix.
+            Geburtstage, Jahrestage und Feiertage (Familie → Termine) haben immer Vorrang.</p>
+          <div class="toggle"><span class="tl2">Amtliche Wetterwarnungen<small>DWD – von der Wetteranzeige bzw. der Warnkachel</small></span>
+            <button class="sw" data-b="warnings" role="switch" aria-label="Amtliche Wetterwarnungen"></button></div>
+          <div class="toggle"><span class="tl2">Kalender-Termine<small>Stichwort im Termintitel, z. B. „Training“</small></span>
+            <button class="sw" data-b="calendar" role="switch" aria-label="Kalender-Termine"></button></div>
+          <div class="toggle"><span class="tl2">Wetterlage<small>Sonne, Regen, Schnee, Hitze, Frost …</small></span>
+            <button class="sw" data-b="weather" role="switch" aria-label="Wetterlage"></button></div>
+          <div class="field"><label for="sp-share">Anteil der Anlass-Sprüche</label>
+            <select id="sp-share" data-b="share"><option value="100">immer, wenn ein Anlass passt</option><option value="75">meistens (3 von 4)</option>
+              <option value="50">jeder zweite Spruch</option><option value="25">ab und zu (1 von 4)</option></select></div>
+          <div class="wx-l-h">Reihenfolge, wenn mehrere passen</div>
+          <ol class="sp-order" id="sp-order"></ol>
+          <p class="save-hint">Wetter und Warnungen kommen von der neuen Wetteranzeige (Spiegel → Wetteranzeige), das Wetter sonst vom bisherigen Wetter-Modul.
+            Fehlen Daten oder sind sie veraltet, gibt es einfach allgemeine Sprüche.</p>
+        </div>
+        </div>
       </section>
 
       <!-- ================= SPIEGEL ================= -->
@@ -1026,6 +1127,9 @@
 <script src="doorbell.js"></script>
 <script src="weather-geo.js"></script>
 <script src="weather-view.js"></script>
+<script src="spruch/catalog.js"></script>
+<script src="spruch/logic.js"></script>
+<script src="spruche.js"></script>
 <script src="weather.js"></script>
 <script src="app.js"></script>
 </body>

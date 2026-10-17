@@ -239,6 +239,22 @@ um den aktuellen Stand zu sehen.
 - [ ] Nach dem MagicMirror-Fix auf dem Pi 3 parallel testen, dann „Wetter“ unter
       Spiegel → Module abschalten
 
+### Familie: Sprüche (MMM-SmartCompliments 1.2)
+- [x] Katalog (`catalog.js`, auch im Portal): bisherige Kategorien + 20 neue mit je 12
+      Sprüchen, Flachwitze und Versaut/Zweideutig leer (Versaut ab Werk aus);
+      Montagsmotivation nur Mo, Wochenendmodus nur Sa/So, Feuerwehr nur Feuerwehr-Ausgabe;
+      Dubletten der Vorlage bereinigt
+- [x] Jede Kategorie und jeder Spruch einzeln an/aus (nie als Ersatz), eigene Kategorien,
+      Mehrfach-Einfügen, Sicherung/Import – alles live über `compliments.json`
+- [x] Anlässe in einstellbarer Reihenfolge und Anteil: amtliche DWD-Warnung und Wetterlage
+      (über `LUMIRA_WEATHER` von MMM-LumiraWeather, sonst Standard-Wetter), Kalender-
+      Stichwörter; veraltete Daten zählen nicht. Aufgaben bewusst nicht (kein „erledigt“)
+- [x] „Denk mal nach“: Rätsel, Lösung nach einstellbarer Zeit
+- [x] Darstellung: „wie bisher“ oder frei platziert (9 Felder, px/%), Breite, Höhe (Schrift
+      verkleinert statt abschneiden), Schrift, Innenabstand, Symbol groß darunter/inline/aus;
+      Portal-Vorschau, Live-Bild, Überschneidungen
+- [ ] Auf dem Pi 3 nach dem MagicMirror-Fix prüfen (Emojis, Überblenden bei freier Position)
+
 ### Spiegel: Türklingel (Ring, MMM-Doorbell)
 - [x] Neues Modul `MMM-Doorbell`: beim Klingeln kompakte Meldung in der Mitte (Text,
       Leuchtrahmen, Dauer), Klingelton (eingebautes Ding-Dong oder eigener Ton, Lautstärke),

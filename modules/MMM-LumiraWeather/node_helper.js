@@ -10,6 +10,8 @@
  * Für die Wetteranzeige (eigener Schalter) alle 10–60 Minuten aktuelles
  * Wetter und Vorhersage von Open-Meteo; der letzte Stand liegt zusätzlich in
  * ~/.lumira/weather-data.json (Vorschau im Portal, Start ohne Internet).
+ * Die Warnungen holt er auch, wenn nur die Wetteranzeige an ist – die
+ * Anzeige reicht Wetter und Warnungen an andere Module weiter (Sprüche).
  * Fehler bei den Daten blockieren nichts: Die Anzeige behält den letzten
  * Stand und zeigt sein Alter.
  *
@@ -91,9 +93,9 @@ module.exports = NodeHelper.create({
 
 	refresh: async function () {
 		const c = this.config;
-		if (!c || !c.enabled) return;
+		if (!c) return;
 		const now = new Date();
-		if (c.warnings.enabled) {
+		if ((c.enabled && c.warnings.enabled) || c.weather.enabled) {
 			try {
 				const json = JSON.parse(await this.fetchText(warningsUrl(c.location.lat, c.location.lon)));
 				this.warnings = { list: parseWarnings(json, now, c.warnings.minSeverity), updatedAt: now.toISOString(), error: "" };
@@ -102,7 +104,7 @@ module.exports = NodeHelper.create({
 				console.warn(this.name + ": DWD-Warnungen: " + err.message);
 			}
 		}
-		if (c.radar.enabled) {
+		if (c.enabled && c.radar.enabled) {
 			try {
 				const end = extentEnd(await this.fetchText(RADAR_CAPS_URL));
 				this.radar = { end, updatedAt: now.toISOString(), error: end ? "" : "Zeitachse unbekannt" };
@@ -187,8 +189,8 @@ module.exports = NodeHelper.create({
 					// Standort/Filter geändert oder gerade eingeschaltet → sofort neu abrufen
 					if (changed || (wasOff && self.config.enabled)) self.refresh();
 					else self.push();
-					// Wetteranzeige: an/aus, Ort oder Abstand geändert
-					if (self.fxChanged) self.refreshForecast();
+					// Wetteranzeige: an/aus, Ort oder Abstand geändert (Warnungen gleich mit)
+					if (self.fxChanged) { self.refreshForecast(); if (!changed) self.refresh(); }
 				}, 200);
 			});
 		} catch (err) {

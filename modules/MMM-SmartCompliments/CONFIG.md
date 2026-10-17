@@ -18,8 +18,6 @@ Alle Optionen sind optional. Unten ein umfangreiches Beispiel, danach die Detail
         firefighterIntegration: true,
         weatherIntegration: true,
         calendarIntegration: true,
-        choresIntegration: true,
-        choresNotification: "CHORES_UPDATE",
 
         // Abwechslung
         rememberLastMessages: 10,
@@ -51,26 +49,25 @@ Alle Optionen sind optional. Unten ein umfangreiches Beispiel, danach die Detail
 
 | Option | Typ | Standard | Beschreibung |
 |--------|-----|----------|--------------|
-| `updateInterval` | ms | `30000` | Wie oft die Nachricht wechselt. |
+| `updateInterval` | ms | `30000` | Wie oft die Nachricht wechselt – nur bis `compliments.json` geladen ist; danach gilt „Wechsel“ im Portal (Standard 30 s). |
 | `fadeSpeed` | ms | `3000` | Dauer des weichen Ein-/Ausblendens. |
 | `emojis` | bool | `true` | Emojis anzeigen. `false` entfernt sie aus dem Text. |
-| `rememberLastMessages` | Zahl | `10` | So viele Nachrichten werden nicht wiederholt. |
+| `rememberLastMessages` | Zahl | `10` | So viele Nachrichten werden nicht wiederholt (im Portal: „Wechsel“). |
 | `manualControlEnabled` | bool | `true` | Manuellen Ein-/Aus-Schalter per URL aktivieren. |
 | `manualControlPort` | Zahl | `8091` | Port des Schalter-Servers (nicht 8080/8090). |
 | `startHidden` | bool | `false` | Beim Start ausgeblendet beginnen. |
-| `moodHerzlich` | bool | `true` | Stimmung „Herzlich" (`familyMessages`) im Zufallsmix zeigen. |
-| `moodMotivierend` | bool | `true` | Stimmung „Motivierend" (`motivationMessages`) im Zufallsmix zeigen. |
-| `moodHumorvoll` | bool | `true` | Stimmung „Humorvoll" (`humorMessages`) im Zufallsmix zeigen. |
+| `moodHerzlich` | bool | `true` | Kategorie „Herzlich" – gilt nur, bis sie im Portal geschaltet wurde. |
+| `moodMotivierend` | bool | `true` | Kategorie „Motivierend" – dto. |
+| `moodHumorvoll` | bool | `true` | Kategorie „Humorvoll" – dto. |
 
 ### Sprüche aus dem LUMIRA-Portal (`compliments.json`)
 
-Läuft das Modul im LUMIRA-Setup, werden die Textlisten zusätzlich aus
-`~/.lumira/compliments.json` gelesen (vom Portal gepflegt, siehe
-[concept/smartcompliments-json.md](../../concept/smartcompliments-json.md)).
-Nur nicht-leere Kategorien überschreiben die eingebauten Standardtexte; das
-Modul lädt Änderungen live nach (kein MagicMirror-Neustart nötig). Die
-`moodHerzlich`/`moodMotivierend`/`moodHumorvoll`-Schalter erzeugt das Portal
-aus der „Stimmung"-Auswahl auf der Sprüche-Seite.
+Läuft das Modul im LUMIRA-Setup, kommen aus `~/.lumira/compliments.json`
+(vom Portal gepflegt): eigene Listen je Kategorie, Kategorien an/aus,
+einzelne Sprüche aus, eigene Kategorien, Kalender-Stichwörter, Anlässe,
+Wechsel und Darstellung. Nur nicht-leere Listen überschreiben die eingebauten
+Sprüche (`catalog.js`); das Modul lädt Änderungen live nach (kein
+MagicMirror-Neustart nötig). Alles Weitere: [docs/SPRUECHE.md](../../docs/SPRUECHE.md).
 
 ### Manueller Ein-/Aus-Schalter
 
@@ -97,10 +94,8 @@ Nach dem Kopieren auf den Pi einmal `npm install` im Modulordner ausführen
 | `afterDutyExclusive` | bool | `false` | `true` = nur Danke-Botschaften; `false` = gemischt mit normalen Sprüchen (ca. 50/50). |
 | `afterDutyDurationMinutes` | Minuten | `0` | Wie lange die Nachwirkung dauert. `0` = bis Mitternacht. |
 | `afterDutyMessages` | Liste | siehe Modul | Texte der Nachwirkung. |
-| `weatherIntegration` | bool | `true` | Wetterwarnungen/-hinweise nutzen. |
-| `calendarIntegration` | bool | `true` | Kalendertermine (heute/morgen) nutzen. |
-| `choresIntegration` | bool | `true` | Familienaufgaben nutzen. |
-| `choresNotification` | Text | `"CHORES_UPDATE"` | Notification-Name des Aufgaben-Moduls. Erwartet `{ open, done }` oder ein Array von Aufgaben. |
+| `weatherIntegration` | bool | `true` | Wetterlage und amtliche Warnungen nutzen (MMM-LumiraWeather oder Standard-Wettermodul). |
+| `calendarIntegration` | bool | `true` | Kalendertermine (heute/morgen, Stichwort-Anlässe) nutzen. |
 
 ### Persönliche Ereignisse
 
@@ -117,9 +112,12 @@ Nach dem Kopieren auf den Pi einmal `npm install` im Modulordner ausführen
 
 | Option | Typ | Standard | Beschreibung |
 |--------|-----|----------|--------------|
-| `heatTemp` | °C | `30` | Ab dieser Temperatur: Hitzewarnung. |
-| `frostTemp` | °C | `0` | Bei/unter dieser Temperatur: Frostwarnung. |
-| `stormWindKmh` | km/h | `50` | Ab dieser Windgeschwindigkeit: Sturmwarnung. |
+| `heatTemp` | °C | `30` | Ab dieser Temperatur: Anlass „Hitze“. |
+| `frostTemp` | °C | `0` | Bei/unter dieser Temperatur: Anlass „Frost“. |
+| `stormWindKmh` | km/h | `50` | Ab dieser Windgeschwindigkeit: Anlass „Wind“. |
+
+Das sind Wetter-Sprüche, keine Warnungen: Warn-Sprüche gibt es nur bei
+amtlichen DWD-Warnungen (von MMM-LumiraWeather).
 
 ## Nachrichtenlisten anpassen
 
@@ -143,9 +141,10 @@ config: {
 Überschreibbare Gruppen:
 `morningMessages`, `forenoonMessages`, `afternoonMessages`, `eveningMessages`,
 `nightMessages`, `familyMessages`, `motivationMessages`, `humorMessages`,
-`weekdayMessages` (Objekt 0–6, 0 = Sonntag), `seasonMessages`
-(`spring`/`summer`/`autumn`/`winter`), `holidayMessages` (Objekt „MM-TT"),
-`weatherHints` (`rain`/`snow`), `weatherWarnings` (`heat`/`frost`/`storm`).
+`afterDutyMessages` und jede weitere Liste aus `catalog.js` (z. B.
+`familienwahnsinn`, `wetter_regen`), `weekdayMessages` (Objekt 0–6,
+0 = Sonntag), `seasonMessages` (`spring`/`summer`/`autumn`/`winter`),
+`holidayMessages` (Objekt „MM-TT"). Listen aus dem Portal haben Vorrang.
 
 Zweizeilige Nachrichten: einfach `\n` im Text verwenden.
 
@@ -155,13 +154,11 @@ Damit `firefighterIntegration` funktioniert, muss in **MMM-aPagerAlarm**
 `broadcastNotifications: true` gesetzt sein (Standard). Dieses Modul sendet dann
 bei jedem Zustandswechsel `APAGER_STATE`, worauf SmartCompliments reagiert.
 
-## Hinweis zu Wetter & Aufgaben
+## Hinweis zum Wetter
 
-Die Wetter-Notifications unterscheiden sich je nach verwendetem Wettermodul.
-Unterstützt werden `WEATHER_UPDATED` (neues Modul) und `CURRENTWEATHER_DATA`
-(älteres Modul) sowie ein generischer Fallback mit `temperature`, `windSpeed`,
-`weatherType`. Falls dein Wettermodul ein anderes Format sendet, kann eine
-Anpassung nötig sein.
-
-Für Aufgaben erwartet das Modul die Notification aus `choresNotification` mit
-`{ open, done }` oder einem Array von Aufgaben (mit `done`/`completed`-Feld).
+Bevorzugt wird `LUMIRA_WEATHER` von MMM-LumiraWeather (aktuelles Wetter mit
+WMO-Code und amtliche Warnungen, jeweils mit Zeitstempel). Sonst unterstützt
+das Modul `WEATHER_UPDATED` (Standard-Wettermodul), `CURRENTWEATHER_DATA`
+(älteres Modul) sowie einen generischen Fallback mit `temperature`,
+`windSpeed`, `weatherType`. Wetter älter als 3 Stunden und Warnungen älter als
+90 Minuten werden nicht verwendet.

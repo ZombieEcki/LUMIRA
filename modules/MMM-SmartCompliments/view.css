@@ -1,0 +1,33 @@
+/* MMM-SmartCompliments – Aussehen eines Spruchs. Auf dem Spiegel und in der
+ * Portal-Vorschau (public/spruch/view.css, gleicher Inhalt).
+ * Grundgröße --sc-base (Spiegel: 2vw, hochkant 5vw), dazu der Faktor aus dem
+ * Portal (--sc-scale) und ggf. die automatische Verkleinerung (--sc-fit). */
+
+.sc-msg {
+	text-align: center;
+	color: #ffffff;
+	font-weight: 400;
+	font-size: calc(var(--sc-base, 2vw) * var(--sc-scale, 1) * var(--sc-fit, 1));
+	line-height: 1.4;
+	letter-spacing: 0.5px;
+	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+	box-sizing: border-box;
+	overflow-wrap: break-word;
+}
+
+/* Lösung eines Rätsels: erst unsichtbar, dann weich eingeblendet */
+.sc-answer {
+	margin-top: 0.4em;
+	font-size: 0.8em;
+	opacity: 0;
+	transition: opacity 1.2s ease;
+}
+
+.sc-answer.is-on { opacity: 0.85; }
+
+/* Symbol groß unter dem Spruch */
+.sc-icon {
+	margin-top: 0.35em;
+	font-size: 1.9em;
+	line-height: 1.15;
+}

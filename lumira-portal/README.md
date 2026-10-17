@@ -120,6 +120,19 @@ Der Ring-Token verlässt `~/.lumira/ring-auth.json` nie. Anleitung:
 | `POST /api/ring/login` → `POST /api/ring/code` | Anmeldung: E-Mail + Passwort, dann Bestätigungscode |
 | `POST /api/ring/cancel` · `/logout` · `/reconnect` | Anmeldung abbrechen, abmelden (Token löschen), neu verbinden |
 
+## Sprüche-API
+
+Sprüche und Einstellungen von `MMM-SmartCompliments` (`lib/compliments.js`,
+`~/.lumira/compliments.json`). PIN-geschützt, wirkt live ohne Neustart.
+Anleitung: [docs/SPRUECHE.md](../docs/SPRUECHE.md).
+
+| Endpunkt | Wirkung |
+|----------|---------|
+| `GET /api/compliments` | Listen, Schalter (`enabled`, `off`), eigene Kategorien (`own`), Stichwörter, Darstellung, Wechsel/Anlässe, Rückmeldung des Spiegels (`report`) |
+| `POST /api/compliments` | Teiländerung, z. B. `{ enabled: { versaut: true } }` oder `{ categories: { raetsel: [{ q, a }] } }` |
+| `GET /api/compliments/export` | Sicherung als Datei |
+| `POST /api/compliments/import` | Sicherung einspielen (ersetzt alles, gleiche Prüfung) |
+
 ## Wetter-API
 
 Wetteranzeige, Regenradar und Warnungen (`lib/weather.js`, Modul

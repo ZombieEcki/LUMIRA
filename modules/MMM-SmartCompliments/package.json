@@ -1,7 +1,7 @@
 {
   "name": "mmm-smartcompliments",
-  "version": "1.1.0",
-  "description": "MagicMirror² – intelligenter Familienassistent: zeigt kontextabhängig genau eine Botschaft (Uhrzeit, Wetter, Kalender, Geburtstage, Feuerwehrstatus …), mit manuellem Ein-/Aus-Schalter.",
+  "version": "1.2.0",
+  "description": "MagicMirror² – intelligenter Familienassistent: zeigt kontextabhängig genau eine Botschaft (Uhrzeit, Wetter, amtliche Warnungen, Kalender, Geburtstage, Feuerwehrstatus …) aus über 30 Kategorien, frei platzierbar, mit manuellem Ein-/Aus-Schalter.",
   "main": "MMM-SmartCompliments.js",
   "keywords": [
     "MagicMirror",
