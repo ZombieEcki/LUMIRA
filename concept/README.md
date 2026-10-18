@@ -11,6 +11,8 @@ sind. Aktueller Umsetzungsstand jeweils in [CHECKLIST.md](../CHECKLIST.md).
 | [design-system.md](design-system.md) | Design-System 2.0: Marke, Tokens, Komponenten, neue Navigation und echte Handy-Version |
 | [familienplan.md](familienplan.md) | Familienplan: Wochendienste mit fairer automatischer Rotation (neues Modul `MMM-FamilyPlan`), gepflegt im Portal |
 | [app.md](app.md) | LUMIRA als App: Web-App auf dem Startbildschirm (umgesetzt), Ideen für Android/iOS/PC-Apps, HTTPS im Heimnetz, Zugriff von unterwegs |
+| [portal-neuordnung.md](portal-neuordnung.md) | Portal neu ordnen: Bereiche Start · Bildschirm · Familienplan/Extras · Alarm · Einstellungen, Übersicht mit Ziehen, eine Speicherart |
+| [benutzerkonten.md](benutzerkonten.md) | Eigenes Konto je Familienmitglied: Erwachsene verwalten, Kinder sehen den Familienplan und haken ihre Dienste ab |
 
 Neue Ideen kommen als eigene Markdown-Datei hierher, sobald sie über eine
 kurze Notiz hinaus konkret genug sind, um sie auszuformulieren.
