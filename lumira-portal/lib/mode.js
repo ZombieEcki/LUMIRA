@@ -8,6 +8,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 const { LUMIRA_HOME } = require("./settings");
 
@@ -47,7 +48,7 @@ function set(mode, extra) {
 	fs.mkdirSync(path.dirname(MODE_PATH), { recursive: true });
 	const tmp = `${MODE_PATH}.tmp`;
 	fs.writeFileSync(tmp, JSON.stringify(next, null, 2) + "\n", "utf8");
-	fs.renameSync(tmp, MODE_PATH);
+	renameRetry(tmp, MODE_PATH);
 	return next;
 }
 

@@ -12,6 +12,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 const net = require("net");
 const dns = require("dns");
@@ -145,7 +146,7 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 		fs.mkdirSync(home, { recursive: true });
 		const tmp = authPath + ".tmp";
 		fs.writeFileSync(tmp, JSON.stringify(a), { mode: 0o600 });
-		fs.renameSync(tmp, authPath);
+		renameRetry(tmp, authPath);
 		try { fs.chmodSync(authPath, 0o600); } catch (e) { /* Windows */ }
 	}
 

@@ -11,6 +11,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 const crypto = require("crypto");
 const { execFile } = require("child_process");
@@ -160,7 +161,7 @@ function createDoorbell({ home, liveDir, ring = null, now = () => new Date(), ti
 		st.updatedAt = now().toISOString();
 		const tmp = statePath + ".tmp";
 		fs.writeFileSync(tmp, JSON.stringify(st, null, 2));
-		fs.renameSync(tmp, statePath);
+		renameRetry(tmp, statePath);
 		return st;
 	}
 

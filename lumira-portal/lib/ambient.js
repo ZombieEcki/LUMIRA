@@ -7,6 +7,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 const crypto = require("crypto");
 const { execFile } = require("child_process");
@@ -187,7 +188,7 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 		st.updatedAt = now().toISOString();
 		const tmp = statePath + ".tmp";
 		fs.writeFileSync(tmp, JSON.stringify(st, null, 2));
-		fs.renameSync(tmp, statePath);
+		renameRetry(tmp, statePath);
 		return st;
 	}
 
@@ -278,7 +279,7 @@ function createAmbient({ home, now = () => new Date() } = {}) {
 			const id = "md_" + crypto.randomBytes(4).toString("hex");
 			const file = id + "." + kind.ext;
 			fs.mkdirSync(mediaDir, { recursive: true });
-			fs.renameSync(tmpPath, path.join(mediaDir, file));
+			renameRetry(tmpPath, path.join(mediaDir, file));
 			const entry = {
 				id, file, type: kind.type, mime: kind.mime,
 				name: cleanName(name || originalName, kind.type === "video" ? "Video" : "Bild"),

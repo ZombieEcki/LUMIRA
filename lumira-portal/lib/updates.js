@@ -23,6 +23,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 const { execFile, spawn } = require("child_process");
 const electronFix = require("./electron-fix");
@@ -138,7 +139,7 @@ function createUpdater(opts) {
 			fs.mkdirSync(path.dirname(statePath), { recursive: true });
 			const tmp = `${statePath}.tmp`;
 			fs.writeFileSync(tmp, JSON.stringify(state, null, 2) + "\n", "utf8");
-			fs.renameSync(tmp, statePath);
+			renameRetry(tmp, statePath);
 		} catch (err) {
 			console.error("[lumira-portal] updates.json konnte nicht geschrieben werden:", err.message);
 		}

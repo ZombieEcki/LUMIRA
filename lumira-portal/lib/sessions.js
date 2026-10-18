@@ -8,6 +8,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 const crypto = require("crypto");
 
@@ -44,7 +45,7 @@ function createSessionStore({ filePath, now = () => Date.now() } = {}) {
 			fs.mkdirSync(path.dirname(filePath), { recursive: true });
 			const tmp = filePath + ".tmp";
 			fs.writeFileSync(tmp, JSON.stringify({ sessions: list }, null, 2), { mode: 0o600 });
-			fs.renameSync(tmp, filePath);
+			renameRetry(tmp, filePath);
 		} catch (e) {
 			console.error("[LUMIRA Portal] Sitzungen konnten nicht gespeichert werden:", e.message);
 		}

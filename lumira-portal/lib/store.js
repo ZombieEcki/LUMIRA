@@ -9,6 +9,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 
 function createJsonStore({ filePath, backupDir, backupPrefix, maxBackups = 15 }) {
@@ -55,7 +56,7 @@ function createJsonStore({ filePath, backupDir, backupPrefix, maxBackups = 15 })
 		backupExisting();
 		const tmp = `${filePath}.tmp`;
 		fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf8");
-		fs.renameSync(tmp, filePath);
+		renameRetry(tmp, filePath);
 		return data;
 	}
 

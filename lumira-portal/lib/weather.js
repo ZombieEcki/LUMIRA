@@ -14,6 +14,7 @@
 "use strict";
 
 const fs = require("fs");
+const { renameRetry } = require("./atomic");
 const path = require("path");
 const shared = require("./weather-shared");
 
@@ -93,7 +94,7 @@ function createWeather({ home, now = () => new Date(), fetchImpl = (...a) => fet
 		const out = Object.assign({ version: 1, updatedAt: now().toISOString() }, cfg);
 		const tmp = statePath + ".tmp";
 		fs.writeFileSync(tmp, JSON.stringify(out, null, 2));
-		fs.renameSync(tmp, statePath);
+		renameRetry(tmp, statePath);
 		return cfg;
 	}
 
