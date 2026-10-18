@@ -1,5 +1,5 @@
 /* MMM-SmartCompliments – Aussehen eines Spruchs. Auf dem Spiegel und in der
- * Portal-Vorschau (public/spruch/view.css, gleicher Inhalt).
+ * Portal-Vorschau (public/spruch/spruch-view.css, gleicher Inhalt).
  * Grundgröße --sc-base (Spiegel: 2vw, hochkant 5vw), dazu der Faktor aus dem
  * Portal (--sc-scale) und ggf. die automatische Verkleinerung (--sc-fit). */
 

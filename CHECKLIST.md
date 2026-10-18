@@ -228,7 +228,7 @@ um den aktuellen Stand zu sehen.
 - [x] Aktuelles Wetter + Vorhersage von Open-Meteo (Modelle u. a. des DWD, ohne Schlüssel),
       Abruf im node_helper alle 10–60 min, letzter Stand in `~/.lumira/weather-data.json`;
       alter Stand bleibt mit „veraltet“, fehlende Werte werden weggelassen
-- [x] 12 Designs aus einem Baukasten (`view.js`/`view.css`, auch im Portal für die
+- [x] 12 Designs aus einem Baukasten (`weather-view.js`/`weather-view.css`, auch im Portal für die
       Vorschau); farbige Meteocons (statisch, MIT); „Modern mit Hintergrund“ mit 9 eigenen
       Landschaftsbildern je nach Wetter und Tageszeit
 - [x] Position (9 Felder), Abstände in px oder %, Breite, Höhe höchstens (Schrift
@@ -240,7 +240,7 @@ um den aktuellen Stand zu sehen.
       Spiegel → Module abschalten
 
 ### Familie: Sprüche (MMM-SmartCompliments 1.2)
-- [x] Katalog (`catalog.js`, auch im Portal): bisherige Kategorien + 20 neue mit je 12
+- [x] Katalog (`spruch-catalog.js`, auch im Portal): bisherige Kategorien + 20 neue mit je 12
       Sprüchen, Flachwitze und Versaut/Zweideutig leer (Versaut ab Werk aus);
       Montagsmotivation nur Mo, Wochenendmodus nur Sa/So, Feuerwehr nur Feuerwehr-Ausgabe;
       Dubletten der Vorlage bereinigt
@@ -256,6 +256,9 @@ um den aktuellen Stand zu sehen.
 - [x] Übergabe 13.10.2026 1:1: +86 Sprüche für Tageszeit, Herzlich, Motivierend, Humorvoll und
       Nach dem Einsatz, Versaut/Zweideutig (40), Flachwitze (50); „Nach dem Einsatz“ per
       Schalter auch im normalen Mix; mindestens eine allgemeine Kategorie bleibt an
+- [x] CSV-Import (Excel) mit Vorschau: Kategorie/Spruch/Lösung/Aktiv, Trennzeichen und
+      Zeichensatz automatisch, hinzufügen oder ersetzen, unbekannte Kategorien als eigene,
+      Fehler je Zeile; Beispieldatei und alle Sprüche als CSV zum Herunterladen
 - [ ] Auf dem Pi 3 nach dem MagicMirror-Fix prüfen (Emojis, Überblenden bei freier Position)
 
 ### Spiegel: Türklingel (Ring, MMM-Doorbell)

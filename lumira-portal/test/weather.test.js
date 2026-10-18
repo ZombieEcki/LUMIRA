@@ -1,5 +1,5 @@
 // Regenradar & Warnungen: Einstellungen (lib/weather.js), Aufbereitung
-// (MMM-LumiraWeather/payload.js), Kartenausschnitt (geo.js)
+// (MMM-LumiraWeather/payload.js), Kartenausschnitt (weather-geo.js)
 "use strict";
 
 const test = require("node:test");
@@ -12,8 +12,8 @@ const HOME = fs.mkdtempSync(path.join(os.tmpdir(), "lumira-weather-test-"));
 process.env.LUMIRA_HOME = HOME;
 const weatherLib = require("../lib/weather");
 const payload = require("../../modules/MMM-LumiraWeather/payload");
-const geo = require("../../modules/MMM-LumiraWeather/geo");
-const view = require("../../modules/MMM-LumiraWeather/view");
+const geo = require("../../modules/MMM-LumiraWeather/weather-geo");
+const view = require("../../modules/MMM-LumiraWeather/weather-view");
 const MOD = path.join(__dirname, "..", "..", "modules", "MMM-LumiraWeather");
 const settingsLib = require("../lib/settings");
 const { buildModules } = require("../lib/generate-config");
@@ -26,9 +26,9 @@ test("Portal und Spiegel nutzen dieselbe Aufbereitung und dieselbe Kartenrechnun
 	const mod = read(path.join(__dirname, "..", "..", "modules", "MMM-LumiraWeather", "payload.js")).split("\n").slice(2).join("\n");
 	const copy = read(path.join(__dirname, "..", "lib", "weather-shared.js")).split("\n").slice(2).join("\n");
 	assert.equal(copy, mod, "lib/weather-shared.js = modules/MMM-LumiraWeather/payload.js (ohne Kopfzeilen)");
-	assert.equal(read(path.join(__dirname, "..", "public", "weather-geo.js")), read(path.join(__dirname, "..", "..", "modules", "MMM-LumiraWeather", "geo.js")));
-	assert.equal(read(path.join(__dirname, "..", "public", "weather-view.js")), read(path.join(MOD, "view.js")), "public/weather-view.js = view.js");
-	assert.equal(read(path.join(__dirname, "..", "public", "weather-view.css")), read(path.join(MOD, "view.css")), "public/weather-view.css = view.css");
+	assert.equal(read(path.join(__dirname, "..", "public", "weather-geo.js")), read(path.join(__dirname, "..", "..", "modules", "MMM-LumiraWeather", "weather-geo.js")));
+	assert.equal(read(path.join(__dirname, "..", "public", "weather-view.js")), read(path.join(MOD, "weather-view.js")), "public/weather-view.js = weather-view.js");
+	assert.equal(read(path.join(__dirname, "..", "public", "weather-view.css")), read(path.join(MOD, "weather-view.css")), "public/weather-view.css = weather-view.css");
 });
 
 test("Wetteranzeige: Designs, Werte und Symbole passen zusammen", () => {

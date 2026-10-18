@@ -15,9 +15,9 @@
  *   - Anlässe in einstellbarer Reihenfolge (amtliche Wetterwarnung vom DWD,
  *     Kalendertermin mit Stichwort, Wetterlage) – im eingestellten Anteil.
  *   - Sonst der Mix: Tageszeit, Wochentag, Jahreszeit, Kalender, Erinnerungen,
- *     Countdowns und alle eingeschalteten Kategorien (catalog.js).
+ *     Countdowns und alle eingeschalteten Kategorien (spruch-catalog.js).
  *   - Zuletzt gezeigte Sprüche werden nicht wiederholt.
- * Die Auswahl selbst steht in logic.js (auch im Portal und in den Tests).
+ * Die Auswahl selbst steht in spruch-logic.js (auch im Portal und in den Tests).
  *
  * Sprüche, Kategorien, Anlässe und Darstellung kommen live aus
  * ~/.lumira/compliments.json (LUMIRA-Portal → Familie → Sprüche).
@@ -83,7 +83,7 @@ Module.register("MMM-SmartCompliments", {
 		frostTemp: 0,                // ab/unter dieser °C
 		stormWindKmh: 50,            // ab dieser km/h
 
-		// Die Listen der Kategorien (Tageszeit, Herzlich … ) stehen in catalog.js.
+		// Die Listen der Kategorien (Tageszeit, Herzlich … ) stehen in spruch-catalog.js.
 		// Wer ohne LUMIRA-Portal arbeitet, kann sie hier weiter überschreiben
 		// (morningMessages, familyMessages, humorMessages … wie bisher).
 		weekdayMessages: {
@@ -165,11 +165,11 @@ Module.register("MMM-SmartCompliments", {
 	panel: null,            // frei platzierte Anzeige (position: fixed)
 
 	getStyles: function () {
-		return ["MMM-SmartCompliments.css", "view.css"];
+		return ["MMM-SmartCompliments.css", "spruch-view.css"];
 	},
 
 	getScripts: function () {
-		return ["catalog.js", "logic.js"];
+		return ["spruch-catalog.js", "spruch-logic.js"];
 	},
 
 	start: function () {
@@ -188,7 +188,7 @@ Module.register("MMM-SmartCompliments", {
 		window.addEventListener("resize", () => this.paint(false));
 	},
 
-	// Erst nach dem Laden von catalog.js/logic.js loslegen
+	// Erst nach dem Laden von spruch-catalog.js/spruch-logic.js loslegen
 	notificationReceived: function (notification, payload, sender) {
 		if (notification === "MODULE_DOM_CREATED") {
 			if (!this.settings) this.settings = window.LumiraSpruchLogic.cleanSettings(null);
@@ -384,7 +384,7 @@ Module.register("MMM-SmartCompliments", {
 
 	msg: function (text) { return text ? { text: text, id: text, icon: "" } : null; },
 
-	// Listen: Portal (compliments.json) > config.js > eingebaut (catalog.js)
+	// Listen: Portal (compliments.json) > config.js > eingebaut (spruch-catalog.js)
 	effectiveLists: function () {
 		const out = {};
 		window.LumiraSpruchCatalog.CATEGORIES.forEach((c) => {

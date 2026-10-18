@@ -21,10 +21,10 @@ Anleitung, Designs, Datenquellen und Fehlerbehebung: [docs/WETTER.md](../../docs
 - `payload.js` – Bereinigung der Einstellungen, Radar-Zeitpunkte,
   Aufbereitung der Warnungen und der Wetterdaten (als
   `lumira-portal/lib/weather-shared.js` auch im Portal, Test prüft Gleichheit).
-- `view.js` / `view.css` – die 12 Designs der Wetteranzeige aus gemeinsamen
+- `weather-view.js` / `weather-view.css` – die 12 Designs der Wetteranzeige aus gemeinsamen
   Bausteinen; dieselben Dateien zeichnen im Portal die Vorschau
   (`public/weather-view.*`, Test prüft Gleichheit).
-- `geo.js` – Kartenausschnitt in Web-Mercator: BBOX für die WMS-Bilder und
+- `weather-geo.js` – Kartenausschnitt in Web-Mercator: BBOX für die WMS-Bilder und
   OpenStreetMap-Kacheln aus derselben Rechnung (auch im Portal als
   `public/weather-geo.js` für die km-Angabe).
 - `icons/` – Meteocons von Bas Milius (statisch, MIT, siehe `icons/LICENSE`).

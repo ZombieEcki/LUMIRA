@@ -1,8 +1,8 @@
 /* MMM-SmartCompliments – Auswahl und Darstellung (ohne MagicMirror testbar).
  *
  * Läuft im Browser (window.LumiraSpruchLogic) – auf dem Spiegel und im Portal
- * (public/spruch-logic.js, gleicher Inhalt) – und in Node (Tests, Prüfung der
- * Einstellungen im Portal). Braucht den Katalog (catalog.js).
+ * (public/spruch/spruch-logic.js, gleicher Inhalt) – und in Node (Tests, Prüfung der
+ * Einstellungen im Portal). Braucht den Katalog (spruch-catalog.js).
  *
  * Auswahl je Wechsel:
  *  1. Anlässe in der eingestellten Reihenfolge (Wetterwarnung, Kalender,
@@ -16,7 +16,7 @@
 (function (root) {
 	"use strict";
 
-	var Catalog = typeof module !== "undefined" && module.exports ? require("./catalog") : root.LumiraSpruchCatalog;
+	var Catalog = typeof module !== "undefined" && module.exports ? require("./spruch-catalog") : root.LumiraSpruchCatalog;
 
 	var ANCHORS = ["auto", "top_left", "top_center", "top_right", "middle_left", "middle_center", "middle_right", "bottom_left", "bottom_center", "bottom_right"];
 	var ICON_MODES = ["below", "inline", "off"];

@@ -132,6 +132,8 @@ Anleitung: [docs/SPRUECHE.md](../docs/SPRUECHE.md).
 | `POST /api/compliments` | Teiländerung, z. B. `{ enabled: { versaut: true } }` oder `{ categories: { raetsel: [{ q, a }] } }` |
 | `GET /api/compliments/export` | Sicherung als Datei |
 | `POST /api/compliments/import` | Sicherung einspielen (ersetzt alles, gleiche Prüfung) |
+| `GET /api/compliments/csv` | alle wirksamen Sprüche als CSV (Kategorie;Spruch;Lösung;Aktiv, UTF-8 mit BOM) |
+| `POST /api/compliments/csv` | CSV einlesen: `{ text, mode: "add" \| "replace", createOwn, dryRun }` → Vorschau (`summary`, `warnings` mit Zeile, `fatal`) bzw. übernommen (`applied`, `data`); Logik in `lib/compliments-csv.js` |
 
 ## Wetter-API
 

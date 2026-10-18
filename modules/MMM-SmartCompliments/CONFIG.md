@@ -66,7 +66,7 @@ Läuft das Modul im LUMIRA-Setup, kommen aus `~/.lumira/compliments.json`
 (vom Portal gepflegt): eigene Listen je Kategorie, Kategorien an/aus,
 einzelne Sprüche aus, eigene Kategorien, Kalender-Stichwörter, Anlässe,
 Wechsel und Darstellung. Nur nicht-leere Listen überschreiben die eingebauten
-Sprüche (`catalog.js`); das Modul lädt Änderungen live nach (kein
+Sprüche (`spruch-catalog.js`); das Modul lädt Änderungen live nach (kein
 MagicMirror-Neustart nötig). Alles Weitere: [docs/SPRUECHE.md](../../docs/SPRUECHE.md).
 
 ### Manueller Ein-/Aus-Schalter
@@ -141,7 +141,7 @@ config: {
 Überschreibbare Gruppen:
 `morningMessages`, `forenoonMessages`, `afternoonMessages`, `eveningMessages`,
 `nightMessages`, `familyMessages`, `motivationMessages`, `humorMessages`,
-`afterDutyMessages` und jede weitere Liste aus `catalog.js` (z. B.
+`afterDutyMessages` und jede weitere Liste aus `spruch-catalog.js` (z. B.
 `familienwahnsinn`, `wetter_regen`), `weekdayMessages` (Objekt 0–6,
 0 = Sonntag), `seasonMessages` (`spring`/`summer`/`autumn`/`winter`),
 `holidayMessages` (Objekt „MM-TT"). Listen aus dem Portal haben Vorrang.

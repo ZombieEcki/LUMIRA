@@ -2,7 +2,7 @@
  * Sprüchen.
  *
  * Läuft im Browser (window.LumiraSpruchCatalog) – auf dem Spiegel und im
- * Portal (public/spruch-catalog.js, der Test prüft Gleichheit) – und in Node
+ * Portal (public/spruch/spruch-catalog.js, der Test prüft Gleichheit) – und in Node
  * (require: Portal-Prüfung, Tests).
  *
  * Felder je Kategorie:

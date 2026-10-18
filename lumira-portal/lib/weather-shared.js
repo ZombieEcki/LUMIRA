@@ -54,7 +54,7 @@ const DEFAULTS = {
 	}
 };
 
-// Muss zu view.js (DESIGNS, FIELDS) passen – der Test prüft das
+// Muss zu weather-view.js (DESIGNS, FIELDS) passen – der Test prüft das
 const DESIGN_IDS = ["classic", "compact", "card", "vertical", "minimal", "detailed", "bar", "circle", "photo", "large", "icons", "elegant"];
 const WIND_UNITS = ["kmh", "ms", "bft"];
 const INTERVALS = [10, 15, 30, 60];

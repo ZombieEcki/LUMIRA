@@ -2,8 +2,8 @@
 // Kategorien an/aus, Sprüche bearbeiten, eigene Kategorien, Anlässe,
 // Darstellung, Sicherung. Alles landet in ~/.lumira/compliments.json
 // (lib/compliments.js) und wirkt live auf dem Spiegel (MMM-SmartCompliments).
-// Kategorien, Auswahl und Darstellung kommen aus spruch/catalog.js und
-// spruch/logic.js – denselben Dateien wie auf dem Spiegel.
+// Kategorien, Auswahl und Darstellung kommen aus spruch/spruch-catalog.js und
+// spruch/spruch-logic.js – denselben Dateien wie auf dem Spiegel.
 // Vanilla-JS, Texte nur per textContent.
 (function () {
   "use strict";
@@ -526,6 +526,98 @@
   }
 
   // ---------------------------------------------------------------------
+  // CSV-Import: Datei lesen (UTF-8, sonst Windows-Zeichensatz wie bei
+  // älteren Excel-Versionen), Vorschau vom Server, dann übernehmen
+  // ---------------------------------------------------------------------
+  var csv = null; // { name, text }
+
+  function decodeFile(file) {
+    return file.arrayBuffer().then(function (buf) {
+      try { return new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+      catch (e) { return new TextDecoder("windows-1252").decode(buf); }
+    });
+  }
+
+  function csvRequest(dryRun) {
+    return api("POST", {
+      text: csv.text,
+      mode: $("#sp-csv-mode").value,
+      createOwn: $("#sp-csv-own").getAttribute("aria-checked") === "true",
+      dryRun: dryRun
+    }, "/csv");
+  }
+
+  function csvPreview() {
+    if (!csv) return;
+    $("#sp-csv-apply").disabled = true;
+    csvRequest(true).then(renderCsv).catch(function (err) {
+      $("#sp-csv-sum").textContent = "";
+      $("#sp-csv-warn").innerHTML = "";
+      $("#sp-csv-warn").appendChild(el("div", "setup-banner", "⚠ " + err.message));
+    });
+  }
+
+  function renderCsv(r) {
+    var added = r.summary.reduce(function (n, s) { return n + s.added; }, 0);
+    var dup = r.summary.reduce(function (n, s) { return n + s.dup; }, 0);
+    $("#sp-csv-title").textContent = "Vorschau: " + csv.name + " – " + r.rows + " Zeilen, Trennzeichen „" + r.delimiter + "“";
+    var sum = $("#sp-csv-sum");
+    sum.innerHTML = "";
+    var tbl = el("table", "sp-csv-tbl");
+    var hr = el("tr");
+    ["Kategorie", "neu", "schon da", "danach"].forEach(function (h) { hr.appendChild(el("th", null, h)); });
+    tbl.appendChild(hr);
+    r.summary.forEach(function (s) {
+      var tr = el("tr");
+      var td = el("td", null, s.label);
+      if (s.created) td.appendChild(el("span", "sp-csv-new", "neu angelegt"));
+      if (s.off) td.appendChild(el("small", null, " · " + s.off + " aus"));
+      tr.appendChild(td);
+      tr.appendChild(el("td", null, String(s.added)));
+      tr.appendChild(el("td", null, String(s.dup)));
+      tr.appendChild(el("td", null, String(s.total)));
+      tbl.appendChild(tr);
+    });
+    sum.appendChild(tbl);
+    var warn = $("#sp-csv-warn");
+    warn.innerHTML = "";
+    r.fatal.forEach(function (t) { warn.appendChild(el("div", "setup-banner", "⚠ " + t)); });
+    if (r.warningCount) {
+      var d = el("details", "sp-csv-w");
+      d.appendChild(el("summary", null, r.warningCount + (r.warningCount === 1 ? " Zeile wird" : " Zeilen werden") + " übersprungen"));
+      var ul = el("ul");
+      r.warnings.slice(0, 50).forEach(function (w) { ul.appendChild(el("li", null, "Zeile " + w.line + ": " + w.message)); });
+      if (r.warningCount > 50) ul.appendChild(el("li", null, "… und " + (r.warningCount - 50) + " weitere"));
+      d.appendChild(ul);
+      warn.appendChild(d);
+    }
+    var ok = !r.fatal.length && (added > 0 || $("#sp-csv-mode").value === "replace");
+    $("#sp-csv-apply").disabled = !ok;
+    $("#sp-csv-apply").textContent = added ? added + (added === 1 ? " Spruch importieren" : " Sprüche importieren") : "Importieren";
+    if (!r.fatal.length && !added && dup) warn.appendChild(el("p", "save-hint", "Alle Sprüche der Datei sind schon vorhanden."));
+  }
+
+  function csvApply() {
+    if (!csv) return;
+    $("#sp-csv-apply").disabled = true;
+    csvRequest(false).then(function (r) {
+      if (!r.applied) { renderCsv(r); return; }
+      var added = r.summary.reduce(function (n, s) { return n + s.added; }, 0);
+      C = r.data;
+      closeEditor();
+      renderAll(true);
+      csvClose();
+      ctx.toast(added + (added === 1 ? " Spruch importiert" : " Sprüche importiert"));
+      shotSoon();
+    }).catch(function (err) { ctx.toast(err.message); $("#sp-csv-apply").disabled = false; });
+  }
+
+  function csvClose() {
+    csv = null;
+    $("#sp-csv").hidden = true;
+  }
+
+  // ---------------------------------------------------------------------
   // Verdrahtung
   // ---------------------------------------------------------------------
   function wire() {
@@ -615,6 +707,26 @@
       }).then(function (d) { C = d; closeEditor(); renderAll(true); ctx.toast("Sicherung eingespielt"); })
         .catch(function (err) { ctx.toast(err.message); });
     });
+    $("#sp-csv-file").addEventListener("change", function () {
+      var f = this.files && this.files[0];
+      this.value = "";
+      if (!f) return;
+      if (f.size > 200000) { ctx.toast("Die Datei ist zu groß (höchstens 200 KB)."); return; }
+      decodeFile(f).then(function (text) {
+        csv = { name: f.name, text: text };
+        $("#sp-csv").hidden = false;
+        csvPreview();
+        $("#sp-csv").scrollIntoView({ behavior: "smooth", block: "center" });
+      }).catch(function () { ctx.toast("Die Datei ließ sich nicht lesen."); });
+    });
+    $("#sp-csv-mode").addEventListener("change", csvPreview);
+    $("#sp-csv-own").addEventListener("click", function () {
+      var b = $("#sp-csv-own");
+      setSw(b, b.getAttribute("aria-checked") !== "true");
+      csvPreview();
+    });
+    $("#sp-csv-apply").addEventListener("click", csvApply);
+    $("#sp-csv-cancel").addEventListener("click", csvClose);
     document.addEventListener("visibilitychange", function () { if (shotActive()) shot(); });
     window.addEventListener("resize", function () { if (C && ctx.currentPage() === "spruche") renderPreview(); });
   }

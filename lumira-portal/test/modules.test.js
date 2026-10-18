@@ -64,3 +64,30 @@ test("Familienplan-Größe: 60–200 %, landet in der config.js", () => {
 	const fp = buildModules(s).find((m) => m.module === "MMM-FamilyPlan");
 	assert.equal(fp.config.scale, 130);
 });
+
+// MagicMirror lädt Skripte und Styles nur einmal je Dateiname – auch wenn sie
+// aus verschiedenen Modulen kommen. Gleiche Namen (z. B. zweimal „view.css“)
+// heißen: das zweite Modul bekommt seine Datei nie.
+test("eigene Module: Skript- und Style-Dateinamen sind über alle Module eindeutig", () => {
+	const fs = require("fs");
+	const path = require("path");
+	const dir = path.join(__dirname, "..", "..", "modules");
+	const seen = {};
+	fs.readdirSync(dir).filter((m) => /^MMM-/.test(m)).forEach((m) => {
+		const file = path.join(dir, m, m + ".js");
+		if (!fs.existsSync(file)) return;
+		const src = fs.readFileSync(file, "utf8");
+		[/getStyles:\s*function\s*\(\)\s*\{([\s\S]*?)\}/, /getScripts:\s*function\s*\(\)\s*\{([\s\S]*?)\}/].forEach((re) => {
+			const body = re.exec(src);
+			if (!body) return;
+			(body[1].match(/"([^"]+\.(?:js|css))"/g) || []).forEach((q) => {
+				const name = q.slice(1, -1).toLowerCase();
+				if (/^https?:|^\//.test(name)) return;
+				assert.ok(!seen[name], name + " gibt es in " + seen[name] + " und " + m);
+				seen[name] = m;
+				assert.ok(fs.existsSync(path.join(dir, m, q.slice(1, -1))), m + ": " + q + " fehlt");
+			});
+		});
+	});
+	assert.ok(seen["weather-view.css"] && seen["spruch-view.css"]);
+});

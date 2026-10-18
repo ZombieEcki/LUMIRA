@@ -1,0 +1,18 @@
+﻿Kategorie;Spruch;Lösung;Aktiv
+# LUMIRA – Beispiel für den CSV-Import der Sprüche (Familie → Sprüche → CSV importieren).
+# Zeilen mit # am Anfang werden übersprungen. Spalte Kategorie: Name wie im Portal oder eigener Name.
+# Unbekannte Namen werden (wenn gewünscht) als eigene Kategorie angelegt. Excel: als „CSV UTF-8“ speichern.
+# Lösung nur bei „Denk mal nach“. Aktiv: leer oder ja = an, nein = Spruch ausgeschaltet. \n im Text = neue Zeile.
+Herzlich;Schön, dass wir heute zusammen frühstücken. 🥐;;
+Motivierend;Ein kleiner Schritt heute ist ein großer Vorsprung morgen.;;
+Humorvoll;"Er sagte: ""Ich bin gleich fertig."" Das war vor einer Stunde.";;
+Morgens;Guten Morgen!\nHeute wird ein guter Tag. ☀️;;
+Abends;Feierabend – der Rest der Welt darf warten.;;
+Flachwitze;Was ist ein Keks unter einem Baum? Ein schattiges Plätzchen.;;
+Denk mal nach;Was hat einen Kopf und einen Fuß, aber keine Beine?;Ein Bett.;
+Wochenendmodus;Samstag: offiziell keine Pläne.;;
+Sport & Training;Heute {title} – viel Spaß und viel Erfolg!;;
+Regen;Regen? Perfekt für Kakao und ein Brettspiel. 🌧️;;
+Oma & Opa;Heute ist Oma-Tag! 👵;;
+Oma & Opa;Opa hat wieder das beste Rätsel des Tages.;;
+Oma & Opa;Dieser Spruch ist schon da, aber ausgeschaltet.;;nein

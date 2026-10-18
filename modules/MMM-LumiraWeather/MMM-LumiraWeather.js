@@ -8,7 +8,7 @@
  *    „+2 h“ (Vorhersage des DWD) und wieder von vorn.
  *  - Warnungen: die aktuellen DWD-Warnungen genau für den Standort.
  *  - Wetteranzeige: aktuelles Wetter und Vorhersage (Open-Meteo) in einem
- *    von 12 Designs (view.js / view.css), eigener Schalter.
+ *    von 12 Designs (weather-view.js / weather-view.css), eigener Schalter.
  *
  * Einstellungen kommen live aus dem LUMIRA-Portal (Spiegel → Radar &
  * Warnungen) über ~/.lumira/weather.json. Die Kacheln hängen direkt am
@@ -22,11 +22,11 @@ Module.register("MMM-LumiraWeather", {
 	defaults: {},
 
 	getStyles: function () {
-		return ["MMM-LumiraWeather.css", "view.css"];
+		return ["MMM-LumiraWeather.css", "weather-view.css"];
 	},
 
 	getScripts: function () {
-		return ["geo.js", "view.js"];
+		return ["weather-geo.js", "weather-view.js"];
 	},
 
 	start: function () {

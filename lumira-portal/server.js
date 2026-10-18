@@ -352,6 +352,36 @@ app.post("/api/compliments/import", requireAuth, (req, res) => {
 	complimentsAction(res, () => complimentsLib.importAll(req.body));
 });
 
+// CSV: Feuerwehr-Kategorien nur in der Feuerwehr-Ausgabe mit eingeschaltetem Alarm
+function complimentsFlags() {
+	const settings = settingsLib.load();
+	return { alarm: !!getEdition(settings.edition).hasAlarm && !(settings.modules && settings.modules.alarm === false) };
+}
+
+app.get("/api/compliments/csv", requireAuth, (req, res) => {
+	const stamp = new Date().toISOString().slice(0, 10);
+	res.setHeader("Content-Disposition", `attachment; filename="lumira-sprueche-${stamp}.csv"`);
+	res.type("text/csv; charset=utf-8").send(complimentsLib.exportCsv(complimentsFlags()));
+});
+
+// Body: { text, mode: "add" | "replace", createOwn, dryRun } → Vorschau bzw. übernommen
+app.post("/api/compliments/csv", requireAuth, (req, res) => {
+	try {
+		const b = req.body || {};
+		const result = complimentsLib.importCsv(String(b.text || ""), {
+			mode: b.mode === "replace" ? "replace" : "add",
+			createOwn: b.createOwn !== false,
+			dryRun: !!b.dryRun,
+			flags: complimentsFlags()
+		});
+		res.json(Object.assign(result, result.applied ? { data: complimentsView() } : {}));
+	} catch (err) {
+		const status = err instanceof complimentsLib.ValidationError ? 400 : 500;
+		if (status === 500) console.error("[lumira-portal] Sprüche-CSV:", err);
+		res.status(status).json({ error: status === 500 ? "Interner Fehler" : err.message });
+	}
+});
+
 // ---------------------------------------------------------------------------
 // Familienplan (familyplan.json) – siehe concept/familienplan.md.
 // Bewusst KEIN pm2-Neustart: MMM-FamilyPlan lädt die Datei per fs.watch live

@@ -13,7 +13,7 @@
 //   display         Position, Größe, Schrift, Symbol
 //   behavior        Wechsel, Wiederholung, Rätsel, Anlässe und Reihenfolge
 // Welche Kategorien es gibt, steht im Katalog des Moduls (public/spruch/
-// catalog.js = modules/MMM-SmartCompliments/catalog.js, Test prüft Gleichheit).
+// spruch-catalog.js = modules/MMM-SmartCompliments/spruch-catalog.js, Test prüft Gleichheit).
 //
 // Backup vor jedem Schreiben und atomarer .tmp+rename-Schreibvorgang kommen
 // aus dem gemeinsamen lib/store.js (wie bei settings.json/familyplan.json).
@@ -22,8 +22,9 @@
 const path = require("path");
 const settingsLib = require("./settings");
 const { createJsonStore } = require("./store");
-const Catalog = require("../public/spruch/catalog");
-const Logic = require("../public/spruch/logic");
+const Catalog = require("../public/spruch/spruch-catalog");
+const Logic = require("../public/spruch/spruch-logic");
+const Csv = require("./compliments-csv");
 
 const LUMIRA_HOME = settingsLib.LUMIRA_HOME;
 const COMPLIMENTS_PATH = process.env.LUMIRA_COMPLIMENTS_PATH || path.join(LUMIRA_HOME, "compliments.json");
@@ -316,6 +317,29 @@ function importAll(data) {
 	return save(next);
 }
 
+// CSV-Import (lib/compliments-csv.js): erst Vorschau (dryRun), dann übernehmen.
+// opts: { mode: "add" | "replace", createOwn, dryRun, flags: { alarm } }
+function importCsv(text, opts) {
+	opts = opts || {};
+	if (typeof text !== "string" || !text.trim()) throw new ValidationError("csv", "Die Datei ist leer");
+	if (text.length > 200000) throw new ValidationError("csv", "Die Datei ist zu groß (höchstens 200 KB, etwa 2000 Sprüche)");
+	let p;
+	try {
+		p = Csv.plan(text, load(), opts);
+	} catch (err) {
+		if (err instanceof Csv.CsvError) throw new ValidationError("csv", err.message);
+		throw err;
+	}
+	const preview = { summary: p.summary, warnings: p.warnings.slice(0, 200), warningCount: p.warnings.length, fatal: p.fatal, rows: p.rows, delimiter: p.delimiter };
+	if (opts.dryRun || p.fatal.length) return Object.assign(preview, { applied: false });
+	save(p.next);
+	return Object.assign(preview, { applied: true });
+}
+
+function exportCsv(flags) {
+	return Csv.exportCsv(load(), flags);
+}
+
 // Rückmeldung des Spiegels (MMM-SmartCompliments): aktueller Spruch, Überschneidungen
 function report() {
 	try {
@@ -341,6 +365,8 @@ module.exports = {
 	save,
 	patch,
 	importAll,
+	importCsv,
+	exportCsv,
 	report,
 	validate,
 	labelOf,

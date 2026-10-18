@@ -15,12 +15,12 @@ Bedienung und alle Einstellungen: [docs/SPRUECHE.md](../../docs/SPRUECHE.md)
 
 ## Aufbau
 
-- `catalog.js` – alle Kategorien mit den eingebauten Sprüchen (Tageszeit,
+- `spruch-catalog.js` – alle Kategorien mit den eingebauten Sprüchen (Tageszeit,
   Herzlich/Motivierend/Humorvoll, 20 weitere, Flachwitze und Versaut leer,
   Anlässe für Wetter, Warnung und Kalender, „Nach dem Einsatz“).
-- `logic.js` – Einstellungen bereinigen, Wetter/Warnungen/Kalender auswerten,
+- `spruch-logic.js` – Einstellungen bereinigen, Wetter/Warnungen/Kalender auswerten,
   Spruch auswählen, Spruch darstellen (Symbol, Rätsel-Lösung, Verkleinern).
-- `view.css` – Aussehen eines Spruchs.
+- `spruch-view.css` – Aussehen eines Spruchs.
 - Diese drei Dateien nutzt auch das Portal für Prüfung und Vorschau
   (`lumira-portal/public/spruch/`, Test prüft Gleichheit).
 - `node_helper.js` – liest `~/.lumira/compliments.json` live (fs.watch),

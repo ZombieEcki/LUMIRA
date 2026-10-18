@@ -20,7 +20,7 @@
 <script>try { var t = localStorage.getItem("lumira-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="weather-view.css">
-<link rel="stylesheet" href="spruch/view.css">
+<link rel="stylesheet" href="spruch/spruch-view.css">
 <!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
 <link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
 <link rel="stylesheet" href="vendor/fa/css/solid.min.css">
@@ -388,6 +388,34 @@
                 <option value="20">20 Sekunden</option><option value="30">30 Sekunden</option><option value="60">1 Minute</option></select></div>
           </div>
           <p class="save-hint" id="sp-riddle-note"></p>
+        </div>
+
+        <div class="card">
+          <h2>Sprüche aus Excel (CSV)</h2>
+          <p class="sub">Viele Sprüche auf einmal: eine Tabelle mit den Spalten <b>Kategorie</b>, <b>Spruch</b>, <b>Lösung</b> (nur für Rätsel)
+            und <b>Aktiv</b> (nein = ausgeschaltet). Vor dem Übernehmen gibt es eine Vorschau.</p>
+          <div class="btn-row">
+            <label class="btn" for="sp-csv-file">CSV importieren …</label>
+            <input type="file" id="sp-csv-file" accept=".csv,text/csv,text/plain" hidden>
+            <a class="btn ghost" href="spruch/sprueche-beispiel.csv" download="lumira-sprueche-beispiel.csv">Beispieldatei</a>
+            <a class="btn ghost" href="/api/compliments/csv" download>Alle Sprüche als CSV</a>
+          </div>
+          <div class="sp-csv" id="sp-csv" hidden>
+            <div class="wx-l-h" id="sp-csv-title">Vorschau</div>
+            <div class="grid2">
+              <div class="field"><label for="sp-csv-mode">Übernehmen als</label>
+                <select id="sp-csv-mode"><option value="add">hinzufügen (Vorhandenes bleibt, doppelte werden übersprungen)</option>
+                  <option value="replace">ersetzen (nur die Kategorien aus der Datei)</option></select></div>
+              <div class="toggle"><span class="tl2">Unbekannte Kategorien anlegen<small>als eigene Kategorie mit diesem Namen</small></span>
+                <button class="sw" id="sp-csv-own" role="switch" aria-checked="true" aria-label="Unbekannte Kategorien anlegen"></button></div>
+            </div>
+            <div class="sp-csv-sum" id="sp-csv-sum"></div>
+            <div id="sp-csv-warn"></div>
+            <div class="btn-row">
+              <button type="button" class="btn primary" id="sp-csv-apply">Importieren</button>
+              <button type="button" class="btn ghost" id="sp-csv-cancel">Abbrechen</button>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -1127,8 +1155,8 @@
 <script src="doorbell.js"></script>
 <script src="weather-geo.js"></script>
 <script src="weather-view.js"></script>
-<script src="spruch/catalog.js"></script>
-<script src="spruch/logic.js"></script>
+<script src="spruch/spruch-catalog.js"></script>
+<script src="spruch/spruch-logic.js"></script>
 <script src="spruche.js"></script>
 <script src="weather.js"></script>
 <script src="app.js"></script>

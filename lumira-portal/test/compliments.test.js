@@ -1,5 +1,5 @@
 // Sprüche: Katalog (Kategorien, eingebaute Sprüche), Auswahl-Logik
-// (MMM-SmartCompliments/logic.js) und compliments.json (lib/compliments.js)
+// (MMM-SmartCompliments/spruch-logic.js) und compliments.json (lib/compliments.js)
 "use strict";
 
 const test = require("node:test");
@@ -13,8 +13,8 @@ process.env.LUMIRA_HOME = HOME;
 process.env.LUMIRA_COMPLIMENTS_PATH = path.join(HOME, "compliments.json");
 const lib = require("../lib/compliments");
 const MOD = path.join(__dirname, "..", "..", "modules", "MMM-SmartCompliments");
-const Catalog = require(path.join(MOD, "catalog"));
-const L = require(path.join(MOD, "logic"));
+const Catalog = require(path.join(MOD, "spruch-catalog"));
+const L = require(path.join(MOD, "spruch-logic"));
 
 test.after(() => fs.rmSync(HOME, { recursive: true, force: true }));
 
@@ -24,7 +24,7 @@ const MONDAY = new Date(2026, 9, 19, 9, 0); // Montag, 19.10.2026
 const SATURDAY = new Date(2026, 9, 24, 9, 0);
 
 test("Portal und Spiegel nutzen denselben Katalog, dieselbe Logik und dasselbe Aussehen", () => {
-	for (const f of ["catalog.js", "logic.js", "view.css"]) {
+	for (const f of ["spruch-catalog.js", "spruch-logic.js", "spruch-view.css"]) {
 		assert.equal(read(path.join(__dirname, "..", "public", "spruch", f)), read(path.join(MOD, f)), "public/spruch/" + f);
 	}
 });
@@ -239,4 +239,88 @@ test("compliments.json: alte Datei (Version 1) bleibt gültig, Sicherung einspie
 	assert.equal(v.display.anchor, "top_left");
 	assert.throws(() => lib.importAll([1, 2]), /keine Sprüche-Sicherung/);
 	assert.throws(() => lib.importAll({ enabled: { foo: true } }), /Unbekannte Kategorie/);
+});
+
+// ---------------------------------------------------------------------------
+// CSV-Import (lib/compliments-csv.js)
+// ---------------------------------------------------------------------------
+const Csv = require("../lib/compliments-csv");
+
+test("CSV lesen: Trennzeichen, Anführungszeichen, Zeilenumbrüche, BOM, Kommentare", () => {
+	let p = Csv.parseCsv("\uFEFFKategorie;Spruch\r\n# Kommentar\r\nHerzlich;\"Er sagte: \"\"Hallo; du\"\"\"\r\n\r\nHumorvoll;\"Zwei\nZeilen\"\r\n");
+	assert.equal(p.delimiter, ";");
+	assert.deepEqual(p.rows.map((r) => r.cells), [["Kategorie", "Spruch"], ["Herzlich", "Er sagte: \"Hallo; du\""], ["Humorvoll", "Zwei\nZeilen"]]);
+	assert.deepEqual(p.rows.map((r) => r.line), [1, 3, 5], "Zeilennummern für Meldungen");
+	assert.equal(Csv.parseCsv("Kategorie,Spruch\nHerzlich,\"a, b\"").rows[1].cells[1], "a, b");
+	assert.equal(Csv.parseCsv("Kategorie\tSpruch\nHerzlich\tx").delimiter, "\t");
+});
+
+test("CSV-Import: Vorschau, hinzufügen ohne Dubletten, ersetzen, eigene Kategorien, Fehler je Zeile", () => {
+	fs.writeFileSync(process.env.LUMIRA_COMPLIMENTS_PATH, "{}");
+	const flags = { alarm: false };
+	const text = [
+		"Spruch;Kategorie;Aktiv",          // Spalten in anderer Reihenfolge
+		"Neuer Witz;Flachwitze;",
+		"Was sagt die Null zur Acht? Schicker Gürtel!;flachwitze;", // schon eingebaut
+		"Neuer Witz;Flachwitze;",          // doppelt in der Datei
+		"Hallo Oma;Oma & Opa;",
+		"Ausgeschaltet;Oma & Opa;nein",
+		"Ohne Lösung;Denk mal nach;",
+		"Teamgeist;Feuerwehr & Kameradschaft;", // nicht in dieser Ausgabe
+		";Herzlich;",                       // leer
+		"Versaut light;Versaut;"            // Anfang des Namens reicht
+	].join("\n");
+	let r = lib.importCsv(text, { dryRun: true, flags });
+	assert.equal(r.applied, false);
+	const by = {};
+	r.summary.forEach((s) => { by[s.label] = s; });
+	assert.equal(by.Flachwitze.added, 1);
+	assert.equal(by.Flachwitze.dup, 1);
+	assert.equal(by.Flachwitze.total, 51);
+	assert.equal(by["Oma & Opa"].created, true);
+	assert.equal(by["Oma & Opa"].off, 1);
+	assert.equal(by["Versaut/Zweideutig"].added, 1);
+	assert.deepEqual(r.warnings.map((w) => w.line), [4, 7, 8, 9]);
+	assert.match(r.warnings[1].message, /braucht eine Lösung/);
+	assert.match(r.warnings[2].message, /Feuerwehr-Ausgabe/);
+	assert.equal(lib.load().own.length, 0, "Vorschau ändert nichts");
+	r = lib.importCsv(text, { flags });
+	assert.equal(r.applied, true);
+	let v = lib.load();
+	assert.equal(v.categories.flachwitze.length, 51, "eingebaute + neue");
+	assert.equal(v.own[0].label, "Oma & Opa");
+	assert.deepEqual(v.off[v.own[0].key], ["Ausgeschaltet"]);
+	// ohne „Unbekannte anlegen“
+	r = lib.importCsv("Kategorie;Spruch\nGibtsNicht;x", { dryRun: true, createOwn: false, flags });
+	assert.match(r.warnings[0].message, /unbekannte Kategorie/);
+	assert.deepEqual(r.fatal, ["Keine gültige Zeile gefunden."]);
+	// ersetzen: nur die Kategorien aus der Datei
+	r = lib.importCsv("Kategorie;Spruch\nFlachwitze;Nur noch dieser", { mode: "replace", flags });
+	v = lib.load();
+	assert.deepEqual(v.categories.flachwitze, ["Nur noch dieser"]);
+	assert.equal(v.own[0].items.length, 2, "andere Kategorien unberührt");
+	// zu viele für eine Kategorie → nichts übernehmen
+	const many = ["Kategorie;Spruch"].concat(Array.from({ length: 201 }, (x, i) => "Humorvoll;Witz " + i)).join("\n");
+	r = lib.importCsv(many, { mode: "replace", flags });
+	assert.equal(r.applied, false);
+	assert.match(r.fatal[0], /höchstens 200/);
+	assert.throws(() => lib.importCsv("  ", { flags }), /leer/);
+});
+
+test("Beispieldatei lässt sich ohne Fehler einlesen; Ausgabe als CSV und zurück ändert nichts", () => {
+	fs.writeFileSync(process.env.LUMIRA_COMPLIMENTS_PATH, "{}");
+	const flags = { alarm: false };
+	const example = fs.readFileSync(path.join(__dirname, "..", "public", "spruch", "sprueche-beispiel.csv"), "utf8");
+	assert.ok(example.startsWith("\uFEFF"), "mit BOM für Excel");
+	let r = lib.importCsv(example, { dryRun: true, flags });
+	assert.deepEqual(r.fatal, []);
+	assert.deepEqual(r.warnings, []);
+	assert.ok(r.summary.some((s) => s.label === "Denk mal nach" && s.added === 1));
+	lib.importCsv(example, { flags });
+	const out = lib.exportCsv(flags);
+	assert.ok(out.startsWith("\uFEFFKategorie;Spruch;Lösung;Aktiv"));
+	assert.ok(!out.includes("Feuerwehr & Kameradschaft"), "Feuerwehr nur in der Feuerwehr-Ausgabe");
+	r = lib.importCsv(out, { dryRun: true, flags });
+	assert.deepEqual(r.fatal, []);
+	assert.equal(r.summary.reduce((n, s) => n + s.added, 0), 0, "alles schon vorhanden");
 });

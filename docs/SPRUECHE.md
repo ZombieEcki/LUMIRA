@@ -96,6 +96,46 @@ Bei einer Kategorie auf **Bearbeiten** klicken:
 
 Leere Liste = eingebaute Sprüche, wie bisher.
 
+### Viele Sprüche auf einmal: CSV aus Excel
+
+*Sprüche → Sprüche aus Excel (CSV)*:
+- **Beispieldatei** lädt eine fertige Vorlage
+  (`lumira-portal/public/spruch/sprueche-beispiel.csv`).
+- **Alle Sprüche als CSV** lädt den aktuellen Bestand im selben Format –
+  bearbeiten und wieder einspielen geht also auch.
+
+| Spalte | Inhalt |
+|---|---|
+| **Kategorie** | Name wie im Portal („Flachwitze“, „Denk mal nach“, „Sport & Training“, „Regen“ …) oder Schlüssel („flachwitze“, „raetsel“). Der Anfang des Namens reicht ab 5 Zeichen („Versaut“). Unbekannte Namen werden auf Wunsch als **eigene Kategorie** angelegt. |
+| **Spruch** | der Text; `\n` = neue Zeile; Platzhalter `{event}`/`{title}` wie oben |
+| **Lösung** | nur für „Denk mal nach“ – dort Pflicht |
+| **Aktiv** | leer oder „ja“ = an, „nein“/„aus“/„0“ = Spruch ausgeschaltet |
+
+- Die Kopfzeile ist optional. Mit Kopfzeile ist die Reihenfolge der Spalten egal.
+- Trennzeichen **Semikolon** (Excel in Deutschland), Komma oder Tab werden
+  erkannt. Felder in `"…"` dürfen Trennzeichen, Zeilenumbrüche und `""`
+  (= ein Anführungszeichen) enthalten. Zeilen mit `#` am Anfang werden
+  übersprungen.
+- Excel: *Speichern unter → CSV UTF-8 (durch Trennzeichen getrennt)*. Ältere
+  „CSV (Trennzeichen-getrennt)“-Dateien gehen auch, Umlaute werden erkannt.
+- Höchstens 200 KB (rund 2000 Sprüche) je Datei und 200 Sprüche je Kategorie.
+
+**Ablauf:**
+1. Datei wählen. Das Portal zeigt eine **Vorschau**: je Kategorie neu,
+   schon vorhanden und Anzahl danach. Übersprungene Zeilen stehen mit
+   Zeilennummer und Grund darunter, z. B. „braucht eine Lösung“, „unbekannte
+   Kategorie“ oder „gibt es nur in der Feuerwehr-Ausgabe“.
+2. **Übernehmen als**:
+   - *hinzufügen* (Standard): Vorhandenes bleibt, doppelte Sprüche werden
+     übersprungen.
+   - *ersetzen*: Die Kategorien aus der Datei bekommen genau deren Sprüche,
+     alle anderen bleiben unberührt.
+3. **Importieren**. Wie jede Änderung wirkt das sofort, und der alte Stand
+   liegt als automatische Sicherung bereit (Abschnitt 8).
+
+Bei eingebauten Kategorien wird beim Hinzufügen aus „eingebaut + neu“ eine
+eigene Liste. „Auf Standard zurücksetzen“ macht das rückgängig.
+
 ## 4. Darstellung
 
 | Einstellung | Wirkung |
