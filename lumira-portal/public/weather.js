@@ -432,9 +432,10 @@
     }).then(function (blob) {
       var old = shotUrl;
       shotUrl = URL.createObjectURL(blob);
-      document.querySelectorAll(".wx-shot").forEach(function (s) {
-        s.querySelector(".wx-shot-img").src = shotUrl;
-        s.classList.add("has-img");
+      // nur die Live-Bilder der Wetter-Seiten (die Sprüche-Seite hat ein eigenes)
+      document.querySelectorAll(".wx-shot-img").forEach(function (img) {
+        img.src = shotUrl;
+        img.closest(".wx-shot").classList.add("has-img");
       });
       if (old) setTimeout(function () { URL.revokeObjectURL(old); }, 1000);
     }).catch(function (err) {
