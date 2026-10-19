@@ -15,16 +15,18 @@ const { buildModules } = require("../lib/generate-config");
 test.after(() => fs.rmSync(HOME, { recursive: true, force: true }));
 
 function names(mods) {
-	return mods.map((m) => m.module + (m.module === "weather" ? ":" + m.config.type : ""));
+	return mods.map((m) => m.module);
 }
 
 test("Standard: alle Module an", () => {
 	const s = Object.assign(settingsLib.load(), { edition: "fire" });
 	s.calendar = { urls: ["https://example.com/cal.ics"] };
 	const n = names(buildModules(s));
-	for (const m of ["clock", "MMM-aPagerAlarm", "weather:current", "weather:forecast", "calendar", "newsfeed", "MMM-SmartCompliments"]) {
+	for (const m of ["clock", "MMM-aPagerAlarm", "MMM-LumiraWeather", "calendar", "newsfeed", "MMM-SmartCompliments"]) {
 		assert.ok(n.includes(m), m);
 	}
+	// durch eigene Module ersetzt (Portal-Neuordnung): nie mehr in der config.js
+	for (const m of ["weather", "MMM-RainRadarDWD"]) assert.ok(!n.includes(m), m + " ist entfernt");
 	assert.equal(buildModules(s).find((m) => m.module === "MMM-LumiraStatus").config.showStatusHint, true);
 });
 
@@ -34,7 +36,7 @@ test("Ausgeschaltet: Modul fehlt in config.js, Alarm-Bezüge verschwinden mit", 
 	assert.equal(saved.modules.calendar, true, "nicht genannte bleiben an");
 	const mods = buildModules(saved);
 	const n = names(mods);
-	for (const m of ["clock", "MMM-aPagerAlarm", "weather:current", "weather:forecast", "newsfeed", "MMM-SmartCompliments"]) {
+	for (const m of ["clock", "MMM-aPagerAlarm", "weather", "newsfeed", "MMM-SmartCompliments"]) {
 		assert.ok(!n.includes(m), m + " ist aus");
 	}
 	assert.ok(n.includes("MMM-LumiraStatus"), "Status bleibt (Setup-QR, Live-Bild), nur der Hinweis ist aus");

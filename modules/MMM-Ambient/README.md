@@ -2,7 +2,7 @@
 
 Dauerschleife auf dem LUMIRA-Spiegel: ein gezeichnetes **Lagerfeuer**, ein
 eigenes **Video/Bild** oder ein **YouTube-Video** – gesteuert im LUMIRA-Portal unter
-**Spiegel → Bildschirm** (oder per Schnellschalter in der Karte „Spiegel“ auf
+**Bildschirm → Dauerschleife** (oder per Schnellschalter in der Karte „Bildschirm“ auf
 der Startseite).
 
 - **Vollbild:** nur das Medium, über allem.

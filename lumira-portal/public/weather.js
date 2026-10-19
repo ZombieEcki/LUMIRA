@@ -1,8 +1,8 @@
-// LUMIRA Self-Service-Portal – Wetteranzeige (Spiegel → Wetteranzeige) und
-// Radar & Warnungen (Spiegel → Radar & Warnungen). Siehe lib/weather.js und
+// LUMIRA Self-Service-Portal – Bildschirm → Wetter mit drei Teilen:
+// Aktuell & Vorhersage, Regenradar, Warnungen. Siehe lib/weather.js und
 // modules/MMM-LumiraWeather. Jede Änderung wird sofort gespeichert und ist
-// nach wenigen Sekunden auf dem Spiegel. Die Designs der Wetteranzeige
-// zeichnet weather-view.js – derselbe Code wie auf dem Spiegel.
+// nach wenigen Sekunden auf dem Bildschirm. Die Designs der Wetteranzeige
+// zeichnet weather-view.js – derselbe Code wie auf dem Bildschirm.
 // Vanilla-JS, Texte nur per textContent.
 (function () {
   "use strict";
@@ -15,7 +15,8 @@
   var shotTimer = null;
   var shotUrl = null;
   var galleryKey = "";
-  var PAGES = ["wetterkarte", "wetteranzeige"];
+  var PAGES = ["wetter"];
+  var PART = "now"; // gewählter Teil: now | radar | warn
 
   var ANCHORS = [
     ["top_left", "oben links"], ["top_center", "oben mittig"], ["top_right", "oben rechts"],
@@ -77,24 +78,16 @@
 
   function render() {
     if (!S) return;
-    setSw($("#wx-on"), S.enabled);
-    var parts = [];
-    if (S.radar.enabled) parts.push("Regenradar");
-    if (S.warnings.enabled) parts.push("Warnungen");
-    $("#wx-on-sub").textContent = S.enabled ? "an · " + (parts.join(" und ") || "nichts ausgewählt") : "aus";
-    var locText = "Standort: " + (S.location.name || (S.location.lat.toFixed(3) + ", " + S.location.lon.toFixed(3))) + " – ändern unter Spiegel → Standort & Wetter.";
-    $("#wx-loc").textContent = locText;
-    $("#wd-loc").textContent = locText;
-    var st = ctx.getSettings();
-    $("#wx-old-radar").hidden = !(S.enabled && S.radar.enabled && st && st.rainRadar && st.rainRadar.enabled);
+    renderLoc();
+    renderParts();
 
     document.querySelectorAll(".wx-box").forEach(function (card) {
       var part = card.getAttribute("data-wx");
       var b = S[part];
-      card.classList.toggle("is-off", part === "weather" ? !b.enabled : (!b.enabled || !S.enabled));
+      card.classList.toggle("is-off", !partOn(part));
       card.querySelectorAll("[data-k]").forEach(function (c) {
         var k = c.getAttribute("data-k");
-        if (c.classList.contains("sw")) setSw(c, b[k]);
+        if (c.classList.contains("sw")) setSw(c, k === "enabled" ? partOn(part) : b[k]);
         else if (document.activeElement !== c) c.value = String(b[k]);
       });
       var anim = card.querySelector(".wx-anim");
@@ -107,13 +100,55 @@
     renderReport();
   }
 
+  // Radar und Warnungen hängen zusätzlich am gemeinsamen Schalter „enabled“
+  function partOn(part) {
+    return part === "weather" ? !!S.weather.enabled : !!(S.enabled && S[part].enabled);
+  }
+
+  // Teil an/aus: Radar/Warnungen setzen den gemeinsamen Schalter mit
+  function setPart(part, on) {
+    if (part === "weather") { change("weather", "enabled", on, true); return; }
+    if (on) {
+      if (!S.enabled) change(null, "enabled", true, true);
+      change(part, "enabled", true, true);
+    } else {
+      change(part, "enabled", false, true);
+      var other = part === "radar" ? "warnings" : "radar";
+      if (!S[other].enabled) change(null, "enabled", false, true);
+    }
+  }
+
+  function renderLoc() {
+    var box = $("#wx-loc");
+    box.innerHTML = "";
+    box.appendChild(document.createTextNode("Ort: " + (S.location.name || (S.location.lat.toFixed(3) + ", " + S.location.lon.toFixed(3))) + " · "));
+    var a = el("a", null, "ändern");
+    a.href = "#standort";
+    box.appendChild(a);
+  }
+
+  // Reiter der drei Teile: Auswahl und „an“-Markierung
+  function renderParts() {
+    var map = { now: "weather", radar: "radar", warn: "warnings" };
+    document.querySelectorAll("[data-wpart]").forEach(function (b) {
+      var p = b.getAttribute("data-wpart");
+      b.setAttribute("aria-selected", p === PART ? "true" : "false");
+      var st = b.querySelector(".wx-pstate");
+      var on = partOn(map[p]);
+      st.textContent = on ? "an" : "aus";
+      st.classList.toggle("on", on);
+    });
+    document.querySelectorAll("[data-wpanel]").forEach(function (p) { p.hidden = p.getAttribute("data-wpanel") !== PART; });
+    $("#wd-stage-box").hidden = PART !== "now";
+  }
+
   function renderZoomLabels() {
     var sel = $('.wx-box[data-wx="radar"] [data-k="zoom"]');
     if (!sel || !S) return;
     if (!sel.options.length) {
       ZOOMS.forEach(function (z) { var o = el("option"); o.value = z[0]; sel.appendChild(o); });
     }
-    // Breite in km für die aktuelle Kachelbreite (wie auf dem Spiegel)
+    // Breite in km für die aktuelle Kachelbreite (wie auf dem Bildschirm)
     Array.prototype.forEach.call(sel.options, function (o) {
       var z = Number(o.value);
       var label = (ZOOMS.filter(function (x) { return x[0] === z; })[0] || [z, ""])[1];
@@ -146,7 +181,7 @@
     if (opf) opf.hidden = part === "weather" && b.design === "photo";
   }
 
-  // Bildschirmgröße des Spiegels (für die Umrechnung px ↔ %)
+  // Bildschirmgröße des Bildschirms (für die Umrechnung px ↔ %)
   function screenSize() {
     var r = S && S.report && S.report.screen;
     return r && r.width && r.height ? r : { width: 1920, height: 1080 };
@@ -174,7 +209,7 @@
     var row = el("div", "wx-l-row");
     var pos = el("div", "wx-pos");
     pos.setAttribute("role", "group");
-    pos.setAttribute("aria-label", "Position auf dem Spiegel");
+    pos.setAttribute("aria-label", "Position auf dem Bildschirm");
     ANCHORS.forEach(function (a) {
       var btn = el("button");
       btn.type = "button";
@@ -259,17 +294,15 @@
     if (!S || !View() || !$("#wd-designs")) return;
     var w = S.weather;
     $("#wd-on-sub").textContent = w.enabled ? "an · " + View().design(w.design).name : "aus";
-    var st = ctx.getSettings();
-    $("#wd-old").hidden = !(w.enabled && st && st.modules && st.modules.weather);
     var data = $("#wd-data");
     if (!FX) data.textContent = "Wetterdaten werden geladen …";
     else if (FX.error && !FX.data) data.textContent = "⚠ " + FX.error;
     else data.textContent = "Daten: Open-Meteo (Wettermodelle u. a. des DWD) · Stand " + (FX.updatedAt ? hhmm(FX.updatedAt) : "?") +
-      (FX.source === "mirror" ? " (wie auf dem Spiegel)" : "") + (FX.error ? " · " + FX.error : "");
+      (FX.source === "mirror" ? " (wie auf dem Bildschirm)" : "") + (FX.error ? " · " + FX.error : "");
     $("#wd-photo-field").hidden = w.design !== "photo";
     $("#wd-photo-val").textContent = w.photoOpacity + " %";
     renderFields();
-    if (ctx.currentPage() !== "wetteranzeige") return;
+    if (ctx.currentPage() !== "wetter" || PART !== "now") return;
     renderGallery();
     renderPreview();
   }
@@ -395,7 +428,7 @@
       .catch(function (err) { FX = { data: null, error: err.message }; renderDisplay(); });
   }
 
-  // Rückmeldung des Spiegels: überdeckt eine Kachel andere Inhalte?
+  // Rückmeldung des Bildschirms: überdeckt eine Kachel andere Inhalte?
   function renderReport() {
     document.querySelectorAll(".wx-report").forEach(function (box) {
       box.innerHTML = "";
@@ -412,13 +445,13 @@
       if (lines.length) {
         lines.forEach(function (t) { box.appendChild(el("div", "setup-banner", "⚠ " + t)); });
       } else {
-        box.appendChild(el("p", "save-hint", "✓ Keine Überschneidung mit Uhr, Familienplan, Kalender & Co." + (r.screen && r.screen.width ? " (Spiegel " + r.screen.width + " × " + r.screen.height + " px)" : "")));
+        box.appendChild(el("p", "save-hint", "✓ Keine Überschneidung mit Uhr, Familienplan, Kalender & Co." + (r.screen && r.screen.width ? " (Bildschirm " + r.screen.width + " × " + r.screen.height + " px)" : "")));
       }
     });
   }
 
   // ---------------------------------------------------------------------
-  // Vorschau: Live-Bild des Spiegels (solange eine der Seiten offen ist)
+  // Vorschau: Live-Bild des Bildschirms (solange eine der Seiten offen ist)
   // ---------------------------------------------------------------------
   function shotActive() { return PAGES.indexOf(ctx.currentPage()) !== -1 && !document.hidden; }
 
@@ -427,7 +460,7 @@
     if (!shotActive()) return;
     var page = pageEl();
     fetch("/api/mirror/screenshot", { credentials: "same-origin", cache: "no-store" }).then(function (res) {
-      if (!res.ok) throw new Error("Der Spiegel liefert gerade kein Bild.");
+      if (!res.ok) throw new Error("Der Bildschirm liefert gerade kein Bild.");
       return res.blob();
     }).then(function (blob) {
       var old = shotUrl;
@@ -460,13 +493,25 @@
   window.LumiraWeather = {
     init: function (context) {
       ctx = context;
-      $("#wx-on").addEventListener("click", function () { change(null, "enabled", !(S && S.enabled), true); render(); });
+      document.querySelectorAll("[data-wpart]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          PART = b.getAttribute("data-wpart");
+          galleryKey = "";
+          render();
+          if (PART === "now" && !FX) loadForecast();
+        });
+      });
       document.querySelectorAll(".wx-box").forEach(function (card) {
         var part = card.getAttribute("data-wx");
         card.querySelectorAll("[data-k]").forEach(function (c) {
           var k = c.getAttribute("data-k");
           if (c.classList.contains("sw")) {
-            c.addEventListener("click", function () { change(part, k, !(S && S[part][k]), true); render(); });
+            c.addEventListener("click", function () {
+              if (!S) return;
+              if (k === "enabled") setPart(part, !partOn(part));
+              else change(part, k, !S[part][k], true);
+              render();
+            });
           } else {
             c.addEventListener(c.type === "range" ? "input" : "change", function () {
               var v = NUMERIC.test(k) ? Number(c.value) : c.value;
@@ -478,10 +523,10 @@
       });
       document.querySelectorAll(".wx-shot-reload").forEach(function (b) { b.addEventListener("click", shot); });
       document.addEventListener("visibilitychange", function () { if (shotActive()) shot(); });
-      window.addEventListener("resize", function () { if (S && ctx.currentPage() === "wetteranzeige") { galleryKey = ""; renderDisplay(); } });
-      // Portal direkt auf einer der Seiten geöffnet
+      window.addEventListener("resize", function () { if (S && ctx.currentPage() === "wetter") { galleryKey = ""; renderDisplay(); } });
+      // Portal direkt auf der Seite geöffnet
       setTimeout(function () {
-        load().then(function () { if (ctx.currentPage() === "wetteranzeige") loadForecast(); });
+        load().then(function () { if (ctx.currentPage() === "wetter") loadForecast(); });
         if (shotActive()) shot();
       }, 0);
     },
@@ -491,7 +536,7 @@
       if (!ctx) return;
       setTimeout(function () {
         galleryKey = "";
-        load().then(function () { if (page === "wetteranzeige") loadForecast(); });
+        load().then(function () { if (page === "wetter") loadForecast(); });
         shot();
       }, 0);
     }

@@ -1,5 +1,5 @@
-// LUMIRA Self-Service-Portal – Dauerschleife auf dem Spiegel (Spiegel →
-// Bildschirm). Siehe lib/ambient.js und modules/MMM-Ambient.
+// LUMIRA Self-Service-Portal – Dauerschleife (Bildschirm → Dauerschleife).
+// Siehe lib/ambient.js und modules/MMM-Ambient.
 // Vanilla-JS, Texte nur per textContent.
 (function () {
   "use strict";
@@ -182,7 +182,7 @@
       if (!e.lengthComputable || opts.quiet) return;
       bar.value = e.loaded / e.total;
       hint.textContent = e.loaded >= e.total
-        ? "Hochgeladen – wird für den Spiegel vorbereitet …"
+        ? "Hochgeladen – wird für den Bildschirm vorbereitet …"
         : "Lade hoch … " + Math.round(e.loaded / e.total * 100) + " % von " + sizeText(e.total);
     };
     xhr.onload = function () {
@@ -214,7 +214,7 @@
     });
   }
 
-  // Format des Spiegels aus dem Live-Bild (MMM-LumiraStatus) – hochkant oder quer
+  // Format des Bildschirms aus dem Live-Bild (MMM-LumiraStatus) – hochkant oder quer
   function mirrorAspect() {
     var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 4000); });
     var shot = fetch("/api/mirror/screenshot", { credentials: "same-origin", cache: "no-store" })
@@ -233,7 +233,7 @@
 
   function cropThenUpload(file) {
     var hint = $("#amb-upload");
-    hint.textContent = "Format des Spiegels wird ermittelt …";
+    hint.textContent = "Format des Bildschirms wird ermittelt …";
     mirrorAspect().then(function (a) {
       hint.textContent = "";
       var portrait = a ? a < 1 : false;
@@ -243,7 +243,7 @@
         { label: "Original", value: "original" }
       ];
       // Passt das Live-Bild genau zu keinem Standard, sein eigenes Format anbieten
-      if (a && Math.abs(a - 9 / 16) > 0.02 && Math.abs(a - 16 / 9) > 0.02) aspects.unshift({ label: "Wie der Spiegel", value: a });
+      if (a && Math.abs(a - 9 / 16) > 0.02 && Math.abs(a - 16 / 9) > 0.02) aspects.unshift({ label: "Wie der Bildschirm", value: a });
       var start = a ? aspects[0].value : (portrait ? 9 / 16 : 16 / 9);
       return window.LumiraCrop.open({ file: file, aspects: aspects, aspect: start, out: { maxSide: 1920 }, quality: 0.9, title: "Hintergrundbild zuschneiden" });
     }).then(function (blob) {

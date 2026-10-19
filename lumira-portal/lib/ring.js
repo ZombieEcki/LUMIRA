@@ -61,7 +61,7 @@ function friendlyError(err) {
 	if (/email and password are correct/i.test(m)) return "E-Mail oder Passwort stimmt nicht.";
 	if (/refresh token is correct|refresh token is not valid|invalid_grant/i.test(m)) return "Die Ring-Anmeldung ist abgelaufen – bitte neu anmelden.";
 	if (/verification code/i.test(m)) return "Der Code stimmt nicht – bitte noch einmal eingeben.";
-	if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|fetch failed|network/i.test(m)) return "Ring ist nicht erreichbar – Internetverbindung des Spiegels prüfen.";
+	if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|fetch failed|network/i.test(m)) return "Ring ist nicht erreichbar – Internetverbindung von LUMIRA prüfen.";
 	return m.slice(0, 160) || "Unbekannter Fehler bei Ring";
 }
 
@@ -293,7 +293,7 @@ function createRing({ home, onDing = () => {}, loadLib, log = console, timers = 
 		try { return await connecting; } finally { connecting = null; }
 	}
 
-	// Ein/aus mit dem Schalter „Türklingel“ (Spiegel → Module bzw. Klingel)
+	// Ein/aus mit dem Schalter „Türklingel“ (Bildschirm → Übersicht bzw. Klingel)
 	async function setEnabled(on) {
 		// Jedes Speichern im Portal ruft das auf – eine stehende Verbindung
 		// bleibt, sonst gingen währenddessen Klingel-Pushes verloren

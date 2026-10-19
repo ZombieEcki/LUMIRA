@@ -1,4 +1,4 @@
-// LUMIRA Self-Service-Portal – Türklingel (Spiegel → Klingel).
+// LUMIRA Self-Service-Portal – Türklingel (Bildschirm → Türklingel).
 // Siehe lib/doorbell.js, lib/ring.js und modules/MMM-Doorbell.
 // Vanilla-JS, Texte nur per textContent.
 (function () {
@@ -54,7 +54,7 @@
     page.classList.toggle("is-off", !S.enabled);
     sw("#db-on", S.enabled);
     var r = S.ring || {};
-    $("#db-on-sub").textContent = !S.enabled ? "aus – der Spiegel reagiert nicht aufs Klingeln"
+    $("#db-on-sub").textContent = !S.enabled ? "aus – LUMIRA reagiert nicht aufs Klingeln"
       : r.status === "connected" ? "an – wartet aufs Klingeln" + (r.lastDing ? " · zuletzt geklingelt " + timeText(r.lastDing.at) : "")
       : "an – Ring noch nicht verbunden (Test geht trotzdem)";
 
@@ -88,8 +88,8 @@
     $("#db-volume-val").textContent = c.sound.volume + " %";
     $("#db-sound-del").hidden = !c.sound.file;
     $("#db-sound-info").textContent = c.sound.file
-      ? "Eigener Ton: " + (c.sound.name || "hochgeladen") + ". MP3, WAV oder OGG bis 5 MB – liegt auf dem Spiegel, Abspielen ohne Internet."
-      : "MP3, WAV oder OGG bis 5 MB. Der Ton liegt auf dem Spiegel – zum Abspielen braucht es kein Internet.";
+      ? "Eigener Ton: " + (c.sound.name || "hochgeladen") + ". MP3, WAV oder OGG bis 5 MB – liegt auf dem Bildschirm, Abspielen ohne Internet."
+      : "MP3, WAV oder OGG bis 5 MB. Der Ton liegt auf dem Bildschirm – zum Abspielen braucht es kein Internet.";
     var customOpt = $('#db-sound-src option[value="custom"]');
     customOpt.disabled = !c.sound.file;
 
@@ -181,7 +181,7 @@
         b.setAttribute("role", "switch");
         b.setAttribute("aria-label", d.name + " löst aus");
         b.setAttribute("aria-checked", d.active ? "true" : "false");
-        b.title = "Diese Klingel löst auf dem Spiegel aus";
+        b.title = "Diese Klingel löst auf dem Bildschirm aus";
         b.addEventListener("click", function () { toggleCamera(d.id); });
         row.appendChild(b);
       }
@@ -213,25 +213,25 @@
     $("#db-event-title").textContent = (ev.source === "test" ? "Test-Klingeln" : "Es klingelt") + " – " + ((ev.camera && ev.camera.name) || "Haustür");
     var v = ev.video || {};
     var msg = v.status === "starting" ? "Verbinde mit der Klingel …"
-      : v.status === "live" ? "Live-Video läuft auf dem Spiegel"
-      : v.status === "demo" ? "Testbild auf dem Spiegel – Ring ist nicht verbunden"
+      : v.status === "live" ? "Live-Video läuft auf dem Bildschirm"
+      : v.status === "demo" ? "Testbild auf dem Bildschirm – Ring ist nicht verbunden"
       : v.status === "off" ? "Nur Meldung/Ton – Video ist ausgeschaltet"
       : "Kein Video: " + (v.message || "nicht verfügbar");
     $("#db-event-msg").textContent = msg + (ev.info ? " · Stream: " + ev.info : "");
-    // Rückmeldung des Spiegels: läuft das Video dort wirklich?
+    // Rückmeldung des Bildschirms: läuft das Video dort wirklich?
     var mr = ev.mirror;
     var MIRROR = {
-      playing: "Spiegel: Video läuft",
-      metadata: "Spiegel: Video lädt …",
-      warn: "Spiegel: Probleme beim Laden",
-      timeout: "Spiegel: kein Bild",
-      error: "Spiegel: Video-Fehler"
+      playing: "Bildschirm: Video läuft",
+      metadata: "Bildschirm: Video lädt …",
+      warn: "Bildschirm: Probleme beim Laden",
+      timeout: "Bildschirm: kein Bild",
+      error: "Bildschirm: Video-Fehler"
     };
     var mEl = $("#db-event-mirror");
     mEl.hidden = !mr;
     if (mr) {
       var bad = mr.state === "timeout" || mr.state === "error";
-      mEl.textContent = (MIRROR[mr.state] || "Spiegel: " + mr.state) + (mr.width ? " (" + mr.width + "×" + mr.height + ")" : "") +
+      mEl.textContent = (MIRROR[mr.state] || "Bildschirm: " + mr.state) + (mr.width ? " (" + mr.width + "×" + mr.height + ")" : "") +
         (mr.detail ? " – " + mr.detail : "") + (bad && (S.config.video.mode || "copy") === "copy" ? ". Tipp: unten bei Live-Video die Bildübertragung auf „Umwandeln“ stellen." : "");
       mEl.classList.toggle("is-bad", bad);
     }
@@ -392,7 +392,7 @@
         btn.disabled = true;
         api("/api/doorbell/test", "POST").then(function (s) {
           S = s; render(); schedule();
-          ctx.toast("Klingeln auf dem Spiegel ausgelöst");
+          ctx.toast("Klingeln auf dem Bildschirm ausgelöst");
         }).catch(fail).then(function () { btn.disabled = false; });
       });
       $("#db-close").addEventListener("click", function () {
@@ -404,7 +404,7 @@
         api("/api/ring/cancel", "POST").then(load).catch(fail);
       });
       $("#db-logout").addEventListener("click", function () {
-        if (!confirm("Vom Ring-Konto abmelden? Der Spiegel reagiert dann nicht mehr aufs Klingeln, bis du dich neu anmeldest.")) return;
+        if (!confirm("Vom Ring-Konto abmelden? LUMIRA reagiert dann nicht mehr aufs Klingeln, bis du dich neu anmeldest.")) return;
         api("/api/ring/logout", "POST").then(function (s) { S = s; render(); ctx.toast("Von Ring abgemeldet"); }).catch(fail);
       });
       $("#db-diag-check").addEventListener("click", function () {

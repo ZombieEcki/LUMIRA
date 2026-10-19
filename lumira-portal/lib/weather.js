@@ -1,10 +1,10 @@
-// LUMIRA – Regenradar & Wetterwarnungen (Spiegel → Radar & Warnungen) und
-// Wetteranzeige (Spiegel → Wetteranzeige).
+// LUMIRA – Wetter (Bildschirm → Wetter): Wetteranzeige, Regenradar und
+// Wetterwarnungen.
 //
 // Einstellungen in ~/.lumira/weather.json. Nur das Portal schreibt (atomar
 // per .tmp + rename), MMM-LumiraWeather liest per fs.watch – Änderungen an
-// Position, Größe, Transparenz usw. sind sofort auf dem Spiegel, ohne
-// Neustart. Der Standort kommt aus den Einstellungen (Standort & Wetter).
+// Position, Größe, Transparenz usw. sind sofort auf dem Bildschirm, ohne
+// Neustart. Der Standort kommt aus den Einstellungen (Einstellungen → Ort).
 // Die Bereinigung teilt sich das Portal mit dem Modul (payload.js), damit
 // beide dieselben Grenzen kennen – der Test prüft, dass die Kopie gleich ist.
 //
@@ -89,9 +89,13 @@ function createWeather({ home, now = () => new Date(), fetchImpl = (...a) => fet
 		}
 	}
 
-	function save(cfg) {
+	function migrated() {
+		try { return !!JSON.parse(fs.readFileSync(statePath, "utf8")).legacyMigrated; } catch (e) { return false; }
+	}
+
+	function save(cfg, mark) {
 		fs.mkdirSync(home, { recursive: true });
-		const out = Object.assign({ version: 1, updatedAt: now().toISOString() }, cfg);
+		const out = Object.assign({ version: 1, updatedAt: now().toISOString() }, cfg, (mark || migrated()) ? { legacyMigrated: true } : {});
 		const tmp = statePath + ".tmp";
 		fs.writeFileSync(tmp, JSON.stringify(out, null, 2));
 		renameRetry(tmp, statePath);
@@ -172,7 +176,31 @@ function createWeather({ home, now = () => new Date(), fetchImpl = (...a) => fet
 		}
 	}
 
-	return { load, view, setConfig, setLocation, forecast, statePath };
+	// Einmalig nach der Portal-Neuordnung: Das alte Wettermodul (MagicMirror-
+	// Standard) und MMM-RainRadarDWD gibt es nicht mehr. War eines davon an,
+	// übernimmt MMM-LumiraWeather – damit nach dem Update nichts fehlt.
+	// opts.hasRain: Edition mit Regenradar. Gibt zurück, ob etwas geändert wurde.
+	function migrateLegacy(settings, opts) {
+		if (migrated()) return false;
+		settings = settings || {};
+		const cur = load();
+		const next = JSON.parse(JSON.stringify(cur));
+		const oldWeather = !(settings.modules && settings.modules.weather === false);
+		const oldRadar = !!(opts && opts.hasRain) && !!(settings.rainRadar && settings.rainRadar.enabled);
+		if (oldWeather) next.weather.enabled = true;
+		// Radar und Warnungen nur anfassen, wenn sie noch nie eingeschaltet waren
+		if (oldRadar && !cur.enabled) {
+			next.enabled = true;
+			next.radar.enabled = true;
+			next.warnings.enabled = false;
+			// unter die Wetteranzeige statt darüber (wie früher untereinander)
+			if (oldWeather && next.radar.anchor === "top_right" && next.radar.y < 330) next.radar.y = 330;
+		}
+		save(shared.cleanConfig(next), true);
+		return JSON.stringify(next) !== JSON.stringify(cur);
+	}
+
+	return { load, view, setConfig, setLocation, forecast, migrateLegacy, statePath };
 }
 
 module.exports = { createWeather, WeatherError, checkPatch };

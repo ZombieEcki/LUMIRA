@@ -65,7 +65,7 @@ Startseite zeigen sie nur am Tag selbst bei der Person, die heute dran ist
 
 Geburtstage, Jahrestage (Hochzeitstag, Kennenlerntag, Einzug oder ein eigener
 Anlass) und Countdowns für die Familienbotschaften stehen auf der Seite
-**Familie → Termine**. Geburtstage werden dort mit den
+**Familien-Menü oben rechts → Besondere Tage**. Geburtstage werden dort mit den
 Familienmitgliedern verknüpft.
 
 ## 3. Im Alltag

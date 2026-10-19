@@ -1,4 +1,4 @@
-// LUMIRA – Dauerschleife auf dem Spiegel („Bildschirm“ im Bereich Spiegel).
+// LUMIRA – Dauerschleife auf dem Bildschirm (Bildschirm → Dauerschleife).
 //
 // Zustand und Mediathek liegen in ~/.lumira/ambient.json, die Dateien in
 // ~/.lumira/media/. Nur das Portal schreibt (atomar per .tmp + rename),

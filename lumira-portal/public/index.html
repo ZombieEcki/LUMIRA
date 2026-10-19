@@ -33,6 +33,7 @@
   <symbol id="i-users" viewBox="0 0 24 24"><path d="M9 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6 6 0 0 1 3.5 5.8"/></symbol>
   <symbol id="i-monitor" viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 21h8M12 17v4"/></symbol>
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3-1-3 0-6 1-8.5z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.8" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0"/></symbol>
   <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19h.01"/></symbol>
@@ -149,11 +150,17 @@
           <svg class="ic"><use href="#i-bell"/></svg>
           <span class="nav-badge" id="upd-badge" hidden></span>
         </button>
-        <!-- Familienmitglieder (aus dem Familienplan), Klick → Mitglieder verwalten -->
-        <button type="button" class="member-chip" id="member-chip" data-need="hasFamily" title="Familienmitglieder verwalten" aria-label="Familienmitglieder verwalten">
-          <span class="member-stack" id="member-stack"></span>
-          <span class="member-label" id="member-label">–</span>
-        </button>
+        <!-- Familien-Menü: Mitglieder und Besondere Tage (concept/portal-neuordnung.md) -->
+        <div class="member-wrap" data-need="hasFamily">
+          <button type="button" class="member-chip" id="member-chip" title="Familie" aria-label="Familie" aria-haspopup="menu" aria-expanded="false">
+            <span class="member-stack" id="member-stack"></span>
+            <span class="member-label" id="member-label">–</span>
+          </button>
+          <div class="member-menu" id="member-menu" role="menu" hidden>
+            <button type="button" role="menuitem" data-go="mitglieder"><svg class="ic"><use href="#i-users"/></svg><span>Mitglieder<small>Namen, Bilder, Kinder und Erwachsene</small></span></button>
+            <button type="button" role="menuitem" data-go="familie"><svg class="ic"><use href="#i-cake"/></svg><span>Besondere Tage<small>Geburtstage, Jahrestage, Countdowns</small></span></button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -177,7 +184,7 @@
         <div class="status-grid">
           <a href="#module" class="tile" id="tile-mirror">
             <span class="tile-ic"><svg class="ic"><use href="#i-monitor"/></svg></span>
-            <span class="tile-body"><span class="tl">Spiegel</span>
+            <span class="tile-body"><span class="tl">Bildschirm</span>
               <span class="tv"><span class="dot"></span><span id="mirror-state-text">–</span></span>
               <span class="ts" id="mirror-sub">–</span></span>
           </a>
@@ -201,23 +208,21 @@
           </a>
         </div>
 
-        <!-- Zwei unabhängige Spalten, damit unterschiedlich hohe Karten
-             (z. B. Spiegel mit Live-Bild) keine Lücken reißen -->
-        <div class="bento">
-          <div class="span7 stack">
-            <!-- Spiegel -->
-            <section class="card bento-mirror">
-              <div class="card-head"><h2>Spiegel</h2>
+        <!-- Zweite Reihe: Bildschirm · Wetter · Als Nächstes; darunter der Familienplan -->
+        <div class="start-row">
+            <!-- Bildschirm -->
+            <section class="card start-screen">
+              <div class="card-head"><h2>Bildschirm</h2>
                 <div class="seg mini" id="mirror-view" role="tablist" aria-label="Ansicht">
                   <button type="button" role="tab" data-view="live">Live</button>
                   <button type="button" role="tab" data-view="layout">Aufbau</button>
                 </div>
-                <a href="#module" class="more-link">Module →</a></div>
+                <a href="#module" class="more-link">Übersicht →</a></div>
               <div class="mirror-split">
                 <div class="module-preview" id="module-preview">
                   <!-- Live-Bild (MMM-LumiraStatus → /api/mirror/screenshot), alle 5 s -->
                   <div class="mp-live" id="mp-live" hidden>
-                    <img id="mirror-img" alt="Live-Bild: was der Spiegel gerade zeigt" title="Im Vollbild ansehen">
+                    <img id="mirror-img" alt="Live-Bild: was der Bildschirm gerade zeigt" title="Im Vollbild ansehen">
                     <div class="mp-live-bar"><span class="dot" id="mirror-dot"></span><span id="mirror-age">verbinde …</span></div>
                     <button type="button" class="mp-full-btn" id="mirror-full-btn" aria-label="Live-Bild im Vollbild ansehen" title="Vollbild">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -240,8 +245,7 @@
                   </div>
                 </div>
                 <div class="mirror-side">
-                  <span class="tl">Familienbotschaften</span>
-                  <p class="mirror-text">Sprüche, Geburtstage und Hinweise wechseln automatisch auf dem Spiegel.</p>
+                  <span class="tl">Schnell schalten</span>
                   <div class="toggle">
                     <span class="tl2">Sprüche anzeigen</span>
                     <button class="btn small" id="compliments-toggle" type="button"><span id="compliments-state">–</span></button>
@@ -255,42 +259,28 @@
               </div>
             </section>
 
+            <!-- Wetter + Als Nächstes -->
+            <section class="card" id="start-weather" hidden>
+              <div class="card-head"><h2>Wetter</h2><span class="card-meta" id="start-weather-place"></span><a href="#wetter" class="more-link">Wetter →</a></div>
+              <div class="weather-row" id="start-weather-row"></div>
+            </section>
+            <section class="card" id="start-next" data-need="hasFamily">
+              <div class="card-head"><h2>Als Nächstes</h2><a href="#familie" class="more-link">Besondere Tage →</a></div>
+              <div id="start-next-list"><p class="save-hint">Noch keine Termine eingetragen.</p></div>
+            </section>
+        </div>
+
             <!-- Familienplan -->
-            <section class="card bento-fp" id="start-fp" data-need="hasFamily">
+            <section class="card start-fp" id="start-fp" data-need="hasFamily">
               <div class="card-head"><h2>Familienplan</h2><span class="card-meta" id="start-fp-week"></span><a href="#familienplan" class="more-link">Öffnen →</a></div>
               <div id="start-fp-rows"><p class="save-hint">Lädt …</p></div>
             </section>
-          </div>
-
-          <div class="span5 stack">
-            <!-- Alarmierung -->
-            <section class="card bento-alarm" id="card-alarm-actions" hidden>
-              <div class="card-head"><h2>Alarmierung</h2><a href="#alarm" class="more-link">Einstellungen →</a></div>
-              <p class="sub">Manuelle Phasensteuerung von MMM-aPagerAlarm.</p>
-              <div class="action-list">
-                <button class="action" id="alarm-home" type="button"><span class="at">Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
-                <button class="action" id="alarm-clear" type="button"><span class="at">Einsatz beenden</span><span class="ad">zurück in die Danke-Nachwirkung</span></button>
-                <button class="action danger" id="alarm-test" type="button"><span class="at">Alarm testen</span><span class="ad">löst einen echten Testalarm auf dem Spiegel aus</span></button>
-              </div>
-            </section>
-
-            <!-- Wetter + Als Nächstes -->
-            <section class="card bento-rest" id="start-weather" hidden>
-              <div class="card-head"><h2>Wetter</h2><span class="card-meta" id="start-weather-place"></span></div>
-              <div class="weather-row" id="start-weather-row"></div>
-            </section>
-            <section class="card bento-rest" id="start-next" data-need="hasFamily">
-              <div class="card-head"><h2>Als Nächstes</h2><a href="#familie" class="more-link">Termine →</a></div>
-              <div id="start-next-list"><p class="save-hint">Noch keine Termine eingetragen.</p></div>
-            </section>
-          </div>
-        </div>
       </section>
 
       <!-- ================= FAMILIE ================= -->
       <!-- Familienplan (concept/familienplan.md) – Inhalt baut familyplan.js -->
       <section class="page" data-page="familienplan">
-        <p class="page-lead">Wer hat diese Woche welchen Dienst? Die Verteilung wechselt automatisch und fair. Änderungen wirken sofort auf dem Spiegel.</p>
+        <p class="page-lead">Wer hat diese Woche welchen Dienst? Die Verteilung wechselt automatisch und fair. Änderungen wirken sofort auf dem Bildschirm.</p>
         <div class="fp-tabs seg wide" role="tablist" aria-label="Familienplan">
           <button class="fp-tab" role="tab" data-fptab="uebersicht" aria-selected="true">Übersicht</button>
           <button class="fp-tab" role="tab" data-fptab="mitglieder" aria-selected="false">Mitglieder</button>
@@ -305,7 +295,7 @@
       <!-- Wichtige Termine (früher „Personen“). Die Personen selbst pflegt der
            Familienplan (Mitglieder), Geburtstage verknüpfen sich damit. -->
       <section class="page cols" data-page="familie">
-        <p class="page-lead">Geburtstage, Jahrestage und Countdowns für die Familienbotschaften auf dem Spiegel. Speichern startet MagicMirror einmal neu.</p>
+        <p class="page-lead">Geburtstage, Jahrestage und Countdowns für die Familienbotschaften auf dem Bildschirm. Speichern startet MagicMirror einmal neu.</p>
         <div class="card tall">
           <h2>Geburtstage</h2>
           <p class="sub">Person aus den Familienmitgliedern wählen oder eine andere Person eintragen (z. B. Oma). Am Tag selbst und ein paar Tage vorher gibt es einen Hinweis.</p>
@@ -322,7 +312,7 @@
         </div>
         <div class="card">
           <h2>Countdowns</h2>
-          <p class="sub">Termine, auf die sich alle freuen. Auf dem Spiegel z. B.: „Noch 12 Tage bis Sommerurlaub.“ Wiederholt sich jedes Jahr.</p>
+          <p class="sub">Termine, auf die sich alle freuen. Auf dem Bildschirm z. B.: „Noch 12 Tage bis Sommerurlaub.“ Wiederholt sich jedes Jahr.</p>
           <div class="term-head"><span>Bezeichnung</span><span>Datum <span class="opt">(TT.MM.)</span></span></div>
           <div class="bdays" id="countdowns"></div>
           <button type="button" class="btn-add" id="addCountdown">+ Countdown hinzufügen</button>
@@ -333,15 +323,15 @@
 
       <!-- Sprüche -->
       <section class="page cols" data-page="spruche">
-        <p class="page-lead">Familienbotschaften auf dem Spiegel: Kategorien, Anlässe und Darstellung. Jede Änderung wird sofort gespeichert
-          und ist nach wenigen Sekunden auf dem Spiegel – ohne Neustart.</p>
+        <p class="page-lead">Familienbotschaften auf dem Bildschirm: Kategorien, Anlässe und Darstellung. Jede Änderung wird sofort gespeichert
+          und ist nach wenigen Sekunden auf dem Bildschirm – ohne Neustart.</p>
         <div class="stack">
         <div class="card">
           <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="sp-shot-reload">Live-Bild neu laden</button></div>
           <p class="sub" id="sp-now">So sieht ein Spruch mit den Einstellungen unten aus. Bei „Bearbeiten“ zeigt 👁 einen bestimmten Spruch.</p>
           <div class="sp-stage" id="sp-stage"><div class="sp-screen" id="sp-screen"><div class="smartcompliments sc-msg" id="sp-prev"></div></div></div>
           <p class="save-hint" id="sp-prev-note"></p>
-          <div class="wx-shot" id="sp-shot"><img id="sp-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note" id="sp-shot-note">Live-Bild wird geladen …</p></div>
+          <div class="wx-shot" id="sp-shot"><img id="sp-shot-img" alt="Live-Bild des Bildschirms"><p class="mp-note" id="sp-shot-note">Live-Bild wird geladen …</p></div>
           <div id="sp-report"></div>
         </div>
 
@@ -351,7 +341,7 @@
           <div class="wx-l-row">
             <div class="sp-pos-wrap">
               <button type="button" class="btn small sp-auto" id="sp-auto" aria-pressed="true">Wie bisher</button>
-              <div class="wx-pos" id="sp-pos" role="group" aria-label="Position auf dem Spiegel"></div>
+              <div class="wx-pos" id="sp-pos" role="group" aria-label="Position auf dem Bildschirm"></div>
             </div>
             <div class="wx-nums">
               <div class="field"><label for="sp-x" id="sp-x-l">Abstand waagerecht</label><input class="mono-in" type="number" id="sp-x" data-d="x"></div>
@@ -420,7 +410,7 @@
 
         <div class="card">
           <h2>Sichern</h2>
-          <p class="sub">Alle Sprüche, Kategorien und Einstellungen als Datei – zum Aufheben oder für einen zweiten Spiegel.</p>
+          <p class="sub">Alle Sprüche, Kategorien und Einstellungen als Datei – zum Aufheben oder für ein zweites Gerät.</p>
           <div class="btn-row">
             <a class="btn" href="/api/compliments/export" download>Sichern (Datei laden)</a>
             <label class="btn" for="sp-import">Sicherung einspielen …</label>
@@ -453,7 +443,7 @@
         <div class="card">
           <h2>Kategorien</h2>
           <p class="sub">Was ausgeschaltet ist, erscheint nie – auch nicht als Ersatz. Tageszeit-Sprüche sind immer dabei.</p>
-          <p class="setup-banner" id="sp-none" hidden>⚠ Keine allgemeine Kategorie ist an – der Spiegel zeigt dann nur Tageszeit-Grüße, Termine und Anlässe.</p>
+          <p class="setup-banner" id="sp-none" hidden>⚠ Keine allgemeine Kategorie ist an – der Bildschirm zeigt dann nur Tageszeit-Grüße, Termine und Anlässe.</p>
           <div id="sp-cats"></div>
           <button type="button" class="btn small sp-own-add" id="sp-own-add">+ Eigene Kategorie</button>
         </div>
@@ -461,7 +451,7 @@
         <div class="card">
           <h2>Anlässe</h2>
           <p class="sub">Passt gerade ein Anlass, kommt ein passender Spruch – im eingestellten Anteil, sonst der normale Mix.
-            Geburtstage, Jahrestage und Feiertage (Familie → Termine) haben immer Vorrang.</p>
+            Geburtstage, Jahrestage und Feiertage (Familien-Menü oben rechts → Besondere Tage) haben immer Vorrang.</p>
           <div class="toggle"><span class="tl2">Amtliche Wetterwarnungen<small>DWD – von der Wetteranzeige bzw. der Warnkachel</small></span>
             <button class="sw" data-b="warnings" role="switch" aria-label="Amtliche Wetterwarnungen"></button></div>
           <div class="toggle"><span class="tl2">Kalender-Termine<small>Stichwort im Termintitel, z. B. „Training“</small></span>
@@ -473,7 +463,7 @@
               <option value="50">jeder zweite Spruch</option><option value="25">ab und zu (1 von 4)</option></select></div>
           <div class="wx-l-h">Reihenfolge, wenn mehrere passen</div>
           <ol class="sp-order" id="sp-order"></ol>
-          <p class="save-hint">Wetter und Warnungen kommen von der neuen Wetteranzeige (Spiegel → Wetteranzeige), das Wetter sonst vom bisherigen Wetter-Modul.
+          <p class="save-hint">Wetter und Warnungen kommen von der Wetteranzeige bzw. der Warnkachel (Bildschirm → Wetter).
             Fehlen Daten oder sind sie veraltet, gibt es einfach allgemeine Sprüche.</p>
         </div>
         </div>
@@ -481,10 +471,10 @@
 
       <!-- ================= SPIEGEL ================= -->
       <section class="page" data-page="module">
-        <p class="page-lead">Was der Spiegel anzeigt. Ausgeschaltete Module verschwinden ganz vom Spiegel.</p>
         <div class="card">
-          <h2>Module</h2>
-          <p class="sub">Ein- und ausschalten, dann speichern – MagicMirror startet dabei einmal neu.</p>
+          <h2>Module auf dem Bildschirm</h2>
+          <p class="sub">Ein- und ausschalten, dann speichern – der Bildschirm startet dabei einmal neu. Das Zahnrad öffnet die Einstellungen.
+            Ausgeschaltete Module verschwinden auch aus der Navigation.</p>
           <div id="module-list-extra" class="toggle-grid"></div>
           <div class="save-row"><button class="btn primary" data-save="module" type="button">Speichern</button>
             <span class="save-hint" data-savehint="module"></span></div>
@@ -492,14 +482,14 @@
       </section>
 
       <!-- Standort -->
-      <!-- Bildschirm: Dauerschleife auf dem Spiegel (ambient.js, MMM-Ambient) -->
+      <!-- Bildschirm: Dauerschleife auf dem Bildschirm (ambient.js, MMM-Ambient) -->
       <section class="page cols" data-page="bildschirm">
-        <p class="page-lead">Eine Dauerschleife auf dem Spiegel – zum Beispiel ein Lagerfeuer am Abend oder ein eigenes Video.
+        <p class="page-lead">Eine Dauerschleife auf dem Bildschirm – zum Beispiel ein Lagerfeuer am Abend oder ein eigenes Video.
           Wirkt sofort, ohne Neustart. Ein Alarm unterbricht sie immer.</p>
         <div class="card">
           <h2>Dauerschleife</h2>
           <div class="toggle">
-            <span class="tl2">Auf dem Spiegel zeigen<small id="amb-status">aus</small></span>
+            <span class="tl2">Auf dem Bildschirm zeigen<small id="amb-status">aus</small></span>
             <button class="sw" id="amb-switch" role="switch" aria-label="Dauerschleife zeigen"></button>
           </div>
           <div class="field"><label for="amb-mode">Darstellung</label>
@@ -544,14 +534,14 @@
             <input type="file" id="amb-file" accept="video/mp4,video/webm,image/jpeg,image/png,image/gif,image/webp" multiple hidden>
             <input type="file" id="amb-folder" webkitdirectory directory multiple hidden></div>
           <p class="sub">Videos (MP4, WebM) und YouTube-Links laufen in Dauerschleife, Bilder bleiben stehen – oder wechseln als Diashow (Haken an den Bildern). GIFs werden automatisch in ein
-            Video umgewandelt, das läuft auf dem Spiegel flüssiger. Für den Raspberry Pi 3 am besten Videos in 720p (H.264), höchstens 300 MB.</p>
+            Video umgewandelt, das läuft auf dem Bildschirm flüssiger. Für den Raspberry Pi 3 am besten Videos in 720p (H.264), höchstens 300 MB.</p>
           <form class="amb-yt-form" id="amb-yt-form" hidden>
             <label for="amb-yt-url">YouTube-Link</label>
             <div class="input-row">
               <input type="url" id="amb-yt-url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off">
               <button type="submit" class="btn primary" id="amb-yt-add">Hinzufügen</button>
             </div>
-            <p class="save-hint">Läuft stumm in Dauerschleife und braucht Internet auf dem Spiegel. Eine Startzeit im Link (z. B. <span class="mono-in">&amp;t=90</span>) wird übernommen.
+            <p class="save-hint">Läuft stumm in Dauerschleife und braucht Internet auf dem Bildschirm. Eine Startzeit im Link (z. B. <span class="mono-in">&amp;t=90</span>) wird übernommen.
               Auf dem Raspberry Pi 3 kann YouTube ruckeln – ab Pi 4 läuft es flüssig.</p>
           </form>
           <progress id="amb-progress" max="1" value="0" hidden></progress>
@@ -560,16 +550,16 @@
         </div>
       </section>
 
-      <!-- Klingel: Ring-Türklingel auf dem Spiegel (doorbell.js, MMM-Doorbell) -->
+      <!-- Klingel: Ring-Türklingel auf dem Bildschirm (doorbell.js, MMM-Doorbell) -->
       <section class="page cols" data-page="klingel">
-        <p class="page-lead">Klingelt es an eurer Ring-Türklingel, erscheint auf dem Spiegel in der Mitte das Live-Video der Klingel,
+        <p class="page-lead">Klingelt es an eurer Ring-Türklingel, erscheint auf dem Bildschirm in der Mitte das Live-Video der Klingel,
           darüber die Meldung „Es hat geklingelt!“. Nach der eingestellten Zeit ist alles wieder wie vorher. Einstellungen wirken sofort.</p>
         <div class="stack">
         <div class="card" id="db-main">
           <h2>Türklingel</h2>
           <div class="toggle">
-            <span class="tl2">Türklingel auf dem Spiegel<small id="db-on-sub">aus</small></span>
-            <button class="sw" id="db-on" role="switch" aria-label="Türklingel auf dem Spiegel"></button>
+            <span class="tl2">Türklingel auf dem Bildschirm<small id="db-on-sub">aus</small></span>
+            <button class="sw" id="db-on" role="switch" aria-label="Türklingel auf dem Bildschirm"></button>
           </div>
           <div class="db-event" id="db-event" hidden>
             <div class="db-event-head"><span class="dot err db-pulse"></span><strong id="db-event-title">Es klingelt</strong><span class="db-left" id="db-event-left"></span></div>
@@ -581,7 +571,7 @@
             <button type="button" class="btn primary" id="db-test">Klingeln testen</button>
             <button type="button" class="btn" id="db-close" hidden>Jetzt schließen</button>
           </div>
-          <p class="save-hint">„Klingeln testen“ läuft auf dem Spiegel wie echtes Klingeln – mit Ton und, falls Ring verbunden ist, mit dem echten Live-Video.</p>
+          <p class="save-hint">„Klingeln testen“ läuft auf dem Bildschirm wie echtes Klingeln – mit Ton und, falls Ring verbunden ist, mit dem echten Live-Video.</p>
         </div>
 
         <div class="card">
@@ -624,7 +614,7 @@
               <div id="db-diag-errors"></div>
             </details>
           </div>
-          <p class="save-hint">Dein Passwort wird nicht gespeichert – nur ein Zugangsschlüssel von Ring, und der bleibt auf dem Spiegel.
+          <p class="save-hint">Dein Passwort wird nicht gespeichert – nur ein Zugangsschlüssel von Ring, und der bleibt auf dem Bildschirm.
             In der Ring-App (Kontrollzentrum → Autorisierte Client-Geräte) erscheint der Spiegel als „LUMIRA Spiegel“ und lässt sich dort jederzeit entfernen.</p>
         </div>
 
@@ -655,7 +645,7 @@
         <div class="card">
           <h2>Ton</h2>
           <div class="toggle">
-            <span class="tl2">Klingelton auf dem Spiegel<small>braucht Lautsprecher am Spiegel</small></span>
+            <span class="tl2">Klingelton auf dem Bildschirm<small>braucht Lautsprecher am Gerät</small></span>
             <button class="sw" id="db-sound" role="switch" aria-label="Klingelton"></button>
           </div>
           <div class="field"><label for="db-sound-src">Ton</label>
@@ -671,7 +661,7 @@
             <input type="file" id="db-sound-file" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg" hidden>
             <button type="button" class="btn small" id="db-sound-del" hidden>Eigenen Ton löschen</button>
           </div>
-          <p class="save-hint" id="db-sound-info">MP3, WAV oder OGG bis 5 MB. Der Ton liegt auf dem Spiegel – zum Abspielen braucht es kein Internet.</p>
+          <p class="save-hint" id="db-sound-info">MP3, WAV oder OGG bis 5 MB. Der Ton liegt auf dem Bildschirm – zum Abspielen braucht es kein Internet.</p>
         </div>
 
         <div class="card">
@@ -710,25 +700,32 @@
             <button class="sw" id="db-countdown" role="switch" aria-label="Countdown"></button>
           </div>
           <p class="save-hint">Das Video wird ohne Umrechnen direkt weitergereicht – so schafft es auch ein Raspberry Pi 3. Es kommt etwa
-            2–4 Sekunden verzögert an. Ohne Video (Fehler, Ende-zu-Ende-Verschlüsselung in der Ring-App) zeigt der Spiegel das letzte Bild der Klingel.</p>
+            2–4 Sekunden verzögert an. Ohne Video (Fehler, Ende-zu-Ende-Verschlüsselung in der Ring-App) zeigt der Bildschirm das letzte Bild der Klingel.</p>
         </div>
         </div>
       </section>
 
-      <!-- Wetteranzeige (weather.js, MMM-LumiraWeather, weather-view.js) -->
-      <section class="page cols" data-page="wetteranzeige">
-        <p class="page-lead">Eigene Wetteranzeige mit aktuellem Wetter und Vorhersage – 12 Designs, frei platzierbar, Transparenz einstellbar.
-          Änderungen sind nach wenigen Sekunden auf dem Spiegel zu sehen, ohne Neustart.</p>
-        <div class="stack">
-        <div class="card wx-box" data-wx="weather">
-          <h2>Wetteranzeige</h2>
-          <div class="toggle">
-            <span class="tl2">Auf dem Spiegel zeigen<small id="wd-on-sub">aus</small></span>
-            <button class="sw" data-k="enabled" role="switch" aria-label="Wetteranzeige auf dem Spiegel"></button>
+      <!-- Wetter (weather.js, MMM-LumiraWeather, weather-view.js): drei Teile –
+           Aktuell & Vorhersage, Regenradar, Warnungen. Wirkt live über weather.json. -->
+      <section class="page cols" data-page="wetter">
+        <div class="wx-head">
+          <div class="seg wide wx-parts" role="tablist" aria-label="Teil des Wetters">
+            <button type="button" role="tab" data-wpart="now" aria-selected="true">Aktuell &amp; Vorhersage <span class="wx-pstate" data-wstate="weather"></span></button>
+            <button type="button" role="tab" data-wpart="radar" aria-selected="false">Regenradar <span class="wx-pstate" data-wstate="radar"></span></button>
+            <button type="button" role="tab" data-wpart="warn" aria-selected="false">Warnungen <span class="wx-pstate" data-wstate="warnings"></span></button>
           </div>
-          <p class="save-hint" id="wd-loc"></p>
+          <p class="save-hint" id="wx-loc"></p>
+        </div>
+
+        <!-- Teil 1: Aktuell & Vorhersage -->
+        <div class="stack" data-wpanel="now">
+        <div class="card wx-box" data-wx="weather">
+          <h2>Aktuell &amp; Vorhersage</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Bildschirm zeigen<small id="wd-on-sub">aus</small></span>
+            <button class="sw" data-k="enabled" role="switch" aria-label="Aktuelles Wetter und Vorhersage auf dem Bildschirm"></button>
+          </div>
           <p class="save-hint" id="wd-data"></p>
-          <p class="save-hint" id="wd-old" hidden>Das bisherige Wetter ist noch eingeschaltet. Passt die neue Anzeige, unter <a href="#module">Spiegel → Module</a> „Wetter“ ausschalten.</p>
         </div>
 
         <div class="card">
@@ -737,17 +734,6 @@
           <div class="wd-designs" id="wd-designs" role="radiogroup" aria-label="Design"></div>
         </div>
 
-        <div class="card">
-          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small wx-shot-reload">Live-Bild neu laden</button></div>
-          <p class="sub">Oben das gewählte Design in echter Größe (verkleinert, falls breiter als hier), darunter das Live-Bild vom Spiegel.</p>
-          <div class="wd-stage" id="wd-stage"><div class="wd-stage-in" id="wd-preview"></div></div>
-          <p class="save-hint" id="wd-fit" hidden></p>
-          <div class="wx-shot"><img class="wx-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note wx-shot-note">Live-Bild wird geladen …</p></div>
-          <div class="wx-report" data-parts="weather"></div>
-        </div>
-        </div>
-
-        <div class="stack">
         <div class="card wx-box" data-wx="weather">
           <h2>Angezeigte Werte</h2>
           <p class="sub">Was die Wetterquelle nicht liefert, bleibt einfach weg.</p>
@@ -792,37 +778,14 @@
           <div class="wx-layout"></div>
         </div>
         </div>
-      </section>
 
-      <!-- Radar & Warnungen (weather.js, MMM-LumiraWeather) -->
-      <section class="page cols" data-page="wetterkarte">
-        <p class="page-lead">Regenradar und amtliche Wetterwarnungen des Deutschen Wetterdienstes als eigene Kacheln auf dem Spiegel –
-          jede frei platzierbar. Änderungen sind nach wenigen Sekunden auf dem Spiegel zu sehen, ohne Neustart.</p>
-        <div class="stack">
-        <div class="card" id="wx-main">
-          <h2>Radar &amp; Warnungen</h2>
-          <div class="toggle">
-            <span class="tl2">Auf dem Spiegel zeigen<small id="wx-on-sub">aus</small></span>
-            <button class="sw" id="wx-on" role="switch" aria-label="Radar und Warnungen auf dem Spiegel"></button>
-          </div>
-          <p class="save-hint" id="wx-loc"></p>
-          <p class="save-hint" id="wx-old-radar" hidden>Das bisherige Regenradar ist noch eingeschaltet. Passt das neue, unter <a href="#module">Spiegel → Module</a> „Regenradar“ ausschalten.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small wx-shot-reload">Neu laden</button></div>
-          <p class="sub">Live-Bild vom Spiegel – zeigt die Kacheln, wie sie gerade wirklich stehen.</p>
-          <div class="wx-shot"><img class="wx-shot-img" alt="Live-Bild des Spiegels"><p class="mp-note wx-shot-note">Live-Bild wird geladen …</p></div>
-          <div class="wx-report" data-parts="radar,warnings"></div>
-        </div>
-        </div>
-
-        <div class="stack">
+        <!-- Teil 2: Regenradar -->
+        <div class="stack" data-wpanel="radar" hidden>
         <div class="card wx-box" data-wx="radar">
           <h2>Regenradar</h2>
           <div class="toggle">
-            <span class="tl2">Regenradar zeigen<small>Niederschlag rund um euren Ort, DWD</small></span>
-            <button class="sw" data-k="enabled" role="switch" aria-label="Regenradar zeigen"></button>
+            <span class="tl2">Auf dem Bildschirm zeigen<small>Niederschlag rund um euren Ort, DWD</small></span>
+            <button class="sw" data-k="enabled" role="switch" aria-label="Regenradar auf dem Bildschirm"></button>
           </div>
           <div class="wx-fields">
             <div class="field"><label>Karte</label>
@@ -858,12 +821,15 @@
           </div>
           <div class="wx-layout"></div>
         </div>
+        </div>
 
+        <!-- Teil 3: Warnungen -->
+        <div class="stack" data-wpanel="warn" hidden>
         <div class="card wx-box" data-wx="warnings">
           <h2>Wetterwarnungen</h2>
           <div class="toggle">
-            <span class="tl2">Warnungen zeigen<small>amtliche DWD-Warnungen genau für euren Ort</small></span>
-            <button class="sw" data-k="enabled" role="switch" aria-label="Warnungen zeigen"></button>
+            <span class="tl2">Auf dem Bildschirm zeigen<small>amtliche DWD-Warnungen genau für euren Ort</small></span>
+            <button class="sw" data-k="enabled" role="switch" aria-label="Wetterwarnungen auf dem Bildschirm"></button>
           </div>
           <div class="wx-fields">
             <div class="field"><label>Ohne Warnung</label>
@@ -891,10 +857,25 @@
           <div class="wx-layout"></div>
         </div>
         </div>
+
+        <!-- Vorschau, für alle drei Teile -->
+        <div class="stack">
+        <div class="card">
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small wx-shot-reload">Live-Bild neu laden</button></div>
+          <div id="wd-stage-box">
+            <p class="sub">Das gewählte Design in echter Größe (verkleinert, falls breiter als hier).</p>
+            <div class="wd-stage" id="wd-stage"><div class="wd-stage-in" id="wd-preview"></div></div>
+            <p class="save-hint" id="wd-fit" hidden></p>
+          </div>
+          <p class="sub">Live-Bild vom Bildschirm – so stehen die Kacheln gerade wirklich.</p>
+          <div class="wx-shot"><img class="wx-shot-img" alt="Live-Bild des Bildschirms"><p class="mp-note wx-shot-note">Live-Bild wird geladen …</p></div>
+          <div class="wx-report" data-parts="weather,radar,warnings"></div>
+        </div>
+        </div>
       </section>
 
       <section class="page" data-page="standort">
-        <p class="page-lead">Für Wettervorhersage und Regenradar.</p>
+        <p class="page-lead">Für Wetter, Regenradar und Warnungen.</p>
         <div class="card form-cols">
           <div class="field first"><label for="loc-search">Ort/Stadt suchen</label>
             <div class="input-row">
@@ -907,10 +888,6 @@
           <div class="grid2">
             <div class="field"><label for="loc-lat">Breitengrad</label><input type="text" class="mono-in" id="loc-lat"></div>
             <div class="field"><label for="loc-lon">Längengrad</label><input type="text" class="mono-in" id="loc-lon"></div>
-          </div>
-          <div class="toggle" id="rain-row">
-            <span class="tl2">DWD-Regenradar<small>zeigt Regen in den nächsten 2 Stunden</small></span>
-            <button class="sw" id="sw-rain" role="switch" aria-label="Regenradar"></button>
           </div>
           <div class="save-row"><button class="btn primary" data-save="standort">Speichern</button>
             <span class="save-hint" data-savehint="standort"></span></div>
@@ -947,13 +924,14 @@
 
       <!-- ================= ALARM ================= -->
       <section class="page" data-page="alarm">
-        <p class="page-lead">Einstellungen für MMM-aPagerAlarm.</p>
-        <div class="card">
-          <div class="toggle">
-            <span class="tl2">Alarmierung auf dem Spiegel<small id="alarm-on-sub">Aus: kein Alarm auf dem Spiegel, Alarm-Bereich auf der Startseite ausgeblendet</small></span>
-            <button class="sw" id="sw-alarm-on" role="switch" aria-label="Alarmierung auf dem Spiegel"></button>
+        <!-- Aktionen als Kacheln (früher auf der Startseite) -->
+        <section class="card wide" id="card-alarm-actions" hidden>
+          <div class="action-tiles">
+            <button class="action" id="alarm-home" type="button"><span class="at">Zuhause</span><span class="ad">sofort in „Familie" springen</span></button>
+            <button class="action" id="alarm-clear" type="button"><span class="at">Einsatz beenden</span><span class="ad">zurück in die Danke-Nachwirkung</span></button>
+            <button class="action danger" id="alarm-test" type="button"><span class="at">Alarm testen</span><span class="ad">löst einen echten Testalarm auf dem Bildschirm aus</span></button>
           </div>
-        </div>
+        </section>
         <div class="card form-cols">
           <div class="field first">
             <label id="lbl-personname" for="personName">Name der Person</label>
@@ -1025,7 +1003,7 @@
             <summary>Update per SSH – kurze Anleitung</summary>
             <ol class="ssh-steps">
               <li><b>Terminal öffnen</b> – Windows: „Terminal“ bzw. „PowerShell“, Mac/Linux: „Terminal“.</li>
-              <li><b>Mit dem Spiegel verbinden</b> und das Passwort des Raspberry Pi eingeben (beim ersten Mal die Rückfrage mit <span class="mono-in">yes</span> bestätigen):
+              <li><b>Mit LUMIRA verbinden</b> und das Passwort des Raspberry Pi eingeben (beim ersten Mal die Rückfrage mit <span class="mono-in">yes</span> bestätigen):
                 <div class="ssh-cmd" data-cmd="connect"></div>
                 <span class="save-hint" id="ssh-ip-hint" hidden>Klappt <span class="mono-in" data-ssh="host"></span> nicht (oft unter Windows/Android), per IP:</span>
                 <div class="ssh-cmd" data-cmd="connect-ip" hidden></div></li>
@@ -1038,7 +1016,7 @@
 
         <div class="card">
           <h2>System</h2>
-          <p class="sub">Neustart des Mini-PCs, falls der Spiegel sich einmal aufhängt.</p>
+          <p class="sub">Neustart des Mini-PCs, falls LUMIRA sich einmal aufhängt.</p>
           <div class="save-row"><button class="btn" id="pi-reboot" type="button"><svg class="ic"><use href="#i-refresh"/></svg>Pi neu starten</button></div>
         </div>
       </section>
@@ -1046,7 +1024,7 @@
       <!-- Als App (Startbildschirm) -->
       <section class="page cols" data-page="app">
         <p class="page-lead">Das Portal lässt sich wie eine App auf Handy, Tablet und PC ablegen – mit eigenem Symbol und ohne Browserleiste.
-          Es funktioniert, solange das Gerät im selben WLAN wie der Spiegel ist.</p>
+          Es funktioniert, solange das Gerät im selben WLAN wie LUMIRA ist.</p>
 
         <div class="card app-status wide">
           <img src="img/icon-192.png" alt="" width="56" height="56">
@@ -1088,8 +1066,8 @@
             <li><b>Nicht jedes Mal den PIN eingeben:</b> Beim Anmelden „Auf diesem Gerät angemeldet bleiben“ anhaken – dann bleibt die App 90 Tage angemeldet.
               Unter <a href="#sicherheit">Sicherheit</a> kannst du alle Geräte auf einmal abmelden.</li>
             <li><b>Welche Adresse?</b> Die App merkt sich die Adresse, mit der du sie angelegt hast (jetzt: <span class="mono-in" id="app-origin">–</span>).
-              Wird über die IP-Adresse angelegt, sollte der Spiegel im Router eine <b>feste IP</b> bekommen, sonst findet die App ihn nach einem Router-Neustart evtl. nicht mehr.</li>
-            <li><b>Nur im Heimnetz:</b> Unterwegs ist der Spiegel nicht erreichbar – das ist Absicht, deine Daten bleiben zu Hause.</li>
+              Wird über die IP-Adresse angelegt, sollte LUMIRA im Router eine <b>feste IP</b> bekommen, sonst findet die App ihn nach einem Router-Neustart evtl. nicht mehr.</li>
+            <li><b>Nur im Heimnetz:</b> Unterwegs ist LUMIRA nicht erreichbar – das ist Absicht, deine Daten bleiben zu Hause.</li>
           </ul>
         </div>
       </section>
@@ -1106,7 +1084,7 @@
             <button class="btn" id="wlan-change-btn" type="button"><svg class="ic"><use href="#i-wifi"/></svg>WLAN ändern</button>
           </div>
           <p class="save-hint" style="margin-top:10px;">Startet den Einrichtungs-Access-Point
-            „LUMIRA-Setup" neu. Der Spiegel zeigt danach eine Anleitung.</p>
+            „LUMIRA-Setup" neu. Der Bildschirm zeigt danach eine Anleitung.</p>
         </div>
       </section>
 
@@ -1135,9 +1113,9 @@
   <!-- Tab-Leiste (Handy) -->
   <nav class="tabbar" aria-label="Hauptnavigation" data-areas="tabbar"></nav>
 
-<!-- Live-Bild des Spiegels im Vollbild (app.js, Karte „Spiegel“ auf Start) -->
-<div class="mirror-full" id="mirror-full" hidden role="dialog" aria-modal="true" aria-label="Live-Bild des Spiegels im Vollbild">
-  <img id="mirror-full-img" alt="Live-Bild: was der Spiegel gerade zeigt">
+<!-- Live-Bild des Bildschirms im Vollbild (app.js, Karte „Bildschirm“ auf Start) -->
+<div class="mirror-full" id="mirror-full" hidden role="dialog" aria-modal="true" aria-label="Live-Bild des Bildschirms im Vollbild">
+  <img id="mirror-full-img" alt="Live-Bild: was der Bildschirm gerade zeigt">
   <div class="mirror-full-bar"><span class="dot" id="mirror-full-dot"></span><span id="mirror-full-age">verbinde …</span></div>
   <button type="button" class="mirror-full-x" id="mirror-full-close" aria-label="Vollbild schließen">✕</button>
 </div>

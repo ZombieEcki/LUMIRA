@@ -2,7 +2,7 @@
  * Module: MMM-Ambient
  *
  * Dauerschleife auf dem Spiegel – ein gezeichnetes Lagerfeuer oder ein
- * eigenes Video/Bild aus dem LUMIRA-Portal (Spiegel → Bildschirm).
+ * eigenes Video/Bild aus dem LUMIRA-Portal (Bildschirm → Dauerschleife).
  *
  *  - „Vollbild“: nur das Medium, über allem.
  *  - „Hintergrund“: Medium abgedunkelt hinter den Modulen.

@@ -101,7 +101,7 @@ Ordner bietet das Portal kein Update an (nur per SSH), es läuft immer nur ein
 Update gleichzeitig. `GET /api/status` liefert zusätzlich
 `network.ipv4` (IPv4-Adressen ohne virtuelle Adapter) für die Info-Seite.
 
-## Türklingel-API (Spiegel → Klingel)
+## Türklingel-API (Bildschirm → Türklingel)
 
 Ring-Verbindung in `lib/ring.js`, Ablauf in `lib/doorbell.js`, Anzeige im Modul
 `MMM-Doorbell`. Alle Routen PIN-geschützt, keine startet MagicMirror neu

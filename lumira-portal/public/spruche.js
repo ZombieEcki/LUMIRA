@@ -1,9 +1,9 @@
-// LUMIRA Self-Service-Portal – Sprüche (Familie → Sprüche).
+// LUMIRA Self-Service-Portal – Sprüche (Bildschirm → Sprüche).
 // Kategorien an/aus, Sprüche bearbeiten, eigene Kategorien, Anlässe,
 // Darstellung, Sicherung. Alles landet in ~/.lumira/compliments.json
-// (lib/compliments.js) und wirkt live auf dem Spiegel (MMM-SmartCompliments).
+// (lib/compliments.js) und wirkt live auf dem Bildschirm (MMM-SmartCompliments).
 // Kategorien, Auswahl und Darstellung kommen aus spruch/spruch-catalog.js und
-// spruch/spruch-logic.js – denselben Dateien wie auf dem Spiegel.
+// spruch/spruch-logic.js – denselben Dateien wie auf dem Bildschirm.
 // Vanilla-JS, Texte nur per textContent.
 (function () {
   "use strict";
@@ -467,7 +467,7 @@
     box.innerHTML = "";
     var r = C && C.report;
     if (!r) return;
-    if (r.text) $("#sp-now").textContent = "Gerade auf dem Spiegel: „" + r.text.replace(/\n/g, " ") + "“";
+    if (r.text) $("#sp-now").textContent = "Gerade auf dem Bildschirm: „" + r.text.replace(/\n/g, " ") + "“";
     if (C.display.anchor === "auto") return;
     var lines = [];
     if (r.overlaps && r.overlaps.length) lines.push("Der Spruch überdeckt: " + r.overlaps.join(", "));
@@ -492,7 +492,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // Live-Bild des Spiegels (solange die Seite offen ist)
+  // Live-Bild des Bildschirms (solange die Seite offen ist)
   // ---------------------------------------------------------------------
   function shotActive() { return ctx.currentPage() === "spruche" && !document.hidden; }
 
@@ -500,7 +500,7 @@
     clearTimeout(shotTimer);
     if (!shotActive()) return;
     fetch("/api/mirror/screenshot", { credentials: "same-origin", cache: "no-store" }).then(function (res) {
-      if (!res.ok) throw new Error("Der Spiegel liefert gerade kein Bild.");
+      if (!res.ok) throw new Error("Der Bildschirm liefert gerade kein Bild.");
       return res.blob();
     }).then(function (blob) {
       var old = shotUrl;

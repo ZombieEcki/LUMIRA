@@ -1,4 +1,4 @@
-// LUMIRA – Türklingel auf dem Spiegel (Spiegel → Klingel).
+// LUMIRA – Türklingel auf dem Spiegel (Bildschirm → Türklingel).
 //
 // Klingelt es (Ring, siehe lib/ring.js) oder wird im Portal getestet, legt
 // diese Datei ein Ereignis an: erst eine kompakte Meldung in der Mitte, dann

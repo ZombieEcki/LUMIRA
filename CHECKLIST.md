@@ -23,7 +23,7 @@ um den aktuellen Stand zu sehen.
 - [x] **install.sh** – Ein-Befehl-Setup (`git clone` + `./install.sh`)
 - [x] Node.js- und MagicMirror²-Installation (überspringt, falls vorhanden)
 - [x] Interaktiver Assistent: Standort (automatische Geokoordinaten), Kalender, Nachrichten-Feed
-- [x] Regenradar **realoliwer/MMM-RainRadarDWD als Standard**, im Assistenten abwählbar/ersetzbar
+- [x] ~~Regenradar realoliwer/MMM-RainRadarDWD als Standard~~ – ersetzt durch MMM-LumiraWeather
 - [x] Autostart per pm2 mit Wayland (`WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`)
 - [x] `./install.sh --reconfigure` – Config jederzeit neu erzeugen, ohne Neuinstallation
 - [x] Emoji-Schrift (`fonts-noto-color-emoji`) automatisch installiert
@@ -222,7 +222,7 @@ um den aktuellen Stand zu sehen.
       Schrift; „nur Radar / nur Warnungen / beides“; ohne Warnung ausblenden oder Hinweis
 - [x] Portal: Spiegel → **Radar & Warnungen**, live ohne Neustart, Vorschau (Live-Bild),
       Spiegel meldet Überschneidungen mit Uhr/Familienplan/Kalender & Co.
-- [ ] Auf dem Spiegel prüfen, dann altes MMM-RainRadarDWD abschalten/entfernen
+- [x] Altes MMM-RainRadarDWD entfernt (Portal-Neuordnung, Schritt 1)
 
 ### Spiegel: Wetteranzeige (MMM-LumiraWeather, dritte Kachel)
 - [x] Aktuelles Wetter + Vorhersage von Open-Meteo (Modelle u. a. des DWD, ohne Schlüssel),
@@ -236,8 +236,7 @@ um den aktuellen Stand zu sehen.
       Schatten; Werte einzeln ein-/ausblendbar; Wind km/h, m/s oder Beaufort
 - [x] Portal: Spiegel → **Wetteranzeige** mit Designauswahl (echte Daten), Vorschau in
       echter Größe, Live-Bild, Überschneidungen (auch zwischen Radar/Warnungen/Wetter)
-- [ ] Nach dem MagicMirror-Fix auf dem Pi 3 parallel testen, dann „Wetter“ unter
-      Spiegel → Module abschalten
+- [x] Altes Wettermodul `weather` entfernt (Portal-Neuordnung, Schritt 1)
 
 ### Familie: Sprüche (MMM-SmartCompliments 1.2)
 - [x] Katalog (`spruch-catalog.js`, auch im Portal): bisherige Kategorien + 20 neue mit je 12
@@ -303,6 +302,21 @@ um den aktuellen Stand zu sehen.
       Jahrestag, Verlobungstag, Kennenlerntag, Einzugstag, eigener Anlass),
       Glückwunsch mit Zahl der Jahre, Erinnerung eine Woche vorher; alter
       Hochzeitstag wird übernommen
+
+### Portal-Neuordnung, Schritt 1: Ordnen und benennen ([Konzept](concept/portal-neuordnung.md))
+- [x] Bereich **Bildschirm** statt „Spiegel“: Übersicht, Wetter, Sprüche, Kalender,
+      Nachrichten, Dauerschleife, Türklingel
+- [x] **Wetter** als eine Seite mit Reitern *Wetter jetzt / Regenradar / Warnungen* (je an/aus)
+- [x] Startseite: Statuswerte oben, darunter Bildschirm | Wetter | Als Nächstes, dann Familienplan
+- [x] Alarm: *Zuhause / Einsatz beenden / Alarm testen* als Kacheln oben auf der Alarmseite
+- [x] Übersicht: Zahnrad je Modul öffnet seine Einstellungen
+- [x] Ausgeschaltete Module verschwinden aus Navigation und Startseite (z. B. Familienplan)
+- [x] Platz für Spezialmodule („Extras“, heute nur Familienplan); Mitglieder und
+      Besondere Tage im Familien-Menü oben rechts
+- [x] Altes Wettermodul und MMM-RainRadarDWD entfernt, Schalter einmalig übernommen
+      (`weather.migrateLegacy`), `install.sh` löscht den alten Radar-Ordner
+- [ ] Schritt 2: Bildschirm-Übersicht in echter Größe mit Ziehen & Ablegen
+- [ ] Warnung beim Einschalten des zweiten Spezialmoduls („Extras“)
 
 ---
 

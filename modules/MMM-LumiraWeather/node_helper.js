@@ -2,7 +2,7 @@
  * Node Helper: MMM-LumiraWeather
  *
  * Liest die Einstellungen aus ~/.lumira/weather.json (gepflegt im
- * LUMIRA-Portal, Spiegel → Radar & Warnungen) per fs.watch – kein Neustart.
+ * LUMIRA-Portal, Bildschirm → Wetter) per fs.watch – kein Neustart.
  * Holt alle 5 Minuten:
  *  - die amtlichen Warnungen des DWD genau für den Standort (WFS, GeoJSON),
  *  - die Zeitachse des DWD-Niederschlagsradars (für „Jetzt“ und +2 h).

@@ -26,7 +26,7 @@ Das Modul braucht keine Position; die Fläche hängt direkt am `<body>`
 
 ## config.js
 
-Erzeugt das Portal, sobald Spiegel → Klingel eingeschaltet ist:
+Erzeugt das Portal, sobald Bildschirm → Türklingel eingeschaltet ist:
 
 ```js
 {

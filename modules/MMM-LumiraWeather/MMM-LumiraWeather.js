@@ -10,8 +10,8 @@
  *  - Wetteranzeige: aktuelles Wetter und Vorhersage (Open-Meteo) in einem
  *    von 12 Designs (weather-view.js / weather-view.css), eigener Schalter.
  *
- * Einstellungen kommen live aus dem LUMIRA-Portal (Spiegel → Radar &
- * Warnungen) über ~/.lumira/weather.json. Die Kacheln hängen direkt am
+ * Einstellungen kommen live aus dem LUMIRA-Portal (Bildschirm → Wetter)
+ * über ~/.lumira/weather.json. Die Kacheln hängen direkt am
  * <body>, die Module-Position in der config.js spielt keine Rolle.
  *
  * MIT Licensed.

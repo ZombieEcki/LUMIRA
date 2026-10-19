@@ -741,7 +741,7 @@ app.get("/api/mirror/screenshot", requireAuth, (req, res) => {
 			let body = "";
 			up.on("data", (chunk) => (body += chunk));
 			up.on("end", () => {
-				let msg = "Kein Bild vom Spiegel";
+				let msg = "Kein Bild vom Bildschirm";
 				try { msg = JSON.parse(body).error || msg; } catch (e) { /* MagicMirror ohne LUMIRA-Modul */ }
 				res.status(up.statusCode === 404 ? 503 : up.statusCode || 502).json({ error: msg });
 			});
@@ -813,7 +813,7 @@ app.use((req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// Dauerschleife auf dem Spiegel (Spiegel → Bildschirm), siehe lib/ambient.js.
+// Dauerschleife auf dem Spiegel (Bildschirm → Dauerschleife), siehe lib/ambient.js.
 // Wirkt live über ~/.lumira/ambient.json – kein MagicMirror-Neustart.
 // ---------------------------------------------------------------------------
 const ambient = ambientLib.createAmbient({ home: settingsLib.LUMIRA_HOME });
@@ -900,7 +900,7 @@ function expireAmbientSafe() {
 }
 
 // ---------------------------------------------------------------------------
-// Türklingel (Spiegel → Klingel), siehe lib/doorbell.js und lib/ring.js.
+// Türklingel (Bildschirm → Türklingel), siehe lib/doorbell.js und lib/ring.js.
 // Klingeln → Meldung + Live-Video auf dem Spiegel, live über doorbell.json.
 // Ring-Zugangsdaten verlassen das Portal nie: E-Mail/Passwort werden nur
 // einmal an Ring geschickt, gespeichert wird allein der Token (Datei 0600),
@@ -1019,8 +1019,8 @@ app.post("/api/ring/reconnect", requireAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Regenradar & Wetterwarnungen (Spiegel → Radar & Warnungen) und
-// Wetteranzeige (Spiegel → Wetteranzeige), siehe lib/weather.js und
+// Regenradar & Wetterwarnungen (Bildschirm → Wetter) und
+// Wetteranzeige (Bildschirm → Wetter), siehe lib/weather.js und
 // modules/MMM-LumiraWeather. Wirkt live über weather.json.
 // ---------------------------------------------------------------------------
 const weather = weatherLib.createWeather({ home: settingsLib.LUMIRA_HOME });
@@ -1029,7 +1029,7 @@ app.get("/api/weather", requireAuth, (req, res) => {
 	try { res.json(weather.view()); } catch (err) { res.status(500).json({ error: "Interner Fehler" }); }
 });
 
-// Wetterdaten für die Vorschau der Designs (Spiegel → Wetteranzeige)
+// Wetterdaten für die Vorschau der Designs (Bildschirm → Wetter)
 app.get("/api/weather/forecast", requireAuth, async (req, res) => {
 	try { res.json(await weather.forecast()); } catch (err) { res.status(500).json({ error: "Interner Fehler" }); }
 });
@@ -1072,6 +1072,11 @@ if (require.main === module) {
 	setInterval(expireAmbientSafe, 60 * 1000);
 	// Regenradar & Warnungen: Standort aus den Einstellungen übernehmen
 	try { weather.setLocation(settingsLib.load().location); } catch (err) { console.error("[lumira-portal] Wetter:", err.message); }
+	// Alte Wettermodule entfernt: Einstellungen einmalig übernehmen
+	try {
+		const st = settingsLib.load();
+		if (weather.migrateLegacy(st, { hasRain: getEdition(st.edition).hasRain })) console.log("[lumira-portal] Wetter: altes Wetter/Regenradar in MMM-LumiraWeather übernommen");
+	} catch (err) { console.error("[lumira-portal] Wetter-Übernahme:", err.message); }
 	// Türklingel: liegengebliebenes Ereignis weg, Ring verbinden (falls an)
 	doorbell.reset();
 	syncDoorbell(settingsLib.load());

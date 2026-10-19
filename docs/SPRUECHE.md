@@ -2,7 +2,7 @@
 
 Das Sprüchemodul `MMM-SmartCompliments` ist LUMIRAs eigenes Modul. Es zeigt
 immer **genau einen** Spruch und wählt ihn passend zur Situation aus. Bedient
-wird alles im Portal unter **Familie → Sprüche**. Jede Änderung wird sofort
+wird alles im Portal unter **Bildschirm → Sprüche**. Jede Änderung wird sofort
 gespeichert und ist nach wenigen Sekunden auf dem Spiegel – ohne Neustart.
 
 ## 1. So wird ein Spruch ausgewählt
@@ -12,7 +12,7 @@ Bei jedem Wechsel (Standard: alle 30 Sekunden) in dieser Reihenfolge:
 1. **Nach einem Feuerwehreinsatz** (Feuerwehr-Ausgabe): Danke-Botschaften,
    gemischt mit den normalen Sprüchen.
 2. **Besondere Tage** – immer, wenn zutreffend: Geburtstag, Jahrestag
-   (Hochzeitstag …) und Feiertag aus *Familie → Termine*.
+   (Hochzeitstag …) und Feiertag aus *Familien-Menü oben rechts → Besondere Tage*.
 3. **Anlässe** in der eingestellten Reihenfolge (Standard: Wetterwarnung,
    Kalender, Wetter). Der erste, der gerade zutrifft, liefert im eingestellten
    Anteil (Standard: jeder zweite Spruch) einen passenden Spruch:
@@ -174,7 +174,7 @@ läuft es mit allgemeinen Sprüchen weiter.
 | Quelle | Meldung (Notification) | Inhalt / Verwendung |
 |---|---|---|
 | `MMM-LumiraWeather` (Wetteranzeige) | `LUMIRA_WEATHER` | `{ current: { temp, code (WMO), isDay, wind (km/h) } \| null, updatedAt, warnings: { list: [{ event, level, group, onset, expires }], updatedAt } \| null }` – nur gelieferte Werte. Warnungen holt das Wettermodul, sobald die Wetteranzeige oder die Warnkachel an ist |
-| Standard-Wettermodul (`weather`) | `WEATHER_UPDATED` / `CURRENTWEATHER_DATA` | Wetterlage, Temperatur, Wind – nur genutzt, wenn von der Wetteranzeige nichts Frisches da ist |
+| Standard-Wettermodul (`weather`, wird von LUMIRA nicht mehr geladen) | `WEATHER_UPDATED` / `CURRENTWEATHER_DATA` | Wetterlage, Temperatur, Wind – nur genutzt, wenn von der Wetteranzeige nichts Frisches da ist (z. B. eigene config.js) |
 | Kalender (`calendar`) | `CALENDAR_EVENTS` | Titel und Zeiten der Termine (Zusammenfassung „Heute stehen 3 Termine …“ und Stichwort-Anlässe) |
 | `MMM-aPagerAlarm` | `APAGER_STATE` | Ausblenden während des Alarms, Danke-Botschaften danach |
 | LUMIRA-Portal | `~/.lumira/compliments.json` | Sprüche und Einstellungen (live per `fs.watch`) |
@@ -189,14 +189,13 @@ läuft es mit allgemeinen Sprüchen weiter.
    ```bash
    cd ~/LUMIRA && git pull && ./install.sh
    ```
-2. Portal → **Familie → Sprüche**. Alle bisherigen Sprüche und Stimmungen
+2. Portal → **Bildschirm → Sprüche**. Alle bisherigen Sprüche und Stimmungen
    bleiben erhalten. Die neuen Kategorien sind sofort aktiv, außer
    Versaut/Zweideutig. Die Darstellung bleibt „wie bisher“, nur das Symbol
    steht jetzt groß unter dem Spruch (unter *Darstellung → Symbol* umstellbar).
 
-Für Wetter-Anlässe muss ein Wettermodul laufen. Für amtliche Warnungen braucht
-es die neue Wetteranzeige oder die Warnkachel (*Spiegel → Wetteranzeige* bzw.
-*Radar & Warnungen*).
+Für Wetter-Anlässe und amtliche Warnungen muss die Wetteranzeige oder die
+Warnkachel an sein (*Bildschirm → Wetter*).
 
 ## 8. Datensicherung und Rollback
 
@@ -221,9 +220,9 @@ es die neue Wetteranzeige oder die Warnkachel (*Spiegel → Wetteranzeige* bzw.
 
 | Problem | Abhilfe |
 |---|---|
-| Kein Spruch zu sehen | Spiegel → Module: „Familienbotschaften“ an? Startseite: Schalter „Sprüche anzeigen“ an? Während eines Alarms ist er absichtlich weg. |
+| Kein Spruch zu sehen | Bildschirm → Übersicht: „Sprüche“ an? Startseite: Schalter „Sprüche anzeigen“ an? Während eines Alarms ist er absichtlich weg. |
 | Spruch an falscher Stelle | Darstellung → „Wie bisher“ setzt ihn zurück ins Layout. Bei freier Position Abstände und Einheit (px/%) prüfen; die Vorschau zeigt Überschneidungen. |
-| Nie Wetter-Sprüche | Anlässe → Wetterlage an? Läuft ein Wettermodul? Die Daten dürfen nicht älter als 3 Stunden sein. |
+| Nie Wetter-Sprüche | Anlässe → Wetterlage an? Ist die Wetteranzeige an (Bildschirm → Wetter)? Die Daten dürfen nicht älter als 3 Stunden sein. |
 | Nie Warn-Sprüche | Gibt es gerade eine amtliche Warnung? Die Wetteranzeige oder die Warnkachel muss an sein (sie holen die Warnungen). |
 | Kalender-Anlass greift nicht | Termin muss heute sein und ein Stichwort im Titel haben (Bearbeiten → Stichwörter). Läuft das Kalendermodul? |
 | Eine Kategorie fehlt | Feuerwehr-Kategorien nur in der Feuerwehr-Ausgabe; Montags-/Wochenendsprüche nur an diesen Tagen. |

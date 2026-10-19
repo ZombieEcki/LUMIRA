@@ -185,7 +185,7 @@
           toast: toast,
           datePicker: datePicker,
           getSettings: function () { return SETTINGS; },
-          setSettings: function (s) { SETTINGS = s; renderModulePreview(); },
+          setSettings: function (s) { SETTINGS = s; applyModuleState(true); },
           onPlanChange: function (plan) { setFamilyMembers(plan.members || []); renderStartFamily(plan); renderMemberChip(plan.members || []); }
         });
       }
@@ -217,7 +217,7 @@
         window.LumiraDoorbell.init({
           toast: toast,
           currentPage: function () { return currentPage; },
-          // Schalter „Türklingel“: wie Spiegel → Module (MagicMirror startet neu)
+          // Schalter „Türklingel“: wie Bildschirm → Übersicht (MagicMirror startet neu)
           setModule: function (on) {
             var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { doorbell: !!on });
             return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
@@ -233,10 +233,9 @@
         this.classList.add("is-spinning");
         location.reload();
       });
-      $("#member-chip").addEventListener("click", function () {
-        goPage("familienplan");
-        if (window.LumiraFamilyPlan && window.LumiraFamilyPlan.showTab) window.LumiraFamilyPlan.showTab("mitglieder");
-      });
+      if (STATUS.edition.flags.hasFamily) wireMemberMenu();
+      // Wetter-Teile für die Aufbau-Ansicht auf Start und die Übersicht
+      api("/api/weather").then(function (w) { WX = w; renderModulePreview(); renderModuleList(); }).catch(function () {});
       renderGreeting();
       renderStartNext();
       loadWeather();
@@ -257,7 +256,6 @@
       if (!flags[el.getAttribute("data-need")]) el.hidden = true;
     });
     $("#card-alarm-actions").hidden = !flags.hasAlarm;
-    $("#rain-row").style.display = flags.hasRain ? "" : "none";
     $("#info-edition").textContent = STATUS.edition.name;
     $("#info-hostname").textContent = STATUS.hostname;
     $("#info-portal").textContent = (STATUS.portalUrl || "").replace(/^https?:\/\//, "");
@@ -282,7 +280,6 @@
     $("#loc-name").value = s.location.name || "";
     $("#loc-lat").value = s.location.lat;
     $("#loc-lon").value = s.location.lon;
-    setSwitch($("#sw-rain"), !!s.rainRadar.enabled);
 
     renderCalUrls(s.calendar.urls || []);
     var newsSel = $("#news-select");
@@ -727,28 +724,53 @@
   // ---------------------------------------------------------------------
   // Navigation
   // ---------------------------------------------------------------------
-  // Fünf Bereiche (concept/design-system.md 5.1), je mit ihren Seiten.
+  // Bereiche (concept/portal-neuordnung.md), je mit ihren Seiten:
+  // [Seite, Titel, Editions-Merkmal, Modul]. Ist das Modul aus, verschwindet
+  // die Seite aus der Navigation (per Adresse bleibt sie erreichbar), ein
+  // Bereich ohne sichtbare Seite verschwindet ganz. Spezialmodule (eigene
+  // Anwendungen) teilen sich einen Bereich: bei einem trägt er dessen Namen,
+  // ab zwei heißt er „Extras“. „Familie“ steht nicht in der Leiste, sondern im
+  // Menü hinter den Avataren oben rechts.
   // Desktop: Icon-Leiste links, Handy: Tab-Leiste unten; Bereiche mit
   // mehreren Seiten zeigen oben Reiter. Die Adresse (#seite) merkt sich die
   // Seite, damit Zurück-Taste und Lesezeichen funktionieren.
   var AREAS = [
     { id: "start", label: "Start", icon: "home", pages: [["start", "Übersicht"]] },
-    { id: "familie", label: "Familie", icon: "users", need: "hasFamily", pages: [["familienplan", "Familienplan"], ["familie", "Termine"], ["spruche", "Sprüche"]] },
-    { id: "spiegel", label: "Spiegel", icon: "monitor", pages: [["module", "Module"], ["bildschirm", "Bildschirm"], ["klingel", "Klingel"], ["wetteranzeige", "Wetteranzeige"], ["wetterkarte", "Radar & Warnungen"], ["standort", "Standort & Wetter"], ["kalender", "Kalender", "hasCal"], ["news", "Nachrichten"]] },
-    { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarmierung"]] },
-    { id: "mehr", label: "Mehr", icon: "more", pages: [["info", "Info & Updates"], ["app", "Als App"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit"]] }
+    { id: "bildschirm", label: "Bildschirm", icon: "monitor", pages: [["module", "Übersicht"], ["wetter", "Wetter"],
+      ["spruche", "Sprüche", "hasFamily", "compliments"], ["kalender", "Kalender", "hasCal", "calendar"], ["news", "Nachrichten", null, "news"],
+      ["bildschirm", "Dauerschleife"], ["klingel", "Türklingel", null, "doorbell"]] },
+    { id: "extras", label: "Extras", icon: "users", special: true, pages: [["familienplan", "Familienplan", "hasFamily", "familyPlan"]] },
+    { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarm", null, "alarm"]] },
+    { id: "einstellungen", label: "Einstellungen", icon: "gear", pages: [["standort", "Ort"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit & Geräte"],
+      ["info", "Updates & System"], ["app", "Als App"]] },
+    { id: "familie", label: "Familie", icon: "users", need: "hasFamily", menu: true, pages: [["familie", "Besondere Tage"]] }
   ];
+  // Alte Adressen (Lesezeichen, App) führen weiter
+  var PAGE_ALIAS = { wetteranzeige: "wetter", wetterkarte: "wetter" };
   var currentPage = "";
+  var updCount = 0;
 
-  function visibleAreas() {
+  function moduleByKey(key) { return MODULE_LIST.filter(function (m) { return m.key === key; })[0]; }
+  function pageOn(p) { return !p[3] || !SETTINGS || !moduleByKey(p[3]) || moduleOn(moduleByKey(p[3])); }
+
+  // Alle Bereiche dieser Edition (zum Ansteuern per Adresse) …
+  function editionAreas() {
     var flags = STATUS.edition.flags;
     return AREAS.filter(function (a) { return !a.need || flags[a.need]; }).map(function (a) {
-      return { id: a.id, label: a.label, icon: a.icon, pages: a.pages.filter(function (p) { return !p[2] || flags[p[2]]; }) };
-    });
+      return { id: a.id, label: a.label, icon: a.icon, menu: !!a.menu, special: !!a.special, pages: a.pages.filter(function (p) { return !p[2] || flags[p[2]]; }) };
+    }).filter(function (a) { return a.pages.length; });
+  }
+
+  // … und was davon in der Navigation steht (ohne ausgeschaltete Module)
+  function navAreas() {
+    return editionAreas().filter(function (a) { return !a.menu; }).map(function (a) {
+      var pages = a.pages.filter(pageOn);
+      return Object.assign({}, a, { label: a.special && pages.length === 1 ? pages[0][1] : a.label, pages: pages });
+    }).filter(function (a) { return a.pages.length; });
   }
 
   function areaOf(page) {
-    return visibleAreas().filter(function (a) { return a.pages.some(function (p) { return p[0] === page; }); })[0] || null;
+    return editionAreas().filter(function (a) { return a.pages.some(function (p) { return p[0] === page; }); })[0] || null;
   }
 
   function svgIcon(name) {
@@ -763,11 +785,12 @@
   }
 
   function goPage(name) {
+    name = PAGE_ALIAS[name] || name;
     var area = areaOf(name);
     if (!area) { name = "start"; area = areaOf("start"); }
     currentPage = name;
     if (name === "klingel" && window.LumiraDoorbell) window.LumiraDoorbell.reload();
-    if ((name === "wetterkarte" || name === "wetteranzeige") && window.LumiraWeather) window.LumiraWeather.show(name);
+    if (name === "wetter" && window.LumiraWeather) window.LumiraWeather.show(name);
     if (name === "spruche" && window.LumiraSpruche) window.LumiraSpruche.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
@@ -775,11 +798,22 @@
       b.classList.toggle("active", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
-    // Reiter des Bereichs
+    renderTabs(name, area);
+    if (location.hash !== "#" + name) {
+      try { history.replaceState(null, "", "#" + name); } catch (e) { location.hash = name; }
+    }
+    window.scrollTo(0, 0);
+    mirrorKick();
+  }
+
+  // Reiter des Bereichs (die sichtbaren Seiten, die aktuelle immer) und Kopfzeile
+  function renderTabs(name, area) {
+    var nav = navAreas().filter(function (a) { return a.id === area.id; })[0];
+    var tabs = area.pages.filter(function (p) { return p[0] === name || (nav && nav.pages.some(function (q) { return q[0] === p[0]; })); });
     var sub = $("#subnav");
     sub.innerHTML = "";
-    sub.hidden = area.pages.length < 2;
-    area.pages.forEach(function (p) {
+    sub.hidden = tabs.length < 2;
+    tabs.forEach(function (p) {
       var b = document.createElement("button");
       b.type = "button";
       b.setAttribute("role", "tab");
@@ -792,21 +826,20 @@
     if (name === "start") {
       renderGreeting();
     } else {
-      $("#area-eyebrow").textContent = area.label;
-      $("#area-title").textContent = area.pages.filter(function (p) { return p[0] === name; })[0][1];
+      var title = area.pages.filter(function (p) { return p[0] === name; })[0][1];
+      // Spezialmodule: „Extras“ erst ab zweien, sonst heißt der Bereich wie das Modul (auch wenn es gerade aus ist)
+      $("#area-eyebrow").textContent = nav ? nav.label : area.special ? title : area.label;
+      $("#area-title").textContent = title;
       $("#area-sub").textContent = "";
     }
-    if (location.hash !== "#" + name) {
-      try { history.replaceState(null, "", "#" + name); } catch (e) { location.hash = name; }
-    }
-    window.scrollTo(0, 0);
-    mirrorKick();
   }
 
-  function wireNav() {
+  // Leiste und Tab-Leiste aufbauen – neu bei jeder Änderung der Module
+  function renderNav() {
     ["rail", "tabbar"].forEach(function (kind) {
       var host = $('[data-areas="' + kind + '"]');
-      visibleAreas().forEach(function (a) {
+      host.innerHTML = "";
+      navAreas().forEach(function (a) {
         var b = document.createElement("button");
         b.type = "button";
         b.className = kind === "rail" ? "rail-btn" : "tab-btn";
@@ -817,16 +850,25 @@
         lbl.className = "lbl";
         lbl.textContent = a.label;
         b.appendChild(lbl);
-        if (a.id === "mehr") {
+        if (a.id === "einstellungen") {
           var badge = document.createElement("span");
           badge.className = "nav-badge area-badge";
-          badge.hidden = true;
+          badge.hidden = !updCount;
+          badge.textContent = String(updCount);
           b.appendChild(badge);
+        }
+        if (currentPage && areaOf(currentPage) && areaOf(currentPage).id === a.id) {
+          b.classList.add("active");
+          b.setAttribute("aria-current", "page");
         }
         b.addEventListener("click", function () { goPage(a.pages[0][0]); });
         host.appendChild(b);
       });
     });
+  }
+
+  function wireNav() {
+    renderNav();
     // Links innerhalb der Seiten (#seite) und Zurück-Taste
     window.addEventListener("hashchange", function () {
       var target = location.hash.replace(/^#/, "");
@@ -834,6 +876,33 @@
     });
     $("#upd-bell").addEventListener("click", function () { goPage("info"); });
     goPage(location.hash.replace(/^#/, "") || "start");
+  }
+
+  // Familien-Menü hinter den Avataren oben rechts
+  function wireMemberMenu() {
+    var chip = $("#member-chip");
+    var menu = $("#member-menu");
+    function close() { menu.hidden = true; chip.setAttribute("aria-expanded", "false"); }
+    chip.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var open = menu.hidden;
+      menu.hidden = !open;
+      chip.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) { var first = menu.querySelector("button"); if (first) first.focus(); }
+    });
+    $all("[data-go]", menu).forEach(function (b) {
+      b.addEventListener("click", function () {
+        close();
+        if (b.getAttribute("data-go") === "mitglieder") {
+          goPage("familienplan");
+          if (window.LumiraFamilyPlan && window.LumiraFamilyPlan.showTab) window.LumiraFamilyPlan.showTab("mitglieder");
+        } else {
+          goPage(b.getAttribute("data-go"));
+        }
+      });
+    });
+    document.addEventListener("click", function (e) { if (!menu.hidden && !menu.contains(e.target)) close(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) { close(); chip.focus(); } });
   }
 
   // Hell / Dunkel / Auto (System), gemerkt im Browser
@@ -866,11 +935,6 @@
   // Speichern
   // ---------------------------------------------------------------------
   function wireSaves() {
-    $("#sw-alarm-on").addEventListener("click", function () {
-      // Umschalten übernimmt setSwitch, hier nur der Hinweis
-      var hint = $('[data-savehint="alarm"]');
-      if (hint) hint.textContent = "Zum Übernehmen unten speichern.";
-    });
     $all("[data-save]").forEach(function (btn) {
       btn.addEventListener("click", function () { save(btn.getAttribute("data-save"), btn); });
     });
@@ -890,8 +954,7 @@
     }
     if (section === "standort") {
       return {
-        location: { name: $("#loc-name").value.trim(), lat: Number($("#loc-lat").value), lon: Number($("#loc-lon").value) },
-        rainRadar: { enabled: switchOn($("#sw-rain")) }
+        location: { name: $("#loc-name").value.trim(), lat: Number($("#loc-lat").value), lon: Number($("#loc-lon").value) }
       };
     }
     if (section === "module") {
@@ -915,7 +978,6 @@
     }
     if (section === "alarm") {
       return {
-        modules: Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { alarm: switchOn($("#sw-alarm-on")) }),
         person: { name: $("#personName").value.trim() },
         alarm: {
           title: $("#alarmTitle").value.trim(),
@@ -960,7 +1022,7 @@
       api("/api/proxy/alarm/clear", { method: "POST" }).then(function () { toast("Einsatz beendet"); refreshStatus(); }).catch(function (err) { toast(err.message); });
     });
     $("#alarm-test").addEventListener("click", function () {
-      if (!confirm("Löst einen echten Testalarm auf dem Spiegel aus (Ton, Vollbild-Overlay). Fortfahren?")) return;
+      if (!confirm("Löst einen echten Testalarm auf dem Bildschirm aus (Ton, Vollbild-Overlay). Fortfahren?")) return;
       api("/api/proxy/alarm/test", { method: "POST" }).then(function () { toast("Testalarm ausgelöst"); refreshStatus(); }).catch(function (err) { toast(err.message); });
     });
     $("#compliments-toggle").addEventListener("click", function () {
@@ -976,20 +1038,40 @@
   // ---------------------------------------------------------------------
   // Steuerung der Module: Platzhalter-Liste + rein visuelle Vorschau
   // ---------------------------------------------------------------------
-  // Spiegel → Module: was auf den Spiegel kommt (lib/generate-config.js).
-  // where: "modules" = settings.modules[key], sonst eigenes enabled-Feld
+  // Bildschirm → Übersicht: was auf den Bildschirm kommt (lib/generate-config.js).
+  // where: "modules" = settings.modules[key], sonst eigenes enabled-Feld;
+  // page: Einstellungsseite (Zahnrad)
   var MODULE_LIST = [
     { key: "clock", label: "Uhr", desc: "oben links" },
-    { key: "weather", label: "Wetter", desc: "aktuell und Vorhersage" },
-    { key: "rainRadar", where: "rainRadar", need: "hasRain", label: "Regenradar", desc: "Regen in den nächsten 2 Stunden" },
-    { key: "calendar", need: "hasCal", label: "Kalender", desc: "Termine aus euren Kalendern" },
-    { key: "news", label: "Nachrichten", desc: "Ticker am unteren Rand" },
-    { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste" },
-    { key: "compliments", need: "hasFamily", label: "Familienbotschaften", desc: "Sprüche, Geburtstage, Hinweise" },
-    { key: "alarm", need: "hasAlarm", label: "Alarmierung", desc: "aPager – aus: kein Alarm auf dem Spiegel" },
-    { key: "doorbell", label: "Türklingel", desc: "Ring – Meldung und Live-Video beim Klingeln" },
+    { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste", page: "familienplan" },
+    { key: "compliments", need: "hasFamily", label: "Sprüche", desc: "Sprüche, Geburtstage, Hinweise", page: "spruche" },
+    { key: "calendar", need: "hasCal", label: "Kalender", desc: "Termine aus euren Kalendern", page: "kalender" },
+    { key: "news", label: "Nachrichten", desc: "Ticker am unteren Rand", page: "news" },
+    { key: "alarm", need: "hasAlarm", label: "Alarmierung", desc: "aus: kein Alarm auf dem Bildschirm", page: "alarm" },
+    { key: "doorbell", label: "Türklingel", desc: "Ring – Meldung und Live-Video beim Klingeln", page: "klingel" },
     { key: "statusHint", label: "Portal-Hinweis", desc: "kleine Zeile mit der Portal-Adresse" }
   ];
+  var WX = null; // Stand von /api/weather (Wetter-Teile)
+
+  // Wetter: welche Teile sind auf dem Bildschirm?
+  function weatherParts() {
+    if (!WX) return null;
+    var parts = [];
+    if (WX.weather && WX.weather.enabled) parts.push("Aktuell & Vorhersage");
+    if (WX.enabled && WX.radar && WX.radar.enabled) parts.push("Regenradar");
+    if (WX.enabled && WX.warnings && WX.warnings.enabled) parts.push("Warnungen");
+    return parts;
+  }
+
+  function gearButton(page, label) {
+    var a = document.createElement("a");
+    a.className = "gear-btn";
+    a.href = "#" + page;
+    a.title = label + " einstellen";
+    a.setAttribute("aria-label", label + " einstellen");
+    a.appendChild(svgIcon("gear"));
+    return a;
+  }
 
   function moduleOn(m) {
     if (!SETTINGS) return true;
@@ -1003,35 +1085,59 @@
 
   function renderModuleList() {
     var wrap = $("#module-list-extra");
+    if (!wrap) return;
     wrap.innerHTML = "";
     var flags = STATUS.edition.flags;
     MODULE_LIST.forEach(function (m) {
       if (m.need && !flags[m.need]) return;
       var row = document.createElement("div");
-      row.className = "toggle";
+      row.className = "toggle mod-row";
       var tl = document.createElement("span"); tl.className = "tl2"; tl.textContent = m.label;
       var small = document.createElement("small"); small.textContent = m.desc; tl.appendChild(small);
+      var act = document.createElement("span"); act.className = "mod-act";
       var sw = document.createElement("button"); sw.type = "button"; sw.className = "sw";
       sw.setAttribute("role", "switch"); sw.setAttribute("aria-label", m.label);
       sw.setAttribute("data-module", m.key);
       setSwitch(sw, moduleOn(m)); // setSwitch schaltet beim Klick selbst um
-      row.appendChild(tl); row.appendChild(sw);
+      act.appendChild(sw);
+      if (m.page) act.appendChild(gearButton(m.page, m.label));
+      row.appendChild(tl); row.appendChild(act);
+      wrap.appendChild(row);
+    });
+    // Module mit eigenem Schalter auf ihrer Seite (wirken sofort, ohne Neustart)
+    var parts = weatherParts();
+    [
+      { label: "Wetter", page: "wetter", desc: parts === null ? "…" : parts.length ? parts.join(" · ") : "aus" },
+      { label: "Dauerschleife", page: "bildschirm", desc: $("#start-amb-sub") ? $("#start-amb-sub").textContent : "" }
+    ].forEach(function (m) {
+      var row = document.createElement("div");
+      row.className = "toggle mod-row";
+      var tl = document.createElement("span"); tl.className = "tl2"; tl.textContent = m.label;
+      var small = document.createElement("small"); small.textContent = m.desc + " · Schalter auf der Seite"; tl.appendChild(small);
+      var act = document.createElement("span"); act.className = "mod-act";
+      act.appendChild(gearButton(m.page, m.label));
+      row.appendChild(tl); row.appendChild(act);
       wrap.appendChild(row);
     });
   }
 
   // Alles, was am Modul-Stand hängt, nach dem Laden bzw. Speichern auffrischen
-  function applyModuleState() {
+  function applyModuleState(fromFamilyPlan) {
     var on = alarmEnabled();
     var flags = STATUS.edition.flags;
     if (flags.hasAlarm) {
       $("#tile-alarm").hidden = !on;
       $("#card-alarm-actions").hidden = !on;
     }
-    setSwitch($("#sw-alarm-on"), on);
-    if (SETTINGS && SETTINGS.rainRadar) setSwitch($("#sw-rain"), !!SETTINGS.rainRadar.enabled);
+    // Aus heißt weg: Familienplan aus → keine Karte auf Start
+    if (flags.hasFamily) $("#start-fp").hidden = !moduleOn(moduleByKey("familyPlan"));
     renderModuleList();
     renderModulePreview();
+    renderNav();
+    // Reiter neu (z. B. gerade ein Modul ausgeschaltet)
+    if (currentPage && areaOf(currentPage)) renderTabs(currentPage, areaOf(currentPage));
+    // Familienplan-Seite zeichnet ihren Schalter selbst neu, außer sie hat gerade gespeichert
+    if (!fromFamilyPlan && window.LumiraFamilyPlan && window.LumiraFamilyPlan.refresh) window.LumiraFamilyPlan.refresh();
   }
 
   // ---------------------------------------------------------------------
@@ -1144,9 +1250,9 @@
     fetch("/api/mirror/screenshot", { credentials: "same-origin", cache: "no-store" }).then(function (res) {
       if (!res.ok) {
         return res.json().catch(function () { return {}; }).then(function (d) {
-          var err = new Error(res.status === 503 ? "Der Spiegel liefert gerade kein Bild."
+          var err = new Error(res.status === 503 ? "Der Bildschirm liefert gerade kein Bild."
             : res.status === 401 ? "Bitte neu anmelden."
-            : "Der Spiegel ist nicht erreichbar – aus oder startet gerade.");
+            : "LUMIRA ist nicht erreichbar – aus oder startet gerade.");
           err.detail = d.error || ("HTTP " + res.status);
           throw err;
         });
@@ -1164,7 +1270,7 @@
       });
     }).catch(function (err) {
       MIRROR.failing = true;
-      MIRROR.error = err.detail ? err.message : "Der Spiegel ist nicht erreichbar – aus oder startet gerade.";
+      MIRROR.error = err.detail ? err.message : "LUMIRA ist nicht erreichbar – aus oder startet gerade.";
       $("#mp-note").title = err.detail || err.message;
     }).then(function () {
       MIRROR.busy = false;
@@ -1205,11 +1311,8 @@
     setPreviewCell("top_left", left.join(" · "));
     var compOn = flags.hasFamily && mod("compliments");
     setPreviewCell("top_center", compOn ? "Sprüche" : "");
-    var right = [];
-    if (mod("weather")) right.push("Wetter");
-    var rainOn = flags.hasRain && mod("rainRadar");
-    if (rainOn) right.push("Regenradar");
-    setPreviewCell("top_right", right.join(" · "));
+    var right = weatherParts() || [];
+    setPreviewCell("top_right", right.length ? "Wetter" : "");
     var calOn = flags.hasCal && mod("calendar");
     setPreviewCell("bottom_left", calOn ? "Kalender" : "");
     setPreviewCell("bottom_right", mod("statusHint") ? "Status" : "");
@@ -1271,7 +1374,7 @@
       return false;
     }));
     Promise.all(checks).then(function (results) {
-      // Ein frisches Live-Bild ist auch ein Lebenszeichen des Spiegels
+      // Ein frisches Live-Bild ist auch ein Lebenszeichen des Bildschirms
       var up = results.some(Boolean) || (!!MIRROR.url && !MIRROR.failing && Date.now() - MIRROR.at < 20000);
       $("#mirror-state-text").textContent = up ? "läuft" : "nicht erreichbar";
       setTile("#tile-mirror", up ? "" : "err");
@@ -1306,6 +1409,7 @@
     var names = (s && s.components || []).filter(function (c) { return c.updateAvailable; }).map(function (c) { return c.name; });
     $("#upd-tile-sub").textContent = names.length ? names.join(", ") : "MagicMirror² & Module";
     setTile("#tile-updates", n ? "warn" : (s && s.checkedAt ? "" : "off"));
+    updCount = n;
     $all(".area-badge").forEach(function (b) { b.hidden = !n; b.textContent = String(n); });
   }
 
@@ -1370,7 +1474,7 @@
     var w = plan.currentWeek;
     $("#start-fp-week").textContent = w ? "KW " + w.kw : "";
     if (!w) {
-      wrap.appendChild(el("p", "save-hint", plan.members && plan.members.length ? "Die erste Woche wird gleich angelegt." : "Noch keine Familie angelegt – unter Familie → Familienplan → Mitglieder geht es los."));
+      wrap.appendChild(el("p", "save-hint", plan.members && plan.members.length ? "Die erste Woche wird gleich angelegt." : "Noch keine Familie angelegt – unter Familien-Menü oben rechts → Mitglieder geht es los."));
       renderStartNext();
       return;
     }

@@ -12,7 +12,7 @@ Anleitung, Designs, Datenquellen und Fehlerbehebung: [docs/WETTER.md](../../docs
 ## Aufbau
 
 - **Einstellungen** kommen live aus `~/.lumira/weather.json` (LUMIRA-Portal,
-  Spiegel → Wetteranzeige und Spiegel → Radar & Warnungen), `node_helper.js`
+  Bildschirm → Wetter), `node_helper.js`
   liest per `fs.watch`.
 - `node_helper.js` holt alle 5 min die Warnungen (WFS, Punkt = Standort) und
   die Zeitachse des Radars; die Anzeige lädt die Radarbilder direkt (WMS).

@@ -67,14 +67,13 @@ keine Terminal-Eingabe mehr nötig.
 | `updatenotification` | zeigt verfügbare Updates | Standard |
 | `clock` | digitale Uhr | Standard |
 | `calendar` | Familienkalender (iCloud/ICS) | Standard |
-| `weather` (current + forecast) | Wetter über Open-Meteo | Standard |
 | `newsfeed` | Nachrichtenticker (RSS) | Standard |
-| [`MMM-RainRadarDWD`](https://github.com/realoliwer/MMM-RainRadarDWD) | DWD-Regenradar (Standard, abwählbar) | Drittanbieter |
+| **`MMM-LumiraWeather`** | Wetter (12 Designs, Open-Meteo), DWD-Regenradar und amtliche Warnungen, im Portal unter Bildschirm → Wetter | **Eigen** |
 | **`MMM-aPagerAlarm`** | Feuerwehr-Alarmierung + Home-Assistant-Weiterleitung | **Eigen** |
 | **`MMM-SmartCompliments`** | intelligente Familien-/Motivationssprüche | **Eigen** |
 | **`MMM-LumiraStatus`** | Setup-Anleitung/QR-Code bzw. dezenter Status-Hinweis auf dem Spiegel | **Eigen** |
 | **`MMM-FamilyPlan`** | Familienplan: Wochendienste mit fairer automatischer Rotation, im Portal gepflegt (nur Home/Fire/Rescue, im Portal einschaltbar) | **Eigen** |
-| **`MMM-Ambient`** | Dauerschleife: gezeichnetes Lagerfeuer oder eigenes Video/Bild, Vollbild oder Hintergrund, im Portal unter Spiegel → Bildschirm | **Eigen** |
+| **`MMM-Ambient`** | Dauerschleife: gezeichnetes Lagerfeuer oder eigenes Video/Bild, Vollbild oder Hintergrund, im Portal unter Bildschirm → Dauerschleife | **Eigen** |
 
 ## 🧙 Was im Self-Service-Portal einzutragen ist
 
@@ -174,7 +173,7 @@ pm2 stop MagicMirror      # anhalten
 - **Alarmton**: `alarm.mp3` liegt aus Lizenzgründen nicht im Repo – nach der
   Installation nach `modules/MMM-aPagerAlarm/sounds/` legen.
 - **iCloud-Kalender** muss öffentlich freigegeben sein.
-- **Regenradar**: standardmäßig [realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD); per `./install.sh --no-rainradar` abwählbar oder mit `--rainradar-url=` ersetzbar.
+- **Regenradar**: Teil von `MMM-LumiraWeather` (Bildschirm → Wetter); `./install.sh --no-rainradar` lässt es anfangs aus. Das frühere `MMM-RainRadarDWD` und das MagicMirror-Wettermodul werden nicht mehr genutzt, `install.sh` entfernt den alten Radar-Ordner.
 - **Autostart** setzt eine grafische Wayland-Sitzung voraus (Bookworm-Standard).
 
 ## Lizenz

@@ -32,6 +32,13 @@ function main() {
 	const alarmSoundLib = require("../lib/alarm-sound");
 
 	const settings = settingsLib.load();
+	// Alte Wettermodule entfernt: Einstellungen einmalig an MMM-LumiraWeather übergeben
+	try {
+		const { getEdition } = require("../lib/editions");
+		require("../lib/weather").createWeather({ home: settingsLib.LUMIRA_HOME }).migrateLegacy(settings, { hasRain: getEdition(settings.edition).hasRain });
+	} catch (err) {
+		process.stderr.write(`[generate-config] Wetter-Übernahme: ${err.message}\n`);
+	}
 	try {
 		settingsLib.validate(settings);
 	} catch (err) {

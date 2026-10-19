@@ -2,7 +2,7 @@
  * Node Helper: MMM-Doorbell
  *
  * Liest das vom LUMIRA-Portal gepflegte Klingel-Ereignis aus
- * ~/.lumira/doorbell.json (Spiegel → Klingel) und schickt es an die Anzeige.
+ * ~/.lumira/doorbell.json (Bildschirm → Türklingel) und schickt es an die Anzeige.
  * Live per fs.watch, kein MagicMirror-Neustart nötig. Schreibt nie – das macht
  * nur das Portal (lumira-portal/lib/doorbell.js), auch die Ring-Verbindung
  * läuft dort.

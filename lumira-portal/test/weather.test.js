@@ -262,3 +262,30 @@ test("config.js: MMM-LumiraWeather immer geladen (zeigt nur etwas, wenn im Porta
 	const s = Object.assign(settingsLib.load(), { edition: "fire" });
 	assert.ok(buildModules(s).some((m) => m.module === "MMM-LumiraWeather"));
 });
+
+test("Altes Wetter/Regenradar: Schalter werden einmalig übernommen", () => {
+	const fresh = (name) => weatherLib.createWeather({ home: path.join(HOME, "legacy-" + name) });
+
+	// altes Wetter an (Standard), altes Radar an → Wetteranzeige + Radar an, Radar darunter
+	let w = fresh("beide");
+	assert.equal(w.migrateLegacy({ modules: {}, rainRadar: { enabled: true } }, { hasRain: true }), true);
+	let c = w.load();
+	assert.equal(c.weather.enabled, true);
+	assert.equal(c.enabled, true);
+	assert.equal(c.radar.enabled, true);
+	assert.equal(c.warnings.enabled, false);
+	if (c.radar.anchor === "top_right") assert.ok(c.radar.y >= 330, "Radar unter der Wetteranzeige");
+
+	// nur einmal: danach ausgeschaltet bleibt aus
+	w.setConfig({ weather: { enabled: false } });
+	assert.equal(w.migrateLegacy({ modules: {}, rainRadar: { enabled: true } }, { hasRain: true }), false);
+	assert.equal(w.load().weather.enabled, false);
+
+	// altes Wetter aus, Edition ohne Radar → nichts an
+	w = fresh("aus");
+	w.migrateLegacy({ modules: { weather: false }, rainRadar: { enabled: true } }, { hasRain: false });
+	c = w.load();
+	assert.equal(c.weather.enabled, false);
+	assert.equal(c.enabled, false);
+	assert.equal(JSON.parse(fs.readFileSync(w.statePath, "utf8")).legacyMigrated, true, "Merker gesetzt");
+});

@@ -2,7 +2,7 @@
  * Node Helper: MMM-Ambient
  *
  * Liest die vom LUMIRA-Portal gepflegte Dauerschleife aus
- * ~/.lumira/ambient.json (Spiegel → Bildschirm) und schickt den Zustand an
+ * ~/.lumira/ambient.json (Bildschirm → Dauerschleife) und schickt den Zustand an
  * die Anzeige. Live per fs.watch, kein MagicMirror-Neustart nötig. Schreibt
  * nie – das macht nur das Portal (lumira-portal/lib/ambient.js).
  *

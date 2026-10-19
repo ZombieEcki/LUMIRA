@@ -8,7 +8,6 @@
 #   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments,
 #     modules/MMM-LumiraStatus, modules/MMM-FamilyPlan, modules/MMM-Ambient,
 #     modules/MMM-Doorbell, modules/MMM-LumiraWeather)
-#   - Regenradar MMM-RainRadarDWD (Standard: realoliwer/MMM-RainRadarDWD)
 #   - eine lauffähige config.js mit Platzhalter-Werten für die gewählte Edition
 #   - optional Autostart per pm2
 #
@@ -31,8 +30,7 @@
 #   ./install.sh --edition=fire     # Edition der Grundinstallation (home|fire|rescue|business|station, Standard: fire)
 #   ./install.sh --hostname=lumira  # Hostname für http://<name>.local:8092 (Standard: lumira)
 #   ./install.sh --no-selfservice   # ohne Self-Service-Portal/Watchdog (siehe concept/selfservice.md)
-#   ./install.sh --no-rainradar     # ohne DWD-Regenradar-Modul
-#   ./install.sh --rainradar-url=…  # abweichende Git-URL für das Regenradar-Modul
+#   ./install.sh --no-rainradar     # Regenradar (MMM-LumiraWeather) anfangs aus
 #
 # Self-Service-Portal (lumira-portal, Port 8092) & Watchdog werden standard-
 # mäßig mit eingerichtet: config.js entsteht aus settings.json über
@@ -58,8 +56,10 @@ OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-Fa
 
 WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0; UPDATE_ONLY=0
 EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1
-RAINRADAR_URL_DEFAULT="https://github.com/realoliwer/MMM-RainRadarDWD"
-RAINRADAR_URL="$RAINRADAR_URL_DEFAULT"
+# Regenradar: seit der Portal-Neuordnung Teil von MMM-LumiraWeather; das alte
+# MMM-RainRadarDWD wird nicht mehr installiert. --no-rainradar schaltet das
+# Radar nur anfangs aus, --rainradar-url wird noch angenommen, aber ignoriert.
+RAINRADAR_URL="on"
 for arg in "$@"; do
   case "$arg" in
     --with-pm2) WITH_PM2=1 ;;
@@ -72,7 +72,7 @@ for arg in "$@"; do
     --hostname=*) HOSTNAME_NEW="${arg#*=}" ;;
     --no-selfservice) WITH_SELFSERVICE=0 ;;
     --no-rainradar) RAINRADAR_URL="" ;;
-    --rainradar-url=*) RAINRADAR_URL="${arg#*=}" ;;
+    --rainradar-url=*) ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//' | head -n 46; exit 0 ;;
     *) echo "Unbekannte Option: $arg"; exit 1 ;;
   esac
@@ -192,26 +192,6 @@ write_config() {
   ok "config.js geschrieben (Edition: ${EDITION}, Hostname: ${HOSTNAME_NEW})"
 }
 
-# Regenradar-Modul installieren (Standard: realoliwer/MMM-RainRadarDWD,
-# mit --no-rainradar abwählbar oder --rainradar-url=… ersetzbar). Idempotent,
-# auch von --reconfigure nutzbar.
-install_rainradar() {
-  [ -n "$RAINRADAR_URL" ] || return 0
-  step "MMM-RainRadarDWD installieren"
-  if [ -d "$MM_DIR/modules/MMM-RainRadarDWD" ]; then
-    ok "bereits vorhanden"
-    return 0
-  fi
-  if git clone "$RAINRADAR_URL" "$MM_DIR/modules/MMM-RainRadarDWD" 2>/dev/null; then
-    if [ -f "$MM_DIR/modules/MMM-RainRadarDWD/package.json" ] && grep -q '"dependencies"' "$MM_DIR/modules/MMM-RainRadarDWD/package.json"; then
-      ( cd "$MM_DIR/modules/MMM-RainRadarDWD" && npm install --no-audit --no-fund ) || warn "npm install fehlgeschlagen"
-    fi
-    ok "installiert ($RAINRADAR_URL)"
-  else
-    warn "Konnte MMM-RainRadarDWD nicht klonen ($RAINRADAR_URL) – wird in der config ausgelassen"
-  fi
-}
-
 # Hostname setzen, damit das Self-Service-Portal unter http://<name>.local:8092
 # erreichbar ist (siehe concept/selfservice.md). Erfordert systemd
 # (hostnamectl) – auf anderen Systemen wird der Schritt übersprungen.
@@ -315,6 +295,18 @@ find_module() {
   done
   return 1
 }
+# Module, die durch eigene ersetzt sind, entfernen (Portal-Neuordnung):
+# MMM-RainRadarDWD → Regenradar in MMM-LumiraWeather. Das alte Wettermodul ist
+# Teil von MagicMirror selbst und steht nur nicht mehr in der config.js.
+remove_replaced_modules() {
+  local mod
+  for mod in MMM-RainRadarDWD; do
+    if [ -d "$MM_DIR/modules/$mod" ]; then
+      rm -rf "$MM_DIR/modules/$mod" && ok "$mod entfernt (ersetzt durch MMM-LumiraWeather)"
+    fi
+  done
+}
+
 install_own_modules() {
   local mod SRC DEST
   for mod in "${OWN_MODULES[@]}"; do
@@ -360,6 +352,7 @@ if [ "$UPDATE_ONLY" -eq 1 ]; then
   [ -f "$MM_DIR/package.json" ] || die "MagicMirror nicht gefunden ($MM_DIR) – bitte einmal normal ./install.sh ausführen."
   step "LUMIRA-Update (Stand $(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || echo '?'))"
   install_own_modules
+  remove_replaced_modules
   sync_alarm_sound
   if [ "$WITH_SELFSERVICE" -eq 1 ]; then
     step "Portal-Dateien"
@@ -390,7 +383,6 @@ command -v sudo >/dev/null 2>&1 || die "sudo wird benötigt."
 # daraus - alle über das Portal eingetragenen Kundendaten bleiben erhalten.
 if [ "$RECONFIGURE" -eq 1 ]; then
   command -v node >/dev/null 2>&1 || die "Node.js wird benötigt (erst normale Installation ausführen)."
-  install_rainradar
   write_config
   echo; echo "${GRN}${BOLD}config.js neu erzeugt.${RST} Neustart: pm2 restart MagicMirror  (oder npm start)"
   exit 0
@@ -433,12 +425,10 @@ fix_electron
 
 # --- 3: Eigene Module + eigener Alarmton -----------------------------------
 install_own_modules
+remove_replaced_modules
 sync_alarm_sound
 
 install_lumira_portal
-
-# --- 4: Regenradar (Standard: realoliwer/MMM-RainRadarDWD) -----------------
-install_rainradar
 
 # --- 5: config.js -----------------------------------------------------------
 step "config.js einrichten"

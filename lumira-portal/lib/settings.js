@@ -88,7 +88,7 @@ const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
 const MM_REGIONS = ["top_left", "top_center", "top_right", "upper_third", "middle_center",
 	"lower_third", "bottom_left", "bottom_center", "bottom_right"];
 
-// Schaltbare Spiegel-Module (Spiegel → Module im Portal)
+// Schaltbare Spiegel-Module (Bildschirm → Übersicht im Portal)
 const MODULE_KEYS = ["clock", "weather", "calendar", "news", "compliments", "alarm", "statusHint", "doorbell"];
 
 function validate(settings) {
@@ -152,7 +152,7 @@ function validate(settings) {
 	if (settings.familyPlan) {
 		const fp = settings.familyPlan;
 		if (MM_REGIONS.indexOf(fp.position) === -1) {
-			throw new ValidationError("familyPlan.position", `Unbekannte Spiegel-Position "${fp.position}"`);
+			throw new ValidationError("familyPlan.position", `Unbekannte Bildschirm-Position "${fp.position}"`);
 		}
 		if (!/^\d{2,4}px$/.test(String(fp.maxWidth))) {
 			throw new ValidationError("familyPlan.maxWidth", "Maximalbreite als Pixelwert angeben, z. B. 300px");

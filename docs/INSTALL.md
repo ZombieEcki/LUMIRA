@@ -41,7 +41,7 @@ bei dem der Kunde selbst über das Portal konfiguriert (siehe
 nur noch die technische Grundinstallation:
 
 - **Edition** (`--edition=`) und **Hostname** (`--hostname=`)
-- **Regenradar**-Modul installieren (Standard: ja, [realoliwer/MMM-RainRadarDWD](https://github.com/realoliwer/MMM-RainRadarDWD); `--no-rainradar` bzw. `--rainradar-url=` zum Abwählen/Ersetzen)
+- **Regenradar** (Teil von `MMM-LumiraWeather`, Standard: an; `--no-rainradar` lässt es anfangs aus). Ein altes `MMM-RainRadarDWD` wird entfernt.
 - **Autostart per pm2** (Standard: ja; `--no-pm2` zum Abwählen)
 
 `config.js` entsteht danach mit Platzhalter-Werten (Name „Papa", Standort
@@ -135,9 +135,8 @@ http://<pi-ip>:8092/api/status                      # Self-Service-Portal Status
 | `Bitte NICHT als root ausführen` | Ohne `sudo` starten. |
 | `\r`-/Zeilenende-Fehler | `sed -i 's/\r$//' install.sh`. |
 | Ort wird nicht gefunden | Internet prüfen oder Koordinaten im Portal manuell eingeben (Standort-Seite). |
-| Wetter bleibt leer | `lat`/`lon` in der config prüfen. |
+| Wetter bleibt leer | Ort unter Einstellungen → Ort prüfen, siehe [WETTER.md](WETTER.md). |
 | Kalender leer | Ist der iCloud-Kalender wirklich öffentlich freigegeben? |
-| `MMM-RainRadarDWD` fehlt | Git-URL korrekt? Sonst Modul weglassen. |
 | Port `EADDRINUSE` | 8090/8091 belegt – anderen Port in der config wählen. |
 | Emojis als leere Kästchen | Farb-Emoji-Schrift fehlt: `sudo apt-get install -y fonts-noto-color-emoji && sudo fc-cache -f`, dann `pm2 restart MagicMirror`. (Das Skript macht das automatisch.) |
 

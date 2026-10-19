@@ -1,9 +1,11 @@
-# Wetter auf dem Spiegel
+# Wetter auf dem Bildschirm
 
-Eigenes Wettermodul `MMM-LumiraWeather` mit drei unabhängigen Kacheln:
+Eigenes Wettermodul `MMM-LumiraWeather` mit drei unabhängigen Kacheln – alles
+im Portal unter **Bildschirm → Wetter**, oben umschaltbar zwischen
+**Wetter jetzt**, **Regenradar** und **Warnungen** (mit an/aus daneben):
 
 - **Wetteranzeige** – aktuelles Wetter und Vorhersage in einem von
-  **12 Designs** (Portal: **Spiegel → Wetteranzeige**).
+  **12 Designs**.
 - **Regenradar** – Niederschlag rund um euren Ort, läuft automatisch durch:
   von „vorher“ (bis 2 h zurück) über **„jetzt“** bis zur **Vorhersage
   (+2 h)**, dann wieder von vorn. Mit Zeitleiste, Uhrzeit, Standort-Punkt
@@ -12,17 +14,21 @@ Eigenes Wettermodul `MMM-LumiraWeather` mit drei unabhängigen Kacheln:
   Art (z. B. Gewitter, Sturmböen, Glätte), Warnstufe (Farbe), Beginn/Ende,
   Gebiet, auf Wunsch eine kurze Beschreibung.
 
-Radar und Warnungen stellt ihr unter **Spiegel → Radar & Warnungen** ein.
 Alle Kacheln sind frei platzierbar und halbtransparent; Änderungen wirken nach
-wenigen Sekunden auf dem Spiegel, ohne Neustart.
+wenigen Sekunden auf dem Bildschirm, ohne Neustart.
+
+Das frühere MagicMirror-Wettermodul (`weather`) und das Regenradar
+`MMM-RainRadarDWD` sind entfernt. Beim ersten Start nach dem Update übernimmt
+LUMIRA ihre Schalter einmalig: War das alte Wetter an, ist die Wetteranzeige
+an; war das alte Radar an, ist das Regenradar an. `./install.sh` löscht den
+Ordner `MMM-RainRadarDWD`.
 
 ## 1. Wetteranzeige einrichten
 
-1. LUMIRA aktualisieren (Info → LUMIRA → Aktualisieren oder per SSH
+1. LUMIRA aktualisieren (Einstellungen → Updates & System → Aktualisieren oder per SSH
    `cd ~/LUMIRA && git pull && ./install.sh`).
-2. Portal → **Spiegel → Wetteranzeige** → „Auf dem Spiegel zeigen“ an.
-   Die neue Anzeige kommt ausgeschaltet; das bisherige Wetter bleibt, bis
-   ihr es abschaltet.
+2. Portal → **Bildschirm → Wetter** → oben **Wetter jetzt** wählen →
+   „Auf dem Bildschirm zeigen“ an.
 3. **Design** wählen: Die Auswahl zeigt alle 12 Designs mit den echten
    Wetterdaten von gerade eben. Beim Wechsel wird die empfohlene Breite
    gesetzt, danach ist sie frei änderbar.
@@ -31,10 +37,10 @@ wenigen Sekunden auf dem Spiegel, ohne Neustart.
 5. **Aussehen**, Position und Größe einstellen und dabei die **Vorschau**
    beobachten: oben das Design in echter Größe, darunter das Live-Bild vom
    Spiegel.
-6. Läuft alles, das bisherige Wetter unter **Spiegel → Module** („Wetter“)
-   ausschalten. Solange beide an sind, weist die Seite darauf hin.
+6. Regenradar und Warnungen: oben **Regenradar** bzw. **Warnungen** wählen und
+   dort „Auf dem Bildschirm zeigen“ einschalten.
 
-Der Standort kommt aus **Spiegel → Standort & Wetter**.
+Der Standort kommt aus **Einstellungen → Ort**.
 
 ## 2. Die 12 Designs
 
@@ -160,12 +166,12 @@ Zurückspielen: Datei zurückkopieren – der Spiegel übernimmt sie sofort.
 
 | Problem | Abhilfe |
 |---|---|
-| Kacheln erscheinen nicht | Schalter an (Wetteranzeige: eigener Schalter; Radar/Warnungen: „Auf dem Spiegel zeigen“ und die jeweilige Kachel)? Nach einem Update einmal `./install.sh` (das Modul muss in der config.js stehen). |
+| Kacheln erscheinen nicht | Schalter an (Wetteranzeige: eigener Schalter; Radar/Warnungen: „Auf dem Bildschirm zeigen“ auf dem jeweiligen Reiter)? Nach einem Update einmal `./install.sh` (das Modul muss in der config.js stehen). |
 | „Wetterdaten werden geladen …“ bleibt / „Wetter gerade nicht abrufbar“ | Internet des Spiegels prüfen; `api.open-meteo.com` muss erreichbar sein (Werbeblocker?). Logs: `pm2 logs MagicMirror` (`MMM-LumiraWeather: Open-Meteo: …`). |
 | „veraltet“ an der Wetteranzeige | Der letzte Abruf ist über eine Stunde her – wie oben. Der Spiegel versucht es alle 3 Minuten erneut. |
 | Schrift der Wetteranzeige zu klein | Höhe oder Breite vergrößern (siehe Hinweis in der Vorschau) oder weniger Werte/Tage zeigen. |
 | Radar bleibt leer / „Radar gerade nicht verfügbar“ | Internet des Spiegels prüfen; `maps.dwd.de` muss erreichbar sein (Werbeblocker?). Kein Niederschlag = leere Karte, das ist richtig. |
-| Karte verrutscht / falscher Ort | Standort unter Spiegel → Standort & Wetter neu suchen und speichern. |
+| Karte verrutscht / falscher Ort | Standort unter Einstellungen → Ort neu suchen und speichern. |
 | Keine Warnungen, obwohl die WarnWetter-App welche zeigt | „Ab Warnstufe“ prüfen; Warnungen gelten pro Gemeinde – der Standort muss in der richtigen Gemeinde liegen. |
 | Animation ruckelt | Tempo „langsam“, Zurück/Vorhersage kürzen (weniger Bilder) oder Karte DWD statt OpenStreetMap. |
 

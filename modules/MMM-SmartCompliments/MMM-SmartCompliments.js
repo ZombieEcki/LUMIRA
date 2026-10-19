@@ -20,7 +20,7 @@
  * Die Auswahl selbst steht in spruch-logic.js (auch im Portal und in den Tests).
  *
  * Sprüche, Kategorien, Anlässe und Darstellung kommen live aus
- * ~/.lumira/compliments.json (LUMIRA-Portal → Familie → Sprüche).
+ * ~/.lumira/compliments.json (LUMIRA-Portal → Bildschirm → Sprüche).
  *
  * By Liam Eckhof
  * MIT Licensed.

@@ -19,10 +19,10 @@ Spiegel-Modul [`MMM-Doorbell`](../modules/MMM-Doorbell/README.md).
 
 ## 1. Einschalten und mit Ring verbinden
 
-1. Portal öffnen → **Spiegel → Klingel**.
-2. Oben **Türklingel auf dem Spiegel** einschalten. MagicMirror startet dabei
+1. Portal öffnen → **Bildschirm → Türklingel**.
+2. Oben **Türklingel auf dem Bildschirm** einschalten. MagicMirror startet dabei
    einmal neu (das Modul wird in die config.js aufgenommen). Derselbe Schalter
-   steht auch unter Spiegel → Module.
+   steht auch unter Bildschirm → Übersicht.
 3. In der Karte **Ring-Verbindung** E-Mail und Passwort des Ring-Kontos eingeben
    → **Bei Ring anmelden**.
 4. Ring schickt einen **Bestätigungscode** (SMS, E-Mail oder Authenticator-App –
@@ -123,7 +123,7 @@ Kommt mit LUMIRA mit – nichts extra zu installieren:
 | „Die Ring-Anmeldung ist abgelaufen“ | Zugang wurde in der Ring-App entfernt oder der Schlüssel ist ungültig → neu anmelden. |
 | „Ring ist nicht erreichbar“ | Internet des Spiegels prüfen; LUMIRA versucht es automatisch erneut (nach 30 s, 2, 5, 15 min). |
 | „Ring-Unterstützung fehlt“ | Portal ohne `ring-client-api` → LUMIRA aktualisieren (Info → Updates). |
-| Klingeln kommt nicht an (Test geht) | Portal → Spiegel → Klingel → Ring-Verbindung → **Diagnose**. *Push-Kanal* rot: mtalk.google.com (Port 5228) wird blockiert – im Werbeblocker (Pi-hole, AdGuard) oder in der Router-Firewall freigeben. *Keine Nachrichten von Ring*: in der Ring-App unter Kontrollzentrum → Autorisierte Client-Geräte alte Einträge („LUMIRA Spiegel“, „ring-client-api“, „Device name not found“) entfernen, im Portal abmelden und neu anmelden, ein paar Minuten warten. *Bewegung kommt an, Klingeln nicht*: in der Ring-App die Klingel-Benachrichtigungen der Klingel einschalten. Meldungen der Ring-Bibliothek stehen in der Diagnose und im Journal. |
+| Klingeln kommt nicht an (Test geht) | Portal → Bildschirm → Türklingel → Ring-Verbindung → **Diagnose**. *Push-Kanal* rot: mtalk.google.com (Port 5228) wird blockiert – im Werbeblocker (Pi-hole, AdGuard) oder in der Router-Firewall freigeben. *Keine Nachrichten von Ring*: in der Ring-App unter Kontrollzentrum → Autorisierte Client-Geräte alte Einträge („LUMIRA Spiegel“, „ring-client-api“, „Device name not found“) entfernen, im Portal abmelden und neu anmelden, ein paar Minuten warten. *Bewegung kommt an, Klingeln nicht*: in der Ring-App die Klingel-Benachrichtigungen der Klingel einschalten. Meldungen der Ring-Bibliothek stehen in der Diagnose und im Journal. |
 | „Ende-zu-Ende-Verschlüsselung ist an“ | Mit Ring-E2EE gibt Ring kein Live-Video heraus. In der Ring-App abschalten oder ohne Video nutzen. |
 | „Die Klingel liefert kein Video (Zeitüberschreitung)“ | Klingel offline/schwaches WLAN an der Tür, oder ffmpeg fehlt (`ffmpeg -version`). Die Meldung erscheint trotzdem. |
 | Video-Fenster bleibt schwarz („LIVE“ steht da) | Beim laufenden Klingeln zeigt das Portal unter der Meldung, was der Spiegel meldet („Spiegel: kein Bild – …“) und was die Klingel liefert („Stream: h264 1920×1080 …“). Abhilfe: Live-Video → **Bildübertragung: Umwandeln** (640 px, H.264 Baseline – spielt jeder Player ab). Nach 12 Sekunden ohne Bild zeigt der Spiegel statt der schwarzen Fläche einen Hinweis. |

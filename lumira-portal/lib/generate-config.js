@@ -29,7 +29,7 @@ function countdownsFor(family) {
 
 function buildModules(settings) {
 	const edition = getEdition(settings.edition);
-	// Spiegel → Module im Portal: ausgeschaltete Module kommen gar nicht erst
+	// Bildschirm → Übersicht im Portal: ausgeschaltete Module kommen gar nicht erst
 	// in die config.js, auf dem Spiegel erscheint dann nichts davon
 	const on = (key) => !(settings.modules && settings.modules[key] === false);
 	const alarmOn = edition.hasAlarm && on("alarm");
@@ -133,56 +133,9 @@ function buildModules(settings) {
 		});
 	}
 
-	if (on("weather")) {
-		modules.push({
-			module: "weather",
-			position: "top_right",
-			config: {
-				weatherProvider: "openmeteo",
-				type: "current",
-				lat: settings.location.lat,
-				lon: settings.location.lon
-			}
-		});
-		modules.push({
-			module: "weather",
-			position: "top_right",
-			header: "Wettervorhersage",
-			config: {
-				weatherProvider: "openmeteo",
-				type: "forecast",
-				lat: settings.location.lat,
-				lon: settings.location.lon
-			}
-		});
-	}
-
-	if (edition.hasRain && settings.rainRadar.enabled) {
-		modules.push({
-			module: "MMM-RainRadarDWD",
-			position: "top_right",
-			config: {
-				lat: settings.location.lat,
-				lon: settings.location.lon,
-				alwaysVisible: true,
-				showIfRainWithin: 120,
-				timePast: 60,
-				timeFuture: 120,
-				frameStep: 10,
-				width: "350px",
-				height: "350px",
-				zoomLevel: 9,
-				cloudBlur: 12,
-				markerSymbol: "fa-home",
-				markerColor: "#ff0000",
-				showLegend: true,
-				legendPosition: "bottom",
-				animationSpeed: 2000,
-				updateInterval: 600000,
-				logLevel: "INFO"
-			}
-		});
-	}
+	// Wetter und Regenradar kommen aus MMM-LumiraWeather (unten, live über
+	// weather.json). Das alte Wettermodul und MMM-RainRadarDWD sind entfernt;
+	// ihre Einstellungen übernimmt weather.migrateLegacy() einmalig.
 
 	if (on("news") && settings.news.url) {
 		modules.push({
@@ -216,7 +169,7 @@ function buildModules(settings) {
 		}
 	});
 
-	// Dauerschleife (Spiegel → Bildschirm im Portal): immer geladen, zeigt nur
+	// Dauerschleife (Bildschirm → Dauerschleife im Portal): immer geladen, zeigt nur
 	// etwas, wenn sie eingeschaltet ist. Steuerung live über ambient.json.
 	modules.push({
 		module: "MMM-Ambient",
@@ -225,11 +178,11 @@ function buildModules(settings) {
 		}
 	});
 
-	// Regenradar & Warnungen (Spiegel → Radar & Warnungen): immer geladen,
+	// Regenradar & Warnungen (Bildschirm → Wetter): immer geladen,
 	// zeigt nur etwas, wenn im Portal eingeschaltet. Steuerung live über weather.json.
 	modules.push({ module: "MMM-LumiraWeather" });
 
-	// Türklingel (Spiegel → Klingel): nur, wenn eingeschaltet (Standard aus).
+	// Türklingel (Bildschirm → Türklingel): nur, wenn eingeschaltet (Standard aus).
 	// Meldung/Video in der Mitte, Steuerung live über doorbell.json.
 	if (settings.modules && settings.modules.doorbell === true) {
 		modules.push({

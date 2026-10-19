@@ -36,7 +36,7 @@
     { v: "weekly", label: "Wöchentlich rotierend", max: 4, one: "jede Woche", many: "alle %n Wochen",
       hint: "Wechselt am Wechseltag (Einstellungen). Feste Tage gehen vor." },
     { v: "daily", label: "Täglich rotierend", max: 7, one: "jeden Tag", many: "alle %n Tage",
-      hint: "Jeden Tag jemand anderes – an den markierten Wochentagen, ohne Auswahl an allen. Der Spiegel zeigt nur, wer heute dran ist." },
+      hint: "Jeden Tag jemand anderes – an den markierten Wochentagen, ohne Auswahl an allen. Der Bildschirm zeigt nur, wer heute dran ist." },
     { v: "monthly", label: "Monatlich rotierend", max: 6, one: "jeden Monat", many: "alle %n Monate",
       hint: "Wechselt am ersten Wechseltag im neuen Monat. Feste Tage gehen vor." },
     { v: "fixed", label: "Fest zugewiesen", max: 1,
@@ -189,7 +189,7 @@
   // ----- Übersicht -----
   function renderOverview(panel) {
     var s = ctx.getSettings().familyPlan || { enabled: false, layout: "stacked", maxWidth: "300px", scale: 100 };
-    var mirror = card("Auf dem Spiegel", "Ein- und Ausschalten, Darstellung, Größe und Breite. Speichern startet MagicMirror einmal neu.");
+    var mirror = card("Auf dem Bildschirm", "Ein- und Ausschalten, Darstellung, Größe und Breite. Speichern startet MagicMirror einmal neu.");
     var t1 = el("div", "toggle");
     t1.appendChild(el("span", "tl2", "Familienplan anzeigen"));
     var enabled = !!s.enabled;
@@ -206,7 +206,7 @@
     l2.appendChild(el("span", "opt", " (wie der bisherige Bereich)"));
     var inp = el("input", "mono-in"); inp.type = "text"; inp.id = "fp-maxwidth"; inp.value = s.maxWidth || "300px";
     f2.appendChild(l2); f2.appendChild(inp);
-    var f3 = el("div", "field"); var l3 = el("label", null, "Größe auf dem Spiegel"); l3.htmlFor = "fp-scale";
+    var f3 = el("div", "field"); var l3 = el("label", null, "Größe auf dem Bildschirm"); l3.htmlFor = "fp-scale";
     var sc = el("select"); sc.id = "fp-scale";
     [70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 180, 200].forEach(function (n) {
       var o = el("option", null, n + " %" + (n === 100 ? " (normal)" : n < 100 ? " – kleiner" : " – größer")); o.value = n;
@@ -262,7 +262,7 @@
     // Nur Tagesdienste (alles täglich/fest nach Tag): keine leere Wochentabelle
     if (maxSlots) {
       wc.appendChild(wrap);
-      wc.appendChild(el("p", "save-hint fp-gap", "Wählst du einen Dienst, den schon jemand hat, tauschen die beiden. Wirkt sofort auf dem Spiegel."));
+      wc.appendChild(el("p", "save-hint fp-gap", "Wählst du einen Dienst, den schon jemand hat, tauschen die beiden. Wirkt sofort auf dem Bildschirm."));
     }
     var dg = dayGrid(w, true);
     if (dg) wc.appendChild(dg);
@@ -338,7 +338,7 @@
     c.appendChild(saveRow("Speichern", function (btn, hint) {
       btn.disabled = true; hint.textContent = "Speichere …";
       api("/api/familyplan/members", { method: "PUT", body: { revision: PLAN.revision, members: draftMembers } })
-        .then(function (p) { apply(p); ctx.toast(p.restarted ? "Gespeichert – Geburtstag umbenannt, Spiegel startet neu" : "Mitglieder gespeichert"); })
+        .then(function (p) { apply(p); ctx.toast(p.restarted ? "Gespeichert – Geburtstag umbenannt, Bildschirm startet neu" : "Mitglieder gespeichert"); })
         .catch(function (err) { btn.disabled = false; fail(err); });
     }, "Wirkt sofort, Änderungen an Personen gelten ab der nächsten Woche. Geburtstage trägst du unter „Wichtige Termine“ ein."));
     panel.appendChild(c);
@@ -1018,7 +1018,7 @@
     if (!draftSettings) draftSettings = clone(PLAN.settings);
     var s = draftSettings;
     var c = card("Einstellungen", null);
-    var f0 = el("div", "field first"); var l0 = el("label", null, "Überschrift auf dem Spiegel"); l0.htmlFor = "fp-title";
+    var f0 = el("div", "field first"); var l0 = el("label", null, "Überschrift auf dem Bildschirm"); l0.htmlFor = "fp-title";
     var title = el("input"); title.type = "text"; title.id = "fp-title"; title.maxLength = 40; title.value = s.title;
     title.addEventListener("input", function () { s.title = title.value; });
     f0.appendChild(l0); f0.appendChild(title); c.appendChild(f0);
@@ -1187,6 +1187,8 @@
       load();
     },
     reload: load,
+    // Einstellungen anderswo gespeichert (z. B. Bildschirm → Übersicht): Schalter neu zeichnen
+    refresh: function () { if (ctx && PLAN) render(); },
     showTab: function (tab) { TAB = tab; openPicker = null; render(); }
   };
 })();

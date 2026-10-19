@@ -11,7 +11,7 @@
  * Danach ist der Spiegel wieder wie vorher. Andere Module bleiben unverändert,
  * die Fläche liegt nur darüber.
  *
- * Steuerung und Ring-Verbindung: LUMIRA-Portal (Spiegel → Klingel), live über
+ * Steuerung und Ring-Verbindung: LUMIRA-Portal (Bildschirm → Türklingel), live über
  * ~/.lumira/doorbell.json. Während eines Alarms (MMM-aPagerAlarm) bleibt die
  * Klingel-Anzeige verborgen – der Alarm geht vor.
  *
@@ -229,7 +229,7 @@ Module.register("MMM-Doorbell", {
 		p.appendChild(cd);
 	},
 
-	// Rückmeldung ans Portal (Spiegel → Klingel zeigt sie beim laufenden Klingeln)
+	// Rückmeldung ans Portal (Bildschirm → Türklingel zeigt sie beim laufenden Klingeln)
 	report: function (eventId, state, extra) {
 		this.sendSocketNotification("DOORBELL_REPORT", Object.assign({ eventId, state }, extra || {}));
 	},
@@ -241,7 +241,7 @@ Module.register("MMM-Doorbell", {
 		box.className = "ldb-error has-snap ldb-nopic";
 		box.textContent = "Kein Bild vom Live-Video";
 		const small = document.createElement("small");
-		small.textContent = "Im LUMIRA-Portal unter Spiegel → Klingel → Live-Video die Bildübertragung auf „Umwandeln“ stellen." + (detail ? " (" + detail + ")" : "");
+		small.textContent = "Im LUMIRA-Portal unter Bildschirm → Türklingel → Live-Video die Bildübertragung auf „Umwandeln“ stellen." + (detail ? " (" + detail + ")" : "");
 		box.appendChild(small);
 		stage.appendChild(box);
 	},

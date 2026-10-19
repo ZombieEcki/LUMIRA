@@ -11,7 +11,7 @@ Geburtstagen, Hochzeitstag und dem Feuerwehrstatus.
 > freundlicher Familienassistent.
 
 Bedienung und alle Einstellungen: [docs/SPRUECHE.md](../../docs/SPRUECHE.md)
-(LUMIRA-Portal → Familie → Sprüche).
+(LUMIRA-Portal → Bildschirm → Sprüche).
 
 ## Aufbau
 
