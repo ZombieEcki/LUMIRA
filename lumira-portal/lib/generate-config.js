@@ -37,12 +37,11 @@ function buildModules(settings) {
 		{ module: "alert" },
 		{ module: "updatenotification", position: "top_bar" }
 	];
+	// Uhr (Bildschirm → Uhr): eigenes Modul statt der MagicMirror-Uhr. Design,
+	// Position usw. kommen live aus clock.json; „Wie bisher“ steht sie hier
+	// oben links, der Familienplan darunter. Ein/aus mit Neustart.
 	if (on("clock")) {
-		modules.push({
-			module: "clock",
-			position: "top_left",
-			config: { displayType: "digital", displaySeconds: false }
-		});
+		modules.push({ module: "MMM-LumiraClock", position: "top_left" });
 	}
 
 	// Familienplan (concept/familienplan.md) – direkt nach der Uhr, damit er

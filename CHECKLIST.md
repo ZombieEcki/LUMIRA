@@ -316,6 +316,17 @@ um den aktuellen Stand zu sehen.
 - [x] Altes Wettermodul und MMM-RainRadarDWD entfernt, Schalter einmalig übernommen
       (`weather.migrateLegacy`), `install.sh` löscht den alten Radar-Ordner
 - [ ] Schritt 2: Bildschirm-Übersicht in echter Größe mit Ziehen & Ablegen
+
+### Bildschirm: Uhr (MMM-LumiraClock) – ersetzt die MagicMirror-Uhr
+- [x] 16 Designs aus einem Baukasten (`clock-view.js`/`.css`, auch im Portal), digital und
+      analog (SVG-Zifferblatt, Sekundenzeiger), Kreise, Glas, Neon – feste Schatten, keine Animation
+- [x] 24 h Standard / 12 h, Sekunden, Wochentag und Datum einzeln, Datum lang oder kurz (deutsch)
+- [x] „Wie bisher“ oben links (Familienplan darunter) oder frei: 9 Felder, Abstände px/%,
+      Breite, Höhe höchstens, Schriftgröße, Abstände; Schrift schrumpft statt abzuschneiden
+- [x] Glasfläche, Deckkraft, Linienstärke, Akzentfarbe; Aktualisierung nur bei Minuten-/Sekundenwechsel
+- [x] Portal: Bildschirm → Uhr mit Auswahl (echte Uhrzeit), Vorschau in echter Größe, Live-Bild,
+      Überschneidungs-Hinweise; Wetter und Sprüche erkennen die frei platzierte Uhr
+- [ ] Auf dem Pi prüfen (Schrift Roboto aus MagicMirror, Leuchtringe, Last)
 - [ ] Warnung beim Einschalten des zweiten Spezialmoduls („Extras“)
 
 ---

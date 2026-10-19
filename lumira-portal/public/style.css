@@ -831,6 +831,14 @@ body.crop-open { overflow:hidden; }
 .wd-stage { position:relative; overflow:hidden; border-radius:12px; padding:12px; margin-bottom:10px;
   background:radial-gradient(120% 90% at 30% 20%, #2a3346 0%, #10141c 60%, #07090d 100%); }
 .wd-stage-in { transform-origin:top left; }
+/* ---------- Uhr (clock.js + clock-view.css) ---------- */
+.page[data-page="uhr"] > .stack { margin-bottom:16px; }
+.page[data-page="uhr"] .lc-box.is-off { opacity:.55; }
+#lc-digital-row.is-na { opacity:.5; }
+#lc-digital-row.is-na .sw { cursor:not-allowed; }
+.lc-accent-row { display:flex; gap:10px; align-items:center; }
+.lc-accent-row input[type="color"] { width:52px; height:38px; padding:2px; border:1px solid var(--line-2); border-radius:10px; background:var(--field); cursor:pointer; }
+#lc-designs .wd-thumb { height:130px; }
 /* ---------- Sprüche (spruche.js + spruch/spruch-view.css) ---------- */
 .page[data-page="spruche"] > .stack { margin-bottom:16px; }
 .sp-stage { position:relative; overflow:hidden; border-radius:12px; margin:10px 0;

@@ -9,6 +9,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 - [FAMILIENPLAN.md](FAMILIENPLAN.md) – Familienplan: Einrichtung, Bedienung, Rotationslogik, Datensicherung, Fehlerbehebung
 - [KLINGEL.md](KLINGEL.md) – Ring-Türklingel: Verbindung, Ton und Videodauer, Installation, Sicherheit, Fehlerbehebung
 - [SPRUECHE.md](SPRUECHE.md) – Sprüche: Kategorien, Anlässe (Wetter, Warnungen, Kalender), Darstellung, Schnittstellen, Sicherung, Rollback, Fehlerbehebung
+- [UHR.md](UHR.md) – Uhr (16 Designs): Uhrzeit/Datum, Position und Größe, Aussehen, Rückkehr zur alten Uhr, Fehlerbehebung
 - [WETTER.md](WETTER.md) – Wetteranzeige (12 Designs), Regenradar und Wetterwarnungen (DWD): Einstellungen, Positionierung, Datenquellen, Fehlerbehebung
 - [../CHECKLIST.md](../CHECKLIST.md) – was ist fertig, was ist geplant
 - [../README.md](../README.md) – Projektüberblick & Schnellstart
@@ -22,6 +23,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 | MMM-FamilyPlan | [README](../modules/MMM-FamilyPlan/README.md) · [Anleitung](FAMILIENPLAN.md) |
 | MMM-Doorbell | [README](../modules/MMM-Doorbell/README.md) · [Anleitung](KLINGEL.md) |
 | MMM-LumiraWeather | [README](../modules/MMM-LumiraWeather/README.md) · [Anleitung](WETTER.md) |
+| MMM-LumiraClock | [README](../modules/MMM-LumiraClock/README.md) · [Anleitung](UHR.md) |
 
 ## Konzepte & Ideen
 

@@ -434,7 +434,7 @@ Module.register("MMM-LumiraWeather", {
 	// ------------------------------------------------------------------ Rückmeldung
 	// Überdeckt eine Kachel andere Module (Uhr, Familienplan, Kalender …)?
 	NAMES: {
-		clock: "Uhr", weather: "bisheriges Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
+		clock: "Uhr", "MMM-LumiraClock": "Uhr", weather: "bisheriges Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
 		"MMM-SmartCompliments": "Sprüche", "MMM-RainRadarDWD": "altes Regenradar", "MMM-aPagerAlarm": "Alarm", "MMM-LumiraStatus": "Portal-Hinweis"
 	},
 
@@ -456,6 +456,8 @@ Module.register("MMM-LumiraWeather", {
 		[[this.radarEl, "Regenradar"], [this.warnEl, "Warnungen"], [this.wxEl, "Wetteranzeige"]].forEach((x) => {
 			if (x[0]) mods.push({ name: x[1], r: x[0].getBoundingClientRect(), el: x[0] });
 		});
+		// frei platzierte Kacheln anderer LUMIRA-Module (z. B. die Uhr)
+		document.querySelectorAll("[data-lumira-tile]").forEach((t) => mods.push({ name: t.getAttribute("data-lumira-tile"), r: t.getBoundingClientRect() }));
 		const hits = (el) => {
 			if (!el) return [];
 			const a = el.getBoundingClientRect();

@@ -1,0 +1,195 @@
+/* MMM-LumiraClock – die 16 Designs (auch im Portal als public/clock-view.css,
+ * der Test prüft Gleichheit). Alles in em: die Schriftgröße der Kachel
+ * vergrößert die ganze Uhr. Leuchtkanten sind feste Schatten, keine
+ * Animationen – schont den Raspberry Pi 3. */
+
+.lc-clock {
+	--lc-accent: #ffffff;
+	--lc-bg: rgba(14, 16, 22, 0.35);
+	--lc-line: 2px;
+	--lc-gap: 0.4em;
+	--lc-pad: 0px;
+	box-sizing: border-box;
+	color: #fff;
+	font-family: "Roboto", "Manrope", "Segoe UI", system-ui, sans-serif;
+	line-height: 1.12;
+	font-variant-numeric: tabular-nums;
+	overflow: hidden;
+	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+.lc-clock *, .lc-clock *::before, .lc-clock *::after { box-sizing: border-box; }
+.lc-clock[data-align="left"] { --lc-al: flex-start; --lc-ta: left; }
+.lc-clock[data-align="center"] { --lc-al: center; --lc-ta: center; }
+.lc-clock[data-align="right"] { --lc-al: flex-end; --lc-ta: right; }
+
+.lc-inner {
+	display: flex;
+	flex-direction: column;
+	align-items: var(--lc-al);
+	gap: var(--lc-gap);
+	padding: var(--lc-pad);
+	text-align: var(--lc-ta);
+}
+/* Dunkle Glasfläche für jedes Design (Schalter im Portal) */
+.lc-glassy .lc-inner {
+	background: var(--lc-bg);
+	border-radius: 1.4em;
+	padding: max(var(--lc-pad), 0.8em) max(var(--lc-pad), 1.2em);
+}
+.lc-glassy.lc-has-surf .lc-inner { background: none; padding: var(--lc-pad); }
+
+/* ------------------------------------------------------------ Bausteine */
+.lc-time { font-size: 5.2em; font-weight: 700; letter-spacing: -0.02em; line-height: 1; white-space: nowrap; }
+.lc-sec { display: inline-block; font-size: 0.38em; font-weight: 500; opacity: 0.78; margin-left: 0.12em; vertical-align: top; position: relative; top: 0.18em; letter-spacing: 0; }
+.lc-ampm { display: inline-block; font-size: 0.28em; font-weight: 600; opacity: 0.8; margin-left: 0.3em; letter-spacing: 0.06em; }
+.lc-dl, .lc-wd, .lc-date { font-size: 1.3em; font-weight: 500; white-space: nowrap; opacity: 0.94; }
+.lc-caps { text-transform: uppercase; letter-spacing: 0.26em; font-size: 1.05em; font-weight: 500; }
+.lc-clock[data-align="center"] .lc-caps { margin-right: -0.26em; }
+
+.lc-rule { position: relative; width: 100%; max-width: 13em; height: var(--lc-line); background: rgba(255, 255, 255, 0.78); border-radius: 9px; flex: none; }
+.lc-rule-dot::after, .lc-rule-diamond::after {
+	content: ""; position: absolute; left: 50%; top: 50%; width: 0.42em; height: 0.42em;
+	transform: translate(-50%, -50%); background: #fff; border-radius: 50%;
+}
+.lc-rule-diamond::after { width: 0.6em; height: 0.6em; border-radius: 1px; transform: translate(-50%, -50%) rotate(45deg); }
+.lc-rule-v { width: var(--lc-line); max-width: none; height: auto; align-self: stretch; margin: 0.2em 0; }
+
+.lc-row { display: flex; flex-direction: row; align-items: center; gap: 1em; }
+.lc-col { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15em; text-align: left; }
+
+/* Eigene Fläche (Karte, Kompakt, Glas, Neon) */
+.lc-surf {
+	display: flex; flex-direction: column; align-items: center; gap: var(--lc-gap); text-align: center;
+	background: var(--lc-bg); border-radius: 1.3em; padding: 0.9em 1.6em;
+	border: var(--lc-line) solid rgba(255, 255, 255, 0.24);
+	box-shadow: 0 0.6em 1.8em rgba(0, 0, 0, 0.3);
+}
+.lc-surf.lc-row { flex-direction: row; text-align: left; }
+
+/* Kreis mit Inhalt */
+.lc-ring {
+	position: relative; width: 14em; aspect-ratio: 1 / 1; flex: none; border-radius: 50%;
+	background: var(--lc-bg);
+	border: var(--lc-line) solid var(--lc-accent);
+	box-shadow: 0 0 0.9em -0.1em var(--lc-accent), inset 0 0 0.8em -0.3em var(--lc-accent);
+}
+.lc-ring-in {
+	position: absolute; inset: 13%; overflow: hidden;
+	display: flex; flex-direction: column; align-items: center; justify-content: center;
+	gap: var(--lc-gap); text-align: center;
+}
+.lc-ring-in .lc-time { font-size: 3.4em; font-weight: 400; }
+.lc-ring-in .lc-rule { width: 70%; }
+.lc-ring-in .lc-dl, .lc-ring-in .lc-wd, .lc-ring-in .lc-date { font-size: 1.05em; }
+
+/* Zifferblatt */
+.lc-dial { position: relative; width: 14em; aspect-ratio: 1 / 1; flex: none; border-radius: 50%; }
+.lc-dial-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.lc-tick { stroke: rgba(255, 255, 255, 0.75); stroke-width: 1.2; stroke-linecap: round; }
+.lc-tick-h { stroke: #fff; stroke-width: 3.2; }
+.lc-num { fill: #fff; font-size: 22px; font-weight: 600; font-family: inherit; }
+.lc-hand line { stroke: #fff; stroke-linecap: round; }
+.lc-hand-h line { stroke-width: 6; }
+.lc-hand-m line { stroke-width: 4; }
+.lc-hand-s line { stroke: var(--lc-accent); stroke-width: 1.6; }
+.lc-hub { fill: #fff; }
+.lc-time-small { font-size: 2.2em; font-weight: 600; }
+/* Zifferblatt und Kreise: Inhalt mittig darunter, der Block selbst nach der Position */
+.lc-is-analog .lc-inner, .lc-has-ring .lc-inner { width: fit-content; max-width: 100%; align-items: center; text-align: center; }
+.lc-clock[data-align="center"].lc-is-analog .lc-inner, .lc-clock[data-align="center"].lc-has-ring .lc-inner { margin: 0 auto; }
+.lc-clock[data-align="right"].lc-is-analog .lc-inner, .lc-clock[data-align="right"].lc-has-ring .lc-inner { margin-left: auto; }
+
+/* ------------------------------------------------------------ Designs */
+/* 1 Klassisch Digital */
+.lc-d-classic .lc-time { font-weight: 700; }
+
+/* 2 Elegant Minimal */
+.lc-d-elegant .lc-time { font-weight: 200; font-size: 5.4em; letter-spacing: 0; }
+.lc-d-elegant .lc-rule { max-width: 11em; height: max(1px, calc(var(--lc-line) / 2)); }
+.lc-d-elegant .lc-wd, .lc-d-elegant .lc-date { font-size: 1.1em; }
+
+/* 3 Modern mit Rahmen */
+.lc-d-card .lc-surf { background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02)), var(--lc-bg); }
+
+/* 4 Analog Klassisch */
+.lc-d-analog .lc-dial { background: radial-gradient(circle, rgba(18, 22, 30, 0.55), rgba(8, 10, 16, 0.75)); border: var(--lc-line) solid rgba(255, 255, 255, 0.85); }
+
+/* 5 Analog Modern (Leuchtring) */
+.lc-d-analogGlow .lc-dial {
+	background: rgba(6, 8, 12, 0.72);
+	border: calc(var(--lc-line) * 1.5) solid var(--lc-accent);
+	box-shadow: 0 0 1em -0.1em var(--lc-accent), inset 0 0 0.9em -0.3em var(--lc-accent);
+}
+.lc-d-analogGlow .lc-tick-h { stroke-width: 3; }
+
+/* 6 Digital mit Wochentag */
+.lc-d-weekday .lc-dash::before, .lc-d-weekday .lc-dash::after {
+	content: ""; display: inline-block; width: 1.3em; height: max(1px, calc(var(--lc-line) / 2));
+	background: currentColor; vertical-align: middle; margin: 0 0.8em 0.2em;
+}
+.lc-d-weekday .lc-dash { font-size: 1.25em; }
+.lc-d-weekday .lc-date { font-size: 1em; }
+
+/* 7 Kompakt */
+.lc-d-compact .lc-surf { padding: 0.75em 1.3em; border-radius: 1.1em; border-color: rgba(255, 255, 255, 0.12); }
+.lc-d-compact .lc-time { font-size: 3.6em; }
+.lc-d-compact .lc-wd, .lc-d-compact .lc-date { font-size: 1.15em; }
+
+/* 8 Vertikal */
+.lc-vert { display: flex; flex-direction: column; align-items: var(--lc-al); font-size: 4.8em; font-weight: 300; line-height: 1; gap: 0.06em; }
+.lc-vert .lc-rule { width: 1.15em; max-width: none; height: max(1px, calc(var(--lc-line) / 2)); background: rgba(255, 255, 255, 0.85); }
+.lc-vert .lc-sec { font-size: 0.32em; }
+.lc-d-vertical .lc-wd { font-size: 1.25em; margin-top: 0.3em; }
+.lc-d-vertical .lc-date { font-size: 1.05em; }
+
+/* 9 Kreis mit Datum */
+.lc-d-circle .lc-ring-in .lc-rule { width: 75%; height: max(1px, calc(var(--lc-line) / 2)); }
+
+/* 10 Transparent / Glas */
+.lc-d-glass .lc-surf {
+	background: linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05)), var(--lc-bg);
+	border: max(1px, calc(var(--lc-line) / 2)) solid rgba(255, 255, 255, 0.32);
+	padding: 1em 1.8em;
+}
+.lc-d-glass .lc-time { font-weight: 400; }
+
+/* 11 Elegant mit Linie */
+.lc-d-line .lc-time { font-weight: 300; font-size: 5.4em; letter-spacing: 0; }
+.lc-d-line .lc-rule { max-width: 16em; height: max(1px, calc(var(--lc-line) / 2)); }
+.lc-d-line .lc-dl { font-size: 1.05em; }
+
+/* Farbverlauf nur als Rand (Ring 12, Rahmen 16): eigene Ebene, deren Mitte
+   ausgestanzt wird – die Fläche darunter bleibt durchsichtig */
+.lc-grad-edge::before {
+	content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+	padding: var(--lc-edge);
+	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+/* 12 Kreativ / Modern (Farbring, kursive Schrift statt Pinselschrift) */
+.lc-d-creative .lc-ring { --lc-edge: calc(var(--lc-line) * 2.5); border: 0; box-shadow: 0 0 1.1em -0.2em var(--lc-accent); }
+.lc-d-creative .lc-ring::before { background: conic-gradient(from 200deg, var(--lc-accent), #7c4dff, #ff5fa2, var(--lc-accent)); }
+.lc-d-creative .lc-ring-in .lc-time { font-size: 3.6em; font-weight: 800; font-style: italic; letter-spacing: -0.03em; }
+
+/* 13 Seitlich mit Wochentag */
+.lc-d-side .lc-time { font-size: 4.8em; }
+.lc-d-side .lc-rule-v { background: rgba(255, 255, 255, 0.7); }
+.lc-d-side .lc-wd, .lc-d-side .lc-date { font-size: 1.55em; font-weight: 300; }
+
+/* 14 Elegant Rund */
+.lc-d-round .lc-ring { width: 13em; border-width: max(1px, calc(var(--lc-line) * 0.75)); background: rgba(10, 10, 14, 0.25); }
+.lc-d-round .lc-ring-in .lc-time { font-weight: 500; font-size: 3.2em; }
+.lc-d-round .lc-ring-in .lc-rule { height: 1px; }
+
+/* 15 Dünn & Minimal */
+.lc-d-thin .lc-time { font-weight: 100; font-size: 5.6em; letter-spacing: 0.02em; }
+.lc-d-thin .lc-dl { font-weight: 300; font-size: 1.4em; }
+
+/* 16 Kreativ mit Rahmen (Neon) */
+.lc-d-neon .lc-surf {
+	--lc-edge: var(--lc-line); position: relative; border: 0;
+	box-shadow: 0 0 1em -0.2em var(--lc-accent), 0 0 1.4em -0.3em #ff4fd8;
+}
+.lc-d-neon .lc-surf::before { background: linear-gradient(135deg, var(--lc-accent), #a46bff 55%, #ff4fd8); }

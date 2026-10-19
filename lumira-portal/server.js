@@ -31,6 +31,7 @@ const ambientLib = require("./lib/ambient");
 const doorbellLib = require("./lib/doorbell");
 const ringLib = require("./lib/ring");
 const weatherLib = require("./lib/weather");
+const clockLib = require("./lib/clock");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -1040,6 +1041,26 @@ app.put("/api/weather", requireAuth, (req, res) => {
 	} catch (err) {
 		if (err instanceof weatherLib.WeatherError) return res.status(err.status).json({ error: err.message });
 		console.error("[lumira-portal] Wetter:", err);
+		res.status(500).json({ error: "Interner Fehler" });
+	}
+});
+
+// ---------------------------------------------------------------------------
+// Uhr (Bildschirm → Uhr), siehe lib/clock.js und modules/MMM-LumiraClock.
+// Wirkt live über clock.json; ein/aus bleibt settings.modules.clock.
+// ---------------------------------------------------------------------------
+const clock = clockLib.createClock({ home: settingsLib.LUMIRA_HOME });
+
+app.get("/api/clock", requireAuth, (req, res) => {
+	try { res.json(clock.view()); } catch (err) { res.status(500).json({ error: "Interner Fehler" }); }
+});
+
+app.put("/api/clock", requireAuth, (req, res) => {
+	try {
+		res.json(clock.setConfig(req.body || {}));
+	} catch (err) {
+		if (err instanceof clockLib.ClockError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] Uhr:", err);
 		res.status(500).json({ error: "Interner Fehler" });
 	}
 });

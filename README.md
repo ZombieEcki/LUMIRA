@@ -65,9 +65,9 @@ keine Terminal-Eingabe mehr nötig.
 |-------|---------|-----|
 | `alert` | Standard-Meldungen | Standard |
 | `updatenotification` | zeigt verfügbare Updates | Standard |
-| `clock` | digitale Uhr | Standard |
 | `calendar` | Familienkalender (iCloud/ICS) | Standard |
 | `newsfeed` | Nachrichtenticker (RSS) | Standard |
+| **`MMM-LumiraClock`** | Uhr in 16 Designs (digital und analog), frei platzierbar, im Portal unter Bildschirm → Uhr | **Eigen** |
 | **`MMM-LumiraWeather`** | Wetter (12 Designs, Open-Meteo), DWD-Regenradar und amtliche Warnungen, im Portal unter Bildschirm → Wetter | **Eigen** |
 | **`MMM-aPagerAlarm`** | Feuerwehr-Alarmierung + Home-Assistant-Weiterleitung | **Eigen** |
 | **`MMM-SmartCompliments`** | intelligente Familien-/Motivationssprüche | **Eigen** |

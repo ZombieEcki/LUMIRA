@@ -213,6 +213,23 @@
           currentPage: function () { return currentPage; }
         });
       }
+      if (window.LumiraClock) {
+        window.LumiraClock.init({
+          toast: toast,
+          getSettings: function () { return SETTINGS; },
+          currentPage: function () { return currentPage; },
+          // Position geändert: Aufbau-Ansicht auf Start mitziehen
+          onChange: function (c) { CLK = c; renderModulePreview(); },
+          // Schalter „Uhr“: wie Bildschirm → Übersicht (MagicMirror startet neu)
+          setModule: function (on) {
+            var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { clock: !!on });
+            return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
+              SETTINGS = settings;
+              applyModuleState();
+            });
+          }
+        });
+      }
       if (window.LumiraDoorbell) {
         window.LumiraDoorbell.init({
           toast: toast,
@@ -236,6 +253,7 @@
       if (STATUS.edition.flags.hasFamily) wireMemberMenu();
       // Wetter-Teile für die Aufbau-Ansicht auf Start und die Übersicht
       api("/api/weather").then(function (w) { WX = w; renderModulePreview(); renderModuleList(); }).catch(function () {});
+      api("/api/clock").then(function (c) { CLK = c; renderModulePreview(); }).catch(function () {});
       renderGreeting();
       renderStartNext();
       loadWeather();
@@ -736,7 +754,7 @@
   // Seite, damit Zurück-Taste und Lesezeichen funktionieren.
   var AREAS = [
     { id: "start", label: "Start", icon: "home", pages: [["start", "Übersicht"]] },
-    { id: "bildschirm", label: "Bildschirm", icon: "monitor", pages: [["module", "Übersicht"], ["wetter", "Wetter"],
+    { id: "bildschirm", label: "Bildschirm", icon: "monitor", pages: [["module", "Übersicht"], ["uhr", "Uhr", null, "clock"], ["wetter", "Wetter"],
       ["spruche", "Sprüche", "hasFamily", "compliments"], ["kalender", "Kalender", "hasCal", "calendar"], ["news", "Nachrichten", null, "news"],
       ["bildschirm", "Dauerschleife"], ["klingel", "Türklingel", null, "doorbell"]] },
     { id: "extras", label: "Extras", icon: "users", special: true, pages: [["familienplan", "Familienplan", "hasFamily", "familyPlan"]] },
@@ -791,6 +809,7 @@
     currentPage = name;
     if (name === "klingel" && window.LumiraDoorbell) window.LumiraDoorbell.reload();
     if (name === "wetter" && window.LumiraWeather) window.LumiraWeather.show(name);
+    if (name === "uhr" && window.LumiraClock) window.LumiraClock.show();
     if (name === "spruche" && window.LumiraSpruche) window.LumiraSpruche.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
@@ -1042,7 +1061,7 @@
   // where: "modules" = settings.modules[key], sonst eigenes enabled-Feld;
   // page: Einstellungsseite (Zahnrad)
   var MODULE_LIST = [
-    { key: "clock", label: "Uhr", desc: "oben links" },
+    { key: "clock", label: "Uhr", desc: "16 Designs, frei platzierbar", page: "uhr" },
     { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste", page: "familienplan" },
     { key: "compliments", need: "hasFamily", label: "Sprüche", desc: "Sprüche, Geburtstage, Hinweise", page: "spruche" },
     { key: "calendar", need: "hasCal", label: "Kalender", desc: "Termine aus euren Kalendern", page: "kalender" },
@@ -1054,6 +1073,7 @@
   var WX = null; // Stand von /api/weather (Wetter-Teile)
 
   // Wetter: welche Teile sind auf dem Bildschirm?
+  var CLK = null; // Uhr (GET /api/clock) für die Aufbau-Ansicht
   function weatherParts() {
     if (!WX) return null;
     var parts = [];
@@ -1138,6 +1158,7 @@
     if (currentPage && areaOf(currentPage)) renderTabs(currentPage, areaOf(currentPage));
     // Familienplan-Seite zeichnet ihren Schalter selbst neu, außer sie hat gerade gespeichert
     if (!fromFamilyPlan && window.LumiraFamilyPlan && window.LumiraFamilyPlan.refresh) window.LumiraFamilyPlan.refresh();
+    if (window.LumiraClock) window.LumiraClock.refresh();
   }
 
   // ---------------------------------------------------------------------
@@ -1305,17 +1326,20 @@
     var flags = STATUS.edition.flags;
     function mod(key) { return moduleOn(MODULE_LIST.filter(function (x) { return x.key === key; })[0]); }
     var fpOn = flags.hasFamily && mod("familyPlan");
-    var left = [];
-    if (mod("clock")) left.push("Uhr");
-    if (fpOn) left.push("Familienplan");
-    setPreviewCell("top_left", left.join(" · "));
+    var cells = { top_left: [], top_center: [], top_right: [], bottom_left: [], bottom_right: [] };
+    // Uhr: „Wie bisher“ oben links, frei platziert im nächstgelegenen Feld
+    var clockOn = mod("clock");
+    if (clockOn) cells[previewRegion(CLK && CLK.anchor)].push("Uhr");
+    if (fpOn) cells.top_left.push("Familienplan");
     var compOn = flags.hasFamily && mod("compliments");
-    setPreviewCell("top_center", compOn ? "Sprüche" : "");
+    if (compOn) cells.top_center.push("Sprüche");
     var right = weatherParts() || [];
-    setPreviewCell("top_right", right.length ? "Wetter" : "");
+    if (right.length) cells.top_right.push("Wetter");
     var calOn = flags.hasCal && mod("calendar");
-    setPreviewCell("bottom_left", calOn ? "Kalender" : "");
-    setPreviewCell("bottom_right", mod("statusHint") ? "Status" : "");
+    if (calOn) cells.bottom_left.push("Kalender");
+    if (mod("statusHint")) cells.bottom_right.push("Status");
+    Object.keys(cells).forEach(function (r) { setPreviewCell(r, cells[r].join(" · ")); });
+    var left = (clockOn ? ["Uhr"] : []).concat(fpOn ? ["Familienplan"] : []);
     var newsOn = mod("news");
     $("#mp-bottombar").textContent = newsOn ? "Nachrichten" : "";
     $("#mp-bottombar").hidden = !newsOn;
@@ -1324,6 +1348,12 @@
     overlay.hidden = !alarmEnabled();
     var visible = left.length + right.length + (compOn ? 1 : 0) + (calOn ? 1 : 0) + (newsOn ? 1 : 0) + (mod("statusHint") ? 1 : 0);
     $("#mirror-sub").textContent = visible + " Module sichtbar";
+  }
+  function previewRegion(anchor) {
+    if (!anchor || anchor === "auto") return "top_left";
+    var a = anchor.split("_");
+    if (a[0] === "bottom") return a[1] === "right" ? "bottom_right" : "bottom_left";
+    return "top_" + a[1];
   }
   function setPreviewCell(region, text) {
     var cell = $('.mp-cell[data-region="' + region + '"]');

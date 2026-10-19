@@ -739,7 +739,7 @@ Module.register("MMM-SmartCompliments", {
 	// Rückmeldung fürs Portal: was steht gerade da, überdeckt es etwas?
 	// ------------------------------------------------------------------
 	NAMES: {
-		clock: "Uhr", weather: "Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
+		clock: "Uhr", "MMM-LumiraClock": "Uhr", weather: "Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
 		"MMM-RainRadarDWD": "altes Regenradar", "MMM-LumiraStatus": "Portal-Hinweis"
 	},
 
@@ -756,6 +756,9 @@ Module.register("MMM-SmartCompliments", {
 				if (r.width < 4 || r.height < 4 || getComputedStyle(m).visibility === "hidden") { return; }
 				const name = Object.keys(this.NAMES).find((k) => m.classList.contains(k));
 				if (name) { rects.push({ name: this.NAMES[name], r: r }); }
+			});
+			document.querySelectorAll("[data-lumira-tile]").forEach((el) => {
+				rects.push({ name: el.getAttribute("data-lumira-tile"), r: el.getBoundingClientRect() });
 			});
 			document.querySelectorAll(".lw-panel, .lw-wxpanel").forEach((el) => {
 				rects.push({ name: el.classList.contains("lw-wxpanel") ? "Wetteranzeige" : el.classList.contains("lw-radar") ? "Regenradar" : "Warnungen", r: el.getBoundingClientRect() });

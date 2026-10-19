@@ -1,0 +1,14 @@
+{
+  "name": "mmm-lumiraclock",
+  "version": "1.0.0",
+  "description": "MagicMirror² – Uhr in 16 Designs (digital und analog), Datum/Wochentag, 12/24 h, frei platzierbar, gesteuert im LUMIRA-Portal.",
+  "main": "MMM-LumiraClock.js",
+  "keywords": [
+    "MagicMirror",
+    "MagicMirror2",
+    "Uhr",
+    "Clock"
+  ],
+  "author": "Liam Eckhof",
+  "license": "MIT"
+}

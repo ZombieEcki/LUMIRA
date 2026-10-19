@@ -23,14 +23,9 @@ let config = {
 	modules: [
 		{ module: "alert" },
 		{ module: "updatenotification", position: "top_bar" },
-		{
-			module: "clock",
-			position: "top_left",
-			config: {
-				displayType: "digital",
-				displaySeconds: false
-			}
-		},
+		/* --- Uhr (eigenes Modul, 16 Designs; Einstellungen in ~/.lumira/clock.json
+		   bzw. im Portal unter Bildschirm → Uhr) --- */
+		{ module: "MMM-LumiraClock", position: "top_left" },
 
 		/* --- Familienassistent (keine Feuerwehr-Kopplung in dieser Edition) --- */
 		{

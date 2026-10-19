@@ -20,6 +20,7 @@
 <script>try { var t = localStorage.getItem("lumira-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="weather-view.css">
+<link rel="stylesheet" href="clock-view.css">
 <link rel="stylesheet" href="spruch/spruch-view.css">
 <!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
 <link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
@@ -705,6 +706,79 @@
         </div>
       </section>
 
+      <!-- Uhr (clock.js, MMM-LumiraClock, clock-view.js): 16 Designs. Wirkt live
+           über clock.json, nur Ein/Aus startet MagicMirror neu. -->
+      <section class="page cols" data-page="uhr">
+        <div class="stack">
+        <div class="card" id="lc-main">
+          <h2>Uhr</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Bildschirm zeigen<small id="lc-on-sub"></small></span>
+            <button class="sw" id="lc-on" role="switch" aria-label="Uhr auf dem Bildschirm"></button>
+          </div>
+          <p class="save-hint">Ein- und Ausschalten startet MagicMirror einmal neu. Alles andere wirkt nach wenigen Sekunden, ohne Neustart.</p>
+        </div>
+
+        <div class="card">
+          <h2>Design</h2>
+          <p class="sub">Mit der echten Uhrzeit. Beim Wechsel wird die empfohlene Breite gesetzt – danach frei änderbar.</p>
+          <div class="wd-designs" id="lc-designs" role="radiogroup" aria-label="Design der Uhr"></div>
+        </div>
+
+        <div class="card lc-box">
+          <h2>Uhrzeit &amp; Datum</h2>
+          <div class="grid2">
+            <div class="field"><label for="lc-hour12">Zeitformat</label>
+              <select id="lc-hour12" data-c="hour12"><option value="false">24 Stunden (15:58)</option><option value="true">12 Stunden (3:58 PM)</option></select></div>
+            <div class="field"><label for="lc-datestyle">Datum</label>
+              <select id="lc-datestyle" data-c="dateStyle"><option value="long">lang – Mittwoch, 8. Juli 2026</option><option value="short">kurz – Mi, 08.07.2026</option></select></div>
+          </div>
+          <div class="toggle"><span class="tl2">Sekunden<small>bei analogen Designs als Sekundenzeiger</small></span>
+            <button class="sw" data-c="seconds" role="switch" aria-label="Sekunden"></button></div>
+          <div class="toggle"><span class="tl2">Wochentag<small>z. B. „Mittwoch“</small></span>
+            <button class="sw" data-c="weekday" role="switch" aria-label="Wochentag"></button></div>
+          <div class="toggle"><span class="tl2">Datum<small>z. B. „8. Juli 2026“</small></span>
+            <button class="sw" data-c="date" role="switch" aria-label="Datum"></button></div>
+          <div class="toggle" id="lc-digital-row"><span class="tl2">Uhrzeit zusätzlich als Zahl<small id="lc-digital-sub">unter dem Zifferblatt</small></span>
+            <button class="sw" data-c="digital" role="switch" aria-label="Uhrzeit zusätzlich als Zahl"></button></div>
+        </div>
+
+        <div class="card lc-box">
+          <h2>Position &amp; Größe</h2>
+          <div class="lc-layout" id="lc-layout"></div>
+        </div>
+
+        <div class="card lc-box">
+          <h2>Aussehen</h2>
+          <div class="toggle"><span class="tl2">Dunkle Glasfläche<small>hinter der Uhr, für bessere Lesbarkeit</small></span>
+            <button class="sw" data-c="glass" role="switch" aria-label="Dunkle Glasfläche"></button></div>
+          <div class="grid2">
+            <div class="field"><label for="lc-opacity">Deckkraft der Fläche <span id="lc-opacity-val"></span></label>
+              <input type="range" class="db-range" id="lc-opacity" data-c="opacity" min="0" max="100" step="5"></div>
+            <div class="field"><label for="lc-line">Linienstärke<span class="opt"> (Linien, Rahmen, Ringe)</span></label>
+              <select id="lc-line" data-c="line"><option value="1">1 px – fein</option><option value="2">2 px</option><option value="3">3 px</option>
+                <option value="4">4 px</option><option value="6">6 px</option><option value="8">8 px – kräftig</option></select></div>
+            <div class="field"><label for="lc-accent">Akzentfarbe<span class="opt"> (Ringe, Leuchtrahmen, Sekundenzeiger)</span></label>
+              <div class="lc-accent-row"><input type="color" id="lc-accent" aria-label="Akzentfarbe">
+                <button type="button" class="btn small" id="lc-accent-reset">Wie im Design</button></div></div>
+          </div>
+          <p class="save-hint" id="lc-look-hint">Die Fläche gibt es bei „Modern mit Rahmen“, „Kompakt“, „Glas“, „Kreativ mit Rahmen“ und in den Kreisen – oder für jedes Design über „Dunkle Glasfläche“. 0 % = ganz durchsichtig.</p>
+        </div>
+        </div>
+
+        <div class="stack">
+        <div class="card">
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="lc-shot-reload">Live-Bild neu laden</button></div>
+          <p class="sub">Das gewählte Design in echter Größe (verkleinert, falls breiter als hier).</p>
+          <div class="wd-stage" id="lc-stage"><div class="wd-stage-in" id="lc-preview"></div></div>
+          <p class="save-hint" id="lc-fit" hidden></p>
+          <p class="sub">Live-Bild vom Bildschirm – so steht die Uhr gerade wirklich.</p>
+          <div class="wx-shot" id="lc-shot"><img id="lc-shot-img" alt="Live-Bild des Bildschirms"><p class="mp-note" id="lc-shot-note">Live-Bild wird geladen …</p></div>
+          <div id="lc-report"></div>
+        </div>
+        </div>
+      </section>
+
       <!-- Wetter (weather.js, MMM-LumiraWeather, weather-view.js): drei Teile –
            Aktuell & Vorhersage, Regenradar, Warnungen. Wirkt live über weather.json. -->
       <section class="page cols" data-page="wetter">
@@ -1137,6 +1211,8 @@
 <script src="spruch/spruch-logic.js"></script>
 <script src="spruche.js"></script>
 <script src="weather.js"></script>
+<script src="clock-view.js"></script>
+<script src="clock.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
