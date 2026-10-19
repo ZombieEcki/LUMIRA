@@ -115,21 +115,11 @@ function buildModules(settings) {
 		});
 	}
 
-	const calUrls = (settings.calendar.urls || []).filter(Boolean);
-	if (edition.hasCal && on("calendar") && calUrls.length) {
-		modules.push({
-			module: "calendar",
-			header: edition.hasFamily ? "Familienkalender" : "Kalender",
-			position: "bottom_left",
-			config: {
-				maximumEntries: 5,
-				// Mehrere Kalender werden vom calendar-Modul nativ zu einer
-				// gemeinsamen, chronologisch sortierten Agenda zusammengeführt -
-				// bewusst kein separates Modul pro Kalender (siehe concept/…-Notiz
-				// zur Portal-Änderung "Kalender/News trennen").
-				calendars: calUrls.map((url) => ({ symbol: "calendar-check", url }))
-			}
-		});
+	// Kalender (Bildschirm → Kalender): eigenes Modul statt des MagicMirror-
+	// Kalenders. Quellen, Design, Position kommen live aus calendar.json;
+	// „Wie bisher“ steht er hier unten links. Ein/aus mit Neustart.
+	if (edition.hasCal && on("calendar")) {
+		modules.push({ module: "MMM-LumiraCalendar", position: "bottom_left" });
 	}
 
 	// Wetter und Regenradar kommen aus MMM-LumiraWeather (unten, live über

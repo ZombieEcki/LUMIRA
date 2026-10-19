@@ -434,7 +434,7 @@ Module.register("MMM-LumiraWeather", {
 	// ------------------------------------------------------------------ Rückmeldung
 	// Überdeckt eine Kachel andere Module (Uhr, Familienplan, Kalender …)?
 	NAMES: {
-		clock: "Uhr", "MMM-LumiraClock": "Uhr", weather: "bisheriges Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
+		clock: "Uhr", "MMM-LumiraClock": "Uhr", weather: "bisheriges Wetter", calendar: "Kalender", "MMM-LumiraCalendar": "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
 		"MMM-SmartCompliments": "Sprüche", "MMM-RainRadarDWD": "altes Regenradar", "MMM-aPagerAlarm": "Alarm", "MMM-LumiraStatus": "Portal-Hinweis"
 	},
 

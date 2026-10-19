@@ -1,0 +1,141 @@
+/* MMM-LumiraCalendar – die 12 Designs (auch im Portal als
+ * public/calendar-view.css, der Test prüft Gleichheit). Alles in em: die
+ * Schriftgröße der Kachel vergrößert den ganzen Kalender. Farben nur als
+ * Streifen, Punkte oder dezente Flächen – der Hintergrund bleibt sichtbar. */
+
+.lk-cal {
+	--lk-bg: rgba(14, 16, 22, 0.35);
+	--lk-line: 1px;
+	--lk-gap: 0.375em;
+	--lk-pad: 16px;
+	--lk-dim: rgba(255, 255, 255, 0.62);
+	--lk-rule: rgba(255, 255, 255, 0.16);
+	--lk-accent: #3d9cff;
+	box-sizing: border-box;
+	color: #fff;
+	font-family: "Roboto", "Manrope", "Segoe UI", system-ui, sans-serif;
+	line-height: 1.25;
+	font-variant-numeric: tabular-nums;
+	overflow: hidden;
+	text-align: left;
+}
+.lk-cal *, .lk-cal *::before, .lk-cal *::after { box-sizing: border-box; }
+.lk-inner { display: flex; flex-direction: column; gap: 0.6em; padding: var(--lk-pad); }
+.lk-glassy .lk-inner { background: var(--lk-bg); border-radius: 1.1em; border: 1px solid rgba(255, 255, 255, 0.1); }
+.lk-cal[data-align="right"] .lk-inner { margin-left: auto; }
+
+/* ------------------------------------------------------------ Bausteine */
+.lk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1em; }
+.lk-head-t { font-size: 1.35em; font-weight: 700; }
+.lk-head-r { color: var(--lk-dim); font-size: 0.95em; white-space: nowrap; }
+
+.lk-list { display: flex; flex-direction: column; gap: var(--lk-gap); }
+.lk-group { margin-top: 0.35em; font-weight: 700; font-size: 1.02em; display: flex; justify-content: space-between; gap: 1em; }
+.lk-group:first-child { margin-top: 0; }
+.lk-group-d { color: var(--lk-dim); font-weight: 500; font-size: 0.9em; }
+
+.lk-item { display: flex; align-items: center; gap: 0.7em; min-width: 0; }
+.lk-item.is-past { opacity: 0.5; }
+.lk-mk { display: inline-flex; align-items: center; gap: 0.35em; flex: none; align-self: stretch; }
+.lk-mk:empty { display: none; }
+.lk-bar { width: 0.22em; min-height: 1.15em; align-self: stretch; border-radius: 3px; }
+.lk-dot { width: 0.6em; height: 0.6em; border-radius: 50%; flex: none; display: inline-block; }
+.lk-neutral { background: rgba(255, 255, 255, 0.7); }
+.lk-ic { width: 1.2em; text-align: center; font-size: 0.95em; }
+.lk-time { flex: none; min-width: 3.3em; color: var(--lk-dim); font-weight: 500; white-space: nowrap; }
+.lk-time:empty { display: none; }
+.lk-time-r { margin-left: auto; text-align: right; }
+.lk-day { flex: none; min-width: 4.4em; color: var(--lk-dim); white-space: nowrap; }
+.lk-body { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.lk-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lk-loc { color: var(--lk-dim); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lk-wrap .lk-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lk-more { color: var(--lk-dim); font-size: 0.9em; padding-top: 0.15em; }
+.lk-empty { color: var(--lk-dim); padding: 0.4em 0; }
+.lk-stale { color: #ffcf6e; font-size: 0.8em; }
+
+/* Monatsraster */
+.lk-month { display: flex; flex-direction: column; gap: 0.5em; min-width: 0; }
+.lk-month .lk-head { justify-content: center; }
+.lk-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 0.25em; text-align: center; }
+.lk-grid .lk-wd { color: var(--lk-dim); font-size: 0.85em; padding-bottom: 0.2em; }
+.lk-cell { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0.2em 0 0.15em; }
+.lk-num { display: inline-flex; align-items: center; justify-content: center; width: 1.9em; height: 1.9em; border-radius: 50%; font-size: 1.05em; }
+.lk-cell.is-out { opacity: 0.35; }
+.lk-cell.is-today .lk-num { background: var(--lk-accent); font-weight: 700; box-shadow: 0 0 0.6em -0.1em var(--lk-accent); }
+.lk-dots { display: flex; gap: 0.18em; height: 0.4em; margin-top: 0.1em; }
+.lk-dots .lk-dot { width: 0.36em; height: 0.36em; }
+
+/* Monat + Liste, großes Datum */
+.lk-split { display: flex; gap: 1.4em; align-items: flex-start; }
+.lk-split > .lk-month { flex: 0 0 22em; }
+.lk-side { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.5em; border-left: var(--lk-line) solid var(--lk-rule); padding-left: 1.2em; }
+
+/* ------------------------------------------------------------ Designs */
+/* 2 Monat schlicht: heute grau, neutrale Punkte */
+.lk-d-monthPlain .lk-cell.is-today .lk-num { background: rgba(255, 255, 255, 0.22); border-radius: 0.35em; box-shadow: none; }
+
+/* 4 Tagesliste schlicht: feine Linien, keine Farben */
+.lk-d-dayPlain .lk-head-t { font-weight: 400; font-size: 1.45em; }
+.lk-d-dayPlain .lk-head { border-bottom: var(--lk-line) solid rgba(255, 255, 255, 0.3); padding-bottom: 0.45em; }
+.lk-d-dayPlain .lk-item { border-bottom: var(--lk-line) solid var(--lk-rule); padding: 0.35em 0; font-size: 1.12em; }
+.lk-d-dayPlain .lk-time { color: rgba(255, 255, 255, 0.72); font-weight: 400; min-width: 3.6em; }
+.lk-d-dayPlain .lk-group { font-weight: 500; color: var(--lk-dim); }
+
+/* 5 Agenda */
+.lk-d-agenda .lk-item { font-size: 1.05em; }
+.lk-d-agenda .lk-group { font-size: 1.12em; }
+
+/* 6 Nächste Termine kompakt */
+.lk-d-next .lk-item { border-bottom: var(--lk-line) solid var(--lk-rule); padding: 0.3em 0; }
+
+/* 7 Nur heute */
+.lk-d-today .lk-head-t { font-size: 1.7em; }
+.lk-d-today .lk-item { font-size: 1.15em; }
+.lk-d-today .lk-time { min-width: 3.6em; }
+
+/* 8 Großes Datum */
+.lk-big { align-items: center; }
+.lk-bigdate { flex: none; text-align: center; padding-right: 0.2em; }
+.lk-bd-wd { text-transform: uppercase; letter-spacing: 0.12em; font-size: 1.1em; }
+.lk-bd-d { font-size: 5.6em; font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+.lk-bd-m { text-transform: uppercase; letter-spacing: 0.12em; color: var(--lk-dim); }
+
+/* 9 Woche als Tabelle */
+.lk-week { display: flex; flex-direction: column; }
+.lk-wrow { display: grid; grid-template-columns: 2.2em 2em 1fr; gap: 0.6em; align-items: start; padding: 0.38em 0.4em; border-bottom: var(--lk-line) solid var(--lk-rule); }
+.lk-wrow .lk-wd { color: var(--lk-dim); }
+.lk-wrow .lk-num { width: auto; height: auto; border-radius: 0; font-weight: 600; justify-content: flex-start; }
+.lk-wrow.is-today { background: rgba(255, 255, 255, 0.1); border-radius: 0.4em; }
+.lk-wcell { display: flex; flex-direction: column; gap: 0.15em; min-width: 0; }
+.lk-wnone { color: var(--lk-dim); }
+.lk-wmore { color: var(--lk-dim); font-size: 0.85em; }
+
+/* 10 Woche quer */
+.lk-cols { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.45em; }
+.lk-col { display: flex; flex-direction: column; gap: 0.3em; min-width: 0; padding: 0.35em 0.3em; border-radius: 0.6em; background: rgba(255, 255, 255, 0.04); }
+.lk-col.is-today { background: rgba(61, 156, 255, 0.22); box-shadow: inset 0 0 0 1px rgba(61, 156, 255, 0.6); }
+.lk-col-h { display: flex; flex-direction: column; align-items: center; margin-bottom: 0.15em; }
+.lk-col-h .lk-wd { color: var(--lk-dim); font-size: 0.85em; }
+.lk-col-h .lk-num { width: auto; height: auto; font-size: 1.35em; font-weight: 700; }
+.lk-chip { border-left: 0.25em solid; border-radius: 0.3em; padding: 0.2em 0.35em; font-size: 0.8em; display: flex; flex-direction: column; min-width: 0; }
+.lk-chip-t { color: rgba(255, 255, 255, 0.8); font-size: 0.9em; }
+.lk-chip-n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 11 Tages-Zeitstrahl */
+.lk-tl { position: relative; display: flex; flex-direction: column; gap: var(--lk-gap); }
+.lk-tl-row { display: grid; grid-template-columns: 3.6em 0.8em 1fr; gap: 0.6em; align-items: center; }
+.lk-tl-dot { width: 0.7em; height: 0.7em; border-radius: 50%; position: relative; justify-self: center; }
+.lk-tl-row:has(+ .lk-tl-row) .lk-tl-dot::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 2.4em; background: rgba(255, 255, 255, 0.25); transform: translateX(-50%); }
+.lk-pill { display: flex; gap: 0.5em; align-items: center; min-width: 0; padding: 0.4em 0.7em; border-radius: 0.5em; border: 1px solid; font-weight: 500; }
+.lk-tl .lk-group { margin-top: 0.4em; }
+
+/* 12 Übersicht */
+.lk-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6em; }
+.lk-card { border-radius: 0.8em; padding: 0.7em 0.8em; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); display: flex; flex-direction: column; align-items: center; text-align: center; }
+.lk-card-t { font-weight: 700; }
+.lk-card-d { color: var(--lk-dim); font-size: 0.85em; }
+.lk-card-n { font-size: 2.4em; font-weight: 700; line-height: 1.1; margin-top: 0.15em; }
+.lk-card-u { color: var(--lk-dim); font-size: 0.85em; }
+.lk-card-bar { width: 100%; height: 0.3em; border-radius: 9px; background: rgba(255, 255, 255, 0.12); margin-top: 0.5em; overflow: hidden; }
+.lk-card-bar span { display: block; height: 100%; border-radius: 9px; }

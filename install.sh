@@ -7,7 +7,8 @@
 #   - MagicMirror²
 #   - die eigenen Module (modules/MMM-aPagerAlarm, modules/MMM-SmartCompliments,
 #     modules/MMM-LumiraStatus, modules/MMM-FamilyPlan, modules/MMM-Ambient,
-#     modules/MMM-Doorbell, modules/MMM-LumiraWeather, modules/MMM-LumiraClock)
+#     modules/MMM-Doorbell, modules/MMM-LumiraWeather, modules/MMM-LumiraClock,
+#     modules/MMM-LumiraCalendar)
 #   - eine lauffähige config.js mit Platzhalter-Werten für die gewählte Edition
 #   - optional Autostart per pm2
 #
@@ -52,7 +53,7 @@ set -euo pipefail
 MM_DIR="${MM_DIR:-$HOME/MagicMirror}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
 MM_REPO="https://github.com/MagicMirrorOrg/MagicMirror"
-OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan" "MMM-Ambient" "MMM-Doorbell" "MMM-LumiraWeather" "MMM-LumiraClock")
+OWN_MODULES=("MMM-aPagerAlarm" "MMM-SmartCompliments" "MMM-LumiraStatus" "MMM-FamilyPlan" "MMM-Ambient" "MMM-Doorbell" "MMM-LumiraWeather" "MMM-LumiraClock" "MMM-LumiraCalendar")
 
 WITH_PM2=1; FORCE_CONFIG=0; RECONFIGURE=0; NO_WIZARD=0; UPDATE_ONLY=0
 EDITION="fire"; HOSTNAME_NEW="lumira"; WITH_SELFSERVICE=1

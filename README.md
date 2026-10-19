@@ -65,8 +65,8 @@ keine Terminal-Eingabe mehr nötig.
 |-------|---------|-----|
 | `alert` | Standard-Meldungen | Standard |
 | `updatenotification` | zeigt verfügbare Updates | Standard |
-| `calendar` | Familienkalender (iCloud/ICS) | Standard |
 | `newsfeed` | Nachrichtenticker (RSS) | Standard |
+| **`MMM-LumiraCalendar`** | Kalender in 12 Designs aus beliebig vielen Abos (iCloud, Google, Outlook …), Farbe/Symbol je Kalender, im Portal unter Bildschirm → Kalender | **Eigen** |
 | **`MMM-LumiraClock`** | Uhr in 16 Designs (digital und analog), frei platzierbar, im Portal unter Bildschirm → Uhr | **Eigen** |
 | **`MMM-LumiraWeather`** | Wetter (12 Designs, Open-Meteo), DWD-Regenradar und amtliche Warnungen, im Portal unter Bildschirm → Wetter | **Eigen** |
 | **`MMM-aPagerAlarm`** | Feuerwehr-Alarmierung + Home-Assistant-Weiterleitung | **Eigen** |

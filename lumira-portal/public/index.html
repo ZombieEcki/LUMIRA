@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="weather-view.css">
 <link rel="stylesheet" href="clock-view.css">
+<link rel="stylesheet" href="calendar-view.css">
 <link rel="stylesheet" href="spruch/spruch-view.css">
 <!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
 <link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
@@ -969,13 +970,102 @@
       </section>
 
       <!-- Kalender -->
-      <section class="page" data-page="kalender">
-        <p class="page-lead">Bis zu 3 Kalender (iCloud/ICS) – werden zu einer gemeinsamen, sortierten Übersicht zusammengeführt.</p>
+      <!-- Kalender (calendar.js, MMM-LumiraCalendar, calendar-view.js): beliebig viele
+           ICS-Abos, 12 Designs. Wirkt live über calendar.json, nur Ein/Aus startet neu. -->
+      <section class="page cols" data-page="kalender">
+        <div class="stack">
+        <div class="card" id="lk-main">
+          <h2>Kalender</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Bildschirm zeigen<small id="lk-on-sub"></small></span>
+            <button class="sw" id="lk-on" role="switch" aria-label="Kalender auf dem Bildschirm"></button>
+          </div>
+          <p class="save-hint">Ein- und Ausschalten startet MagicMirror einmal neu. Kalender, Design und alles andere wirken nach wenigen Sekunden, ohne Neustart.</p>
+        </div>
+
+        <div class="card lk-box">
+          <h2>Eure Kalender</h2>
+          <p class="sub">Beliebig viele Kalender-Abos (iCloud, Google, Outlook, Verein, Ferien …) – alle werden zu einer Übersicht zusammengeführt. Es wird nur gelesen, nie etwas im Kalender geändert.</p>
+          <div class="lk-sources" id="lk-sources"></div>
+          <div class="lk-editor" id="lk-editor" hidden></div>
+          <button type="button" class="btn-add" id="lk-add">+ Kalender hinzufügen</button>
+          <details class="lk-help">
+            <summary>Wo finde ich den Kalender-Link?</summary>
+            <ul>
+              <li><b>iCloud / Apple:</b> In der Kalender-App beim Kalender auf (i) tippen → „Öffentlicher Kalender“ einschalten → Link teilen bzw. kopieren (beginnt mit <span class="mono-in">webcal://</span>).</li>
+              <li><b>Google:</b> calendar.google.com am Computer → Einstellungen des Kalenders → „Kalender integrieren“ → <em>Privatadresse im iCal-Format</em> kopieren.</li>
+              <li><b>Outlook / Microsoft 365:</b> outlook.com → Einstellungen → Kalender → Freigegebene Kalender → „Kalender veröffentlichen“ → <em>ICS</em>-Link kopieren.</li>
+              <li><b>Feiertage, Ferien, Verein:</b> jeder Link auf eine <span class="mono-in">.ics</span>-Datei bzw. ein Kalender-Abo.</li>
+            </ul>
+            <p class="save-hint">Die Links sind geheim wie ein Passwort: Sie bleiben auf dem Gerät und werden hier nach dem Speichern nur noch gekürzt angezeigt.</p>
+          </details>
+        </div>
+
         <div class="card">
-          <div class="bdays" id="cal-urls"></div>
-          <button type="button" class="btn-add" id="addCalUrl">+ Kalender hinzufügen</button>
-          <div class="save-row"><button class="btn primary" data-save="kalender">Speichern</button>
-            <span class="save-hint" data-savehint="kalender"></span></div>
+          <h2>Design</h2>
+          <p class="sub">Mit euren echten Terminen. Beim Wechsel wird die empfohlene Breite gesetzt – danach frei änderbar.</p>
+          <div class="wd-designs" id="lk-designs" role="radiogroup" aria-label="Design des Kalenders"></div>
+        </div>
+
+        <div class="card lk-box">
+          <h2>Termine</h2>
+          <div class="grid2">
+            <div class="field"><label for="lk-range">Zeitraum</label>
+              <select id="lk-range"><option value="1">nur heute</option><option value="2">heute und morgen</option><option value="7">nächste 7 Tage</option>
+                <option value="14">nächste 14 Tage</option><option value="31">nächster Monat</option><option value="custom">eigene Anzahl Tage …</option></select>
+              <input type="number" class="mono-in lk-custom" id="lk-range-n" min="1" max="62" hidden aria-label="Anzahl Tage"></div>
+            <div class="field"><label for="lk-max">Höchstens angezeigt</label>
+              <select id="lk-max"><option value="3">3 Termine</option><option value="5">5 Termine</option><option value="8">8 Termine</option><option value="10">10 Termine</option>
+                <option value="15">15 Termine</option><option value="20">20 Termine</option><option value="custom">eigene Anzahl …</option></select>
+              <input type="number" class="mono-in lk-custom" id="lk-max-n" min="1" max="100" hidden aria-label="Anzahl Termine"></div>
+            <div class="field"><label for="lk-mark">Kalender erkennbar an</label>
+              <select id="lk-mark" data-k="mark"><option value="color">Farbe</option><option value="icon">Symbol</option><option value="both">Farbe und Symbol</option><option value="none">keine Kennzeichnung</option></select></div>
+            <div class="field"><label for="lk-title">Überschrift<span class="opt"> (leer = wie im Design)</span></label>
+              <input type="text" id="lk-title" data-k="title" maxlength="40" placeholder="z. B. Familienkalender"></div>
+            <div class="field"><label for="lk-interval">Kalender abrufen</label>
+              <select id="lk-interval" data-k="interval"><option value="5">alle 5 Minuten</option><option value="10">alle 10 Minuten</option><option value="15">alle 15 Minuten</option>
+                <option value="30">alle 30 Minuten</option><option value="60">jede Stunde</option></select></div>
+          </div>
+          <p class="save-hint">Zeitraum und Anzahl wirken getrennt: z. B. „nächste 7 Tage, höchstens 5“. Gibt es mehr, steht „+ weitere Termine“ darunter. Die Monats- und Wochenansichten zeigen immer den ganzen Monat bzw. die ganze Woche.</p>
+          <div class="toggle"><span class="tl2">„+ weitere Termine“ zeigen<small>wenn nicht alle Platz haben</small></span><button class="sw" data-k="more" role="switch" aria-label="weitere Termine zeigen"></button></div>
+          <div class="toggle"><span class="tl2">Ganztägige Termine<small>Geburtstage, Urlaub, Feiertage</small></span><button class="sw" data-k="allDay" role="switch" aria-label="Ganztägige Termine"></button></div>
+          <div class="toggle"><span class="tl2">Heute schon vorbei trotzdem zeigen<small>blass, bis der Tag vorbei ist</small></span><button class="sw" data-k="past" role="switch" aria-label="vergangene Termine"></button></div>
+          <div class="toggle"><span class="tl2">Uhrzeit<small>Beginn des Termins</small></span><button class="sw" data-k="time" role="switch" aria-label="Uhrzeit"></button></div>
+          <div class="toggle"><span class="tl2">Endzeit<small>z. B. 10:00–11:30</small></span><button class="sw" data-k="endTime" role="switch" aria-label="Endzeit"></button></div>
+          <div class="toggle"><span class="tl2">Ort<small>klein unter dem Titel</small></span><button class="sw" data-k="location" role="switch" aria-label="Ort"></button></div>
+          <div class="toggle"><span class="tl2">Lange Titel umbrechen<small>sonst gekürzt mit „…“, höchstens 2 Zeilen</small></span><button class="sw" data-k="wrap" role="switch" aria-label="Lange Titel umbrechen"></button></div>
+        </div>
+
+        <div class="card lk-box">
+          <h2>Position &amp; Größe</h2>
+          <div id="lk-layout"></div>
+        </div>
+
+        <div class="card lk-box">
+          <h2>Aussehen</h2>
+          <div class="toggle"><span class="tl2">Dunkle Glasfläche<small>hinter dem Kalender, für bessere Lesbarkeit</small></span>
+            <button class="sw" data-k="glass" role="switch" aria-label="Dunkle Glasfläche"></button></div>
+          <div class="grid2">
+            <div class="field"><label for="lk-opacity">Deckkraft der Fläche <span id="lk-opacity-val"></span></label>
+              <input type="range" class="db-range" id="lk-opacity" data-k="opacity" min="0" max="100" step="5"></div>
+            <div class="field"><label for="lk-line">Trennlinien</label>
+              <select id="lk-line" data-k="line"><option value="0">keine</option><option value="1">fein (1 px)</option><option value="2">2 px</option><option value="3">3 px</option><option value="4">kräftig (4 px)</option></select></div>
+          </div>
+          <p class="save-hint">Die schlichten Designs („Monat schlicht“, „Tagesliste schlicht“) zeigen bewusst keine Farben. 0 % Deckkraft = ganz durchsichtig.</p>
+        </div>
+        </div>
+
+        <div class="stack">
+        <div class="card">
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="lk-shot-reload">Live-Bild neu laden</button></div>
+          <p class="sub">Das gewählte Design in echter Größe (verkleinert, falls breiter als hier).</p>
+          <div class="wd-stage" id="lk-stage"><div class="wd-stage-in" id="lk-preview"></div></div>
+          <p class="save-hint" id="lk-fit" hidden></p>
+          <p class="save-hint" id="lk-data"></p>
+          <p class="sub">Live-Bild vom Bildschirm – so steht der Kalender gerade wirklich.</p>
+          <div class="wx-shot" id="lk-shot"><img id="lk-shot-img" alt="Live-Bild des Bildschirms"><p class="mp-note" id="lk-shot-note">Live-Bild wird geladen …</p></div>
+          <div id="lk-report"></div>
+        </div>
         </div>
       </section>
 
@@ -1213,6 +1303,8 @@
 <script src="weather.js"></script>
 <script src="clock-view.js"></script>
 <script src="clock.js"></script>
+<script src="calendar-view.js"></script>
+<script src="calendar.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

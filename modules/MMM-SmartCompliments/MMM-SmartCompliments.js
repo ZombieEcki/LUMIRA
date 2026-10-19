@@ -739,7 +739,7 @@ Module.register("MMM-SmartCompliments", {
 	// Rückmeldung fürs Portal: was steht gerade da, überdeckt es etwas?
 	// ------------------------------------------------------------------
 	NAMES: {
-		clock: "Uhr", "MMM-LumiraClock": "Uhr", weather: "Wetter", calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
+		clock: "Uhr", "MMM-LumiraClock": "Uhr", weather: "Wetter", calendar: "Kalender", "MMM-LumiraCalendar": "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
 		"MMM-RainRadarDWD": "altes Regenradar", "MMM-LumiraStatus": "Portal-Hinweis"
 	},
 

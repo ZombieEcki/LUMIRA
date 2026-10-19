@@ -32,6 +32,7 @@ const doorbellLib = require("./lib/doorbell");
 const ringLib = require("./lib/ring");
 const weatherLib = require("./lib/weather");
 const clockLib = require("./lib/clock");
+const calendarLib = require("./lib/calendar");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -1065,6 +1066,30 @@ app.put("/api/clock", requireAuth, (req, res) => {
 	}
 });
 
+// ---------------------------------------------------------------------------
+// Kalender (Bildschirm → Kalender), siehe lib/calendar.js und
+// modules/MMM-LumiraCalendar. Wirkt live über calendar.json; die geheimen
+// Kalender-Links gehen nie an den Browser zurück.
+// ---------------------------------------------------------------------------
+const calendar = calendarLib.createCalendar({ home: settingsLib.LUMIRA_HOME });
+
+function calendarAction(res, fn) {
+	Promise.resolve().then(fn).then((out) => res.json(out)).catch((err) => {
+		if (err instanceof calendarLib.CalendarError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] Kalender:", err && err.message);
+		res.status(500).json({ error: "Interner Fehler" });
+	});
+}
+
+app.get("/api/calendar", requireAuth, (req, res) => calendarAction(res, () => calendar.view()));
+app.put("/api/calendar", requireAuth, (req, res) => calendarAction(res, () => calendar.setConfig(req.body || {})));
+app.get("/api/calendar/events", requireAuth, (req, res) => calendarAction(res, () => calendar.events()));
+app.post("/api/calendar/test", requireAuth, (req, res) => calendarAction(res, () => calendar.test(req.body || {})));
+app.post("/api/calendar/sources", requireAuth, (req, res) => calendarAction(res, () => calendar.addSource(req.body || {})));
+app.put("/api/calendar/order", requireAuth, (req, res) => calendarAction(res, () => calendar.orderSources(req.body && req.body.ids)));
+app.put("/api/calendar/sources/:id", requireAuth, (req, res) => calendarAction(res, () => calendar.updateSource(String(req.params.id), req.body || {})));
+app.delete("/api/calendar/sources/:id", requireAuth, (req, res) => calendarAction(res, () => calendar.removeSource(String(req.params.id))));
+
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
 // eslint-disable-next-line no-unused-vars
@@ -1098,6 +1123,11 @@ if (require.main === module) {
 		const st = settingsLib.load();
 		if (weather.migrateLegacy(st, { hasRain: getEdition(st.edition).hasRain })) console.log("[lumira-portal] Wetter: altes Wetter/Regenradar in MMM-LumiraWeather übernommen");
 	} catch (err) { console.error("[lumira-portal] Wetter-Übernahme:", err.message); }
+	// Altes Kalendermodul ersetzt: bis zu 3 Links einmalig übernehmen
+	try {
+		const st = settingsLib.load();
+		if (calendar.migrateLegacy(st, { hasFamily: getEdition(st.edition).hasFamily })) console.log("[lumira-portal] Kalender: bisherige Kalender-Links in MMM-LumiraCalendar übernommen");
+	} catch (err) { console.error("[lumira-portal] Kalender-Übernahme:", err.message); }
 	// Türklingel: liegengebliebenes Ereignis weg, Ring verbinden (falls an)
 	doorbell.reset();
 	syncDoorbell(settingsLib.load());

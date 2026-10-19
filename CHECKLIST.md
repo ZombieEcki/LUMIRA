@@ -327,6 +327,19 @@ um den aktuellen Stand zu sehen.
 - [x] Portal: Bildschirm → Uhr mit Auswahl (echte Uhrzeit), Vorschau in echter Größe, Live-Bild,
       Überschneidungs-Hinweise; Wetter und Sprüche erkennen die frei platzierte Uhr
 - [ ] Auf dem Pi prüfen (Schrift Roboto aus MagicMirror, Leuchtringe, Last)
+
+### Bildschirm: Kalender (MMM-LumiraCalendar) – ersetzt den MagicMirror-Kalender
+- [x] Beliebig viele ICS-Abos (iCloud, Google, Outlook, Verein, Ferien), je Name, an/aus,
+      Farbe, Symbol, Titel/Uhrzeit/Ort; testen, bearbeiten, sortieren, entfernen
+- [x] Eigener ICS-Leser (`ics.js`, ohne Bibliothek): RRULE täglich/wöchentlich/monatlich/jährlich,
+      EXDATE, RECURRENCE-ID, abgesagte, ganz-/mehrtägige, Zeitzonen inkl. Sommerzeit und Windows-Namen
+- [x] Links geheim: Rechte 600, nie an den Browser, nie in Logs (nur Rechnername)
+- [x] 12 Designs (2 schlichte), Zeitraum und Höchstzahl getrennt, „+ weitere“,
+      Kennzeichnung Farbe/Symbol/beides/keine; nichts abgeschnitten (Schrift, dann weniger Termine)
+- [x] „Wie bisher“ unten links oder frei; Ausfall einer Quelle blockiert nichts (letzter Stand)
+- [x] Alte Links (bis 3) einmalig übernommen; Sprüche bekommen weiter CALENDAR_EVENTS
+- [ ] Auf dem Pi mit echten iCloud-/Google-/Outlook-Kalendern prüfen
+- [ ] CalDAV mit App-Passwort (private iCloud-Kalender, Nextcloud, Radicale, Baïkal)
 - [ ] Warnung beim Einschalten des zweiten Spezialmoduls („Extras“)
 
 ---

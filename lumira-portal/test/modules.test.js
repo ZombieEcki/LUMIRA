@@ -22,11 +22,11 @@ test("Standard: alle Module an", () => {
 	const s = Object.assign(settingsLib.load(), { edition: "fire" });
 	s.calendar = { urls: ["https://example.com/cal.ics"] };
 	const n = names(buildModules(s));
-	for (const m of ["MMM-LumiraClock", "MMM-aPagerAlarm", "MMM-LumiraWeather", "calendar", "newsfeed", "MMM-SmartCompliments"]) {
+	for (const m of ["MMM-LumiraClock", "MMM-aPagerAlarm", "MMM-LumiraWeather", "MMM-LumiraCalendar", "newsfeed", "MMM-SmartCompliments"]) {
 		assert.ok(n.includes(m), m);
 	}
 	// durch eigene Module ersetzt (Portal-Neuordnung): nie mehr in der config.js
-	for (const m of ["clock", "weather", "MMM-RainRadarDWD"]) assert.ok(!n.includes(m), m + " ist entfernt");
+	for (const m of ["clock", "calendar", "weather", "MMM-RainRadarDWD"]) assert.ok(!n.includes(m), m + " ist entfernt");
 	assert.equal(buildModules(s).find((m) => m.module === "MMM-LumiraStatus").config.showStatusHint, true);
 });
 
@@ -91,5 +91,5 @@ test("eigene Module: Skript- und Style-Dateinamen sind über alle Module eindeut
 			});
 		});
 	});
-	assert.ok(seen["weather-view.css"] && seen["spruch-view.css"] && seen["clock-view.css"]);
+	assert.ok(seen["weather-view.css"] && seen["spruch-view.css"] && seen["clock-view.css"] && seen["calendar-view.css"]);
 });

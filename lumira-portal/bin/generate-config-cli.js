@@ -39,6 +39,13 @@ function main() {
 	} catch (err) {
 		process.stderr.write(`[generate-config] Wetter-Übernahme: ${err.message}\n`);
 	}
+	// Altes Kalendermodul ersetzt: bis zu 3 Links einmalig übernehmen
+	try {
+		const { getEdition } = require("../lib/editions");
+		require("../lib/calendar").createCalendar({ home: settingsLib.LUMIRA_HOME }).migrateLegacy(settings, { hasFamily: getEdition(settings.edition).hasFamily });
+	} catch (err) {
+		process.stderr.write(`[generate-config] Kalender-Übernahme: ${err.message}\n`);
+	}
 	try {
 		settingsLib.validate(settings);
 	} catch (err) {

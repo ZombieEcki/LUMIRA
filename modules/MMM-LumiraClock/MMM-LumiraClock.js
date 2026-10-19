@@ -127,7 +127,7 @@ Module.register("MMM-LumiraClock", {
 	// ------------------------------------------------------------------ Rückmeldung
 	// Überdeckt die frei platzierte Uhr andere Module? (fürs Portal)
 	NAMES: {
-		calendar: "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
+		calendar: "Kalender", "MMM-LumiraCalendar": "Kalender", newsfeed: "Nachrichten", "MMM-FamilyPlan": "Familienplan",
 		"MMM-SmartCompliments": "Sprüche", "MMM-aPagerAlarm": "Alarm", "MMM-LumiraStatus": "Portal-Hinweis"
 	},
 
@@ -155,6 +155,7 @@ Module.register("MMM-LumiraClock", {
 					rects.push({ name: el.classList.contains("lw-wxpanel") ? "Wetteranzeige" : el.classList.contains("lw-radar") ? "Regenradar" : "Warnungen", r: el.getBoundingClientRect() });
 				});
 				document.querySelectorAll(".sc-free").forEach((el) => rects.push({ name: "Sprüche", r: el.getBoundingClientRect() }));
+				document.querySelectorAll("[data-lumira-tile]").forEach((el) => { if (el !== this.box) rects.push({ name: el.getAttribute("data-lumira-tile"), r: el.getBoundingClientRect() }); });
 				rects.forEach((m) => {
 					if (a.left < m.r.right - 2 && a.right > m.r.left + 2 && a.top < m.r.bottom - 2 && a.bottom > m.r.top + 2 && hits.indexOf(m.name) === -1) hits.push(m.name);
 				});

@@ -174,11 +174,6 @@
         $("#anniversaries").appendChild(annRow({ type: used.indexOf("wedding") === -1 ? "wedding" : "together", date: "" }));
       });
       $("#addCountdown").addEventListener("click", function () { $("#countdowns").appendChild(countdownRow({ label: "", date: "" })); });
-      $("#addCalUrl").addEventListener("click", function () {
-        if ($all("#cal-urls .calrow").length >= 3) return;
-        $("#cal-urls").appendChild(calUrlRow(""));
-        updateAddCalUrlState();
-      });
       if (STATUS.edition.flags.hasFamily && window.LumiraFamilyPlan) {
         window.LumiraFamilyPlan.init({
           api: api,
@@ -230,6 +225,22 @@
           }
         });
       }
+      if (window.LumiraCalendar && STATUS.edition.flags.hasCal) {
+        window.LumiraCalendar.init({
+          toast: toast,
+          getSettings: function () { return SETTINGS; },
+          currentPage: function () { return currentPage; },
+          onChange: function (k) { CAL = k; renderModulePreview(); },
+          // Schalter „Kalender“: wie Bildschirm → Übersicht (MagicMirror startet neu)
+          setModule: function (on) {
+            var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { calendar: !!on });
+            return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
+              SETTINGS = settings;
+              applyModuleState();
+            });
+          }
+        });
+      }
       if (window.LumiraDoorbell) {
         window.LumiraDoorbell.init({
           toast: toast,
@@ -254,6 +265,7 @@
       // Wetter-Teile für die Aufbau-Ansicht auf Start und die Übersicht
       api("/api/weather").then(function (w) { WX = w; renderModulePreview(); renderModuleList(); }).catch(function () {});
       api("/api/clock").then(function (c) { CLK = c; renderModulePreview(); }).catch(function () {});
+      if (STATUS.edition.flags.hasCal) api("/api/calendar").then(function (k) { CAL = k; renderModulePreview(); }).catch(function () {});
       renderGreeting();
       renderStartNext();
       loadWeather();
@@ -299,7 +311,6 @@
     $("#loc-lat").value = s.location.lat;
     $("#loc-lon").value = s.location.lon;
 
-    renderCalUrls(s.calendar.urls || []);
     var newsSel = $("#news-select");
     if (s.news.url === "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml") {
       newsSel.value = "tagesschau";
@@ -716,29 +727,6 @@
     }).filter(function (c) { return c.label || c.date; });
   }
 
-  function renderCalUrls(list) {
-    var wrap = $("#cal-urls");
-    wrap.innerHTML = "";
-    list.forEach(function (url) { wrap.appendChild(calUrlRow(url)); });
-    updateAddCalUrlState();
-  }
-  function calUrlRow(url) {
-    var row = document.createElement("div");
-    row.className = "calrow";
-    row.innerHTML = '<input type="url" class="mono-in" placeholder="https://…/kalender.ics">' +
-      '<button type="button" class="btn-x" title="entfernen">✕</button>';
-    $("input", row).value = url || "";
-    $("button", row).addEventListener("click", function () { row.remove(); updateAddCalUrlState(); });
-    return row;
-  }
-  function collectCalUrls() {
-    return $all("#cal-urls .calrow input").map(function (input) { return input.value.trim(); })
-      .filter(function (url) { return url; });
-  }
-  function updateAddCalUrlState() {
-    $("#addCalUrl").disabled = $all("#cal-urls .calrow").length >= 3;
-  }
-
   // ---------------------------------------------------------------------
   // Navigation
   // ---------------------------------------------------------------------
@@ -810,6 +798,7 @@
     if (name === "klingel" && window.LumiraDoorbell) window.LumiraDoorbell.reload();
     if (name === "wetter" && window.LumiraWeather) window.LumiraWeather.show(name);
     if (name === "uhr" && window.LumiraClock) window.LumiraClock.show();
+    if (name === "kalender" && window.LumiraCalendar) window.LumiraCalendar.show();
     if (name === "spruche" && window.LumiraSpruche) window.LumiraSpruche.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
@@ -987,9 +976,6 @@
       patch.modules = mods;
       return patch;
     }
-    if (section === "kalender") {
-      return { calendar: { urls: collectCalUrls() } };
-    }
     if (section === "news") {
       var sel = $("#news-select").value;
       var news = sel === "custom" ? { title: "Nachrichten", url: $("#news-url").value.trim() } : NEWS_PRESETS[sel];
@@ -1064,7 +1050,7 @@
     { key: "clock", label: "Uhr", desc: "16 Designs, frei platzierbar", page: "uhr" },
     { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste", page: "familienplan" },
     { key: "compliments", need: "hasFamily", label: "Sprüche", desc: "Sprüche, Geburtstage, Hinweise", page: "spruche" },
-    { key: "calendar", need: "hasCal", label: "Kalender", desc: "Termine aus euren Kalendern", page: "kalender" },
+    { key: "calendar", need: "hasCal", label: "Kalender", desc: "eure Kalender-Abos, 12 Designs", page: "kalender" },
     { key: "news", label: "Nachrichten", desc: "Ticker am unteren Rand", page: "news" },
     { key: "alarm", need: "hasAlarm", label: "Alarmierung", desc: "aus: kein Alarm auf dem Bildschirm", page: "alarm" },
     { key: "doorbell", label: "Türklingel", desc: "Ring – Meldung und Live-Video beim Klingeln", page: "klingel" },
@@ -1074,6 +1060,7 @@
 
   // Wetter: welche Teile sind auf dem Bildschirm?
   var CLK = null; // Uhr (GET /api/clock) für die Aufbau-Ansicht
+  var CAL = null; // Kalender (GET /api/calendar), ebenso
   function weatherParts() {
     if (!WX) return null;
     var parts = [];
@@ -1159,6 +1146,7 @@
     // Familienplan-Seite zeichnet ihren Schalter selbst neu, außer sie hat gerade gespeichert
     if (!fromFamilyPlan && window.LumiraFamilyPlan && window.LumiraFamilyPlan.refresh) window.LumiraFamilyPlan.refresh();
     if (window.LumiraClock) window.LumiraClock.refresh();
+    if (window.LumiraCalendar) window.LumiraCalendar.refresh();
   }
 
   // ---------------------------------------------------------------------
@@ -1336,7 +1324,7 @@
     var right = weatherParts() || [];
     if (right.length) cells.top_right.push("Wetter");
     var calOn = flags.hasCal && mod("calendar");
-    if (calOn) cells.bottom_left.push("Kalender");
+    if (calOn) cells[CAL && CAL.anchor && CAL.anchor !== "auto" ? previewRegion(CAL.anchor) : "bottom_left"].push("Kalender");
     if (mod("statusHint")) cells.bottom_right.push("Status");
     Object.keys(cells).forEach(function (r) { setPreviewCell(r, cells[r].join(" · ")); });
     var left = (clockOn ? ["Uhr"] : []).concat(fpOn ? ["Familienplan"] : []);

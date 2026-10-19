@@ -314,7 +314,6 @@ input[type=file] { font-size:.85rem; color:var(--muted); }
 .sw[aria-disabled="true"] { opacity:.45; cursor:not-allowed; }
 
 .bdays { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-.calrow { display:grid; grid-template-columns:1fr 46px; gap:8px; }
 .btn-x { border:0; background:var(--field); color:var(--muted); border-radius:12px; cursor:pointer; min-width:40px; min-height:40px; font-size:.95rem; }
 .btn-x:hover { color:var(--danger); }
 .btn-x:disabled { opacity:.35; cursor:default; }
@@ -839,6 +838,40 @@ body.crop-open { overflow:hidden; }
 .lc-accent-row { display:flex; gap:10px; align-items:center; }
 .lc-accent-row input[type="color"] { width:52px; height:38px; padding:2px; border:1px solid var(--line-2); border-radius:10px; background:var(--field); cursor:pointer; }
 #lc-designs .wd-thumb { height:130px; }
+/* ---------- Kalender (calendar.js + calendar-view.css) ---------- */
+.page[data-page="kalender"] > .stack { margin-bottom:16px; }
+.page[data-page="kalender"] .lk-box.is-off { opacity:.55; }
+.lk-sources { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.lk-src { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px; background:var(--field); }
+.lk-src.is-off .lk-src-t { opacity:.55; }
+.lk-src.is-editing { box-shadow:inset 0 0 0 2px var(--accent); }
+.lk-sw { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; color:#fff; flex:none; font-size:.95rem; }
+.lk-src-t { flex:1; min-width:0; display:flex; flex-direction:column; }
+.lk-src-t b { font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lk-src-t small { color:var(--muted); font-size:.76rem; overflow:hidden; text-overflow:ellipsis; }
+.lk-src-t small.lk-bad { color:var(--warn, #d97706); }
+.lk-src-a { display:flex; align-items:center; gap:6px; flex:none; }
+@media (max-width:560px) { .lk-src { flex-wrap:wrap; } .lk-src-t { flex:1 1 calc(100% - 52px); } .lk-src-a { width:100%; justify-content:flex-end; } }
+.lk-mv { width:30px; height:30px; border-radius:8px; border:1px solid var(--line-2); background:transparent; color:var(--ink); cursor:pointer; font-weight:700; }
+.lk-mv[disabled] { opacity:.3; cursor:default; }
+.lk-editor { margin-top:12px; padding:14px; border-radius:16px; border:1px solid var(--line-2); background:var(--card); }
+.lk-editor h3 { margin:0 0 8px; font-size:1rem; }
+.lk-colors, .lk-icons { display:flex; flex-wrap:wrap; gap:8px; }
+.lk-color { width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0; }
+.lk-color[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 2px var(--card) inset; }
+.lk-color-own { width:36px; height:32px; padding:2px; border:1px solid var(--line-2); border-radius:10px; background:var(--field); cursor:pointer; }
+.lk-icon { width:38px; height:38px; border-radius:10px; border:1px solid var(--line-2); background:var(--field); color:var(--muted); cursor:pointer; font-size:1rem; }
+.lk-icon[aria-pressed="true"] { border-color:var(--ink); background:var(--soft); }
+.lk-del { color:var(--danger, #dc2626); }
+.lk-test { margin-top:10px; font-size:.86rem; }
+.lk-test.is-ok { color:var(--ok, #16a34a); }
+.lk-test.is-bad { color:var(--danger, #dc2626); }
+.lk-test-e { color:var(--muted); font-size:.8rem; }
+.lk-help { margin-top:14px; font-size:.86rem; }
+.lk-help summary { cursor:pointer; font-weight:700; }
+.lk-help li { margin:6px 0; }
+.lk-custom { margin-top:6px; }
+#lk-designs .wd-thumb { height:150px; }
 /* ---------- Sprüche (spruche.js + spruch/spruch-view.css) ---------- */
 .page[data-page="spruche"] > .stack { margin-bottom:16px; }
 .sp-stage { position:relative; overflow:hidden; border-radius:12px; margin:10px 0;

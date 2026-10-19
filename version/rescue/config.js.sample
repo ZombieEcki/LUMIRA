@@ -85,21 +85,9 @@ let config = {
 			}
 		},
 
-		/* --- Familienkalender (iCloud/ICS) --- */
-		{
-			module: "calendar",
-			header: "Familienkalender",
-			position: "bottom_left",
-			config: {
-				maximumEntries: 5,
-				calendars: [
-					{
-						symbol: "calendar-check",
-						url: "https://example.com/dein-kalender.ics"   // <-- ANPASSEN (webcal:// -> https://)
-					}
-				]
-			}
-		},
+		/* --- Kalender (eigenes Modul, 12 Designs; Kalender-Abos und Darstellung in
+		   ~/.lumira/calendar.json bzw. im Portal unter Bildschirm → Kalender) --- */
+		{ module: "MMM-LumiraCalendar", position: "bottom_left" },
 
 		/* --- Wetter, Regenradar & Warnungen (eigenes Modul, positioniert sich selbst) ---
 		   Ort und Anzeige stehen in ~/.lumira/weather.json bzw. im Portal unter
