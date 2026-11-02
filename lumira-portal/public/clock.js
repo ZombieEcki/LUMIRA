@@ -63,7 +63,7 @@
   function flush() {
     var body = pending;
     pending = {};
-    api("PUT", body).then(function (c) { C = c; render(); shotSoon(); if (ctx.onChange) ctx.onChange(c); }).catch(function (err) { ctx.toast(err.message); load(); });
+    api("PUT", body).then(function (c) { C = c; render(); shotSoon(); if (ctx.onChange) ctx.onChange(c); }).catch(function (err) { ctx.toast(err.message, "error"); load(); });
   }
 
   function clockOn() {
@@ -350,7 +350,7 @@
   }
 
   function load() {
-    return api("GET").then(function (c) { C = c; render(); startTicks(); }).catch(function (err) { ctx.toast(err.message); });
+    return api("GET").then(function (c) { C = c; render(); startTicks(); }).catch(function (err) { ctx.toast(err.message, "error"); });
   }
 
   function wire() {
@@ -362,7 +362,7 @@
         btn.disabled = false;
         render();
         ctx.toast(on ? "Uhr an – MagicMirror startet neu" : "Uhr aus – MagicMirror startet neu");
-      }).catch(function (err) { btn.disabled = false; ctx.toast(err.message); });
+      }).catch(function (err) { btn.disabled = false; ctx.toast(err.message, "error"); });
     });
     document.querySelectorAll("[data-c]").forEach(function (c) {
       var k = c.getAttribute("data-c");

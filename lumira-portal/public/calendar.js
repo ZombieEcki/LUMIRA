@@ -66,7 +66,7 @@
     var body = pending;
     pending = {};
     api("PUT", "", body).then(function (k) { K = k; render(); shotSoon(); if (ctx.onChange) ctx.onChange(k); })
-      .catch(function (err) { ctx.toast(err.message); load(); });
+      .catch(function (err) { ctx.toast(err.message, "error"); load(); });
   }
 
   // Quellen geändert: Stand übernehmen, Termine neu holen
@@ -154,7 +154,7 @@
       dn.addEventListener("click", function () { move(i, 1); });
       var sw = el("button", "sw"); sw.type = "button"; sw.setAttribute("role", "switch"); sw.setAttribute("aria-label", s.name + " anzeigen"); setSw(sw, s.enabled);
       sw.addEventListener("click", function () {
-        api("PUT", "/sources/" + s.id, { enabled: !s.enabled }).then(function (k) { afterSources(k); }).catch(function (err) { ctx.toast(err.message); });
+        api("PUT", "/sources/" + s.id, { enabled: !s.enabled }).then(function (k) { afterSources(k); }).catch(function (err) { ctx.toast(err.message, "error"); });
       });
       var ed = el("button", "btn small", "Bearbeiten"); ed.type = "button";
       ed.addEventListener("click", function () { openEditor(s.id); });
@@ -170,7 +170,7 @@
     var j = i + d;
     if (j < 0 || j >= ids.length) return;
     var t = ids[i]; ids[i] = ids[j]; ids[j] = t;
-    api("PUT", "/order", { ids: ids }).then(function (k) { afterSources(k); }).catch(function (err) { ctx.toast(err.message); });
+    api("PUT", "/order", { ids: ids }).then(function (k) { afterSources(k); }).catch(function (err) { ctx.toast(err.message, "error"); });
   }
 
   // ----- Bearbeiten / Hinzufügen -----
@@ -236,8 +236,9 @@
     if (!isNew) {
       var del = el("button", "btn lk-del", "Entfernen"); del.type = "button";
       del.addEventListener("click", function () {
-        if (!confirm("Kalender „" + cur.name + "“ entfernen? Im Kalender selbst wird nichts gelöscht.")) return;
-        api("DELETE", "/sources/" + cur.id).then(function (k) { closeEditor(); afterSources(k, "Kalender entfernt"); }).catch(function (err) { ctx.toast(err.message); });
+        window.LumiraOverlay.ask({ title: "Kalender „" + cur.name + "“ entfernen?", text: "Er wird nur aus LUMIRA entfernt – im Kalender selbst (Google, iCloud …) wird nichts gelöscht.", ok: "Entfernen", danger: true }).then(function (ok) {
+          if (ok) api("DELETE", "/sources/" + cur.id).then(function (k) { closeEditor(); afterSources(k, "Kalender entfernt"); }).catch(function (err) { ctx.toast(err.message, "error"); });
+        });
       });
       row.appendChild(del);
     }
@@ -526,7 +527,7 @@
   function shotSoon() { clearTimeout(shotTimer); shotTimer = setTimeout(shot, 2500); }
 
   function load() {
-    return api("GET").then(function (k) { K = k; render(); startTicks(); }).catch(function (err) { ctx.toast(err.message); });
+    return api("GET").then(function (k) { K = k; render(); startTicks(); }).catch(function (err) { ctx.toast(err.message, "error"); });
   }
   function loadEvents() {
     return api("GET", "/events").then(function (e) { EV = e; galleryKey = ""; render(); })
@@ -542,7 +543,7 @@
         btn.disabled = false;
         render();
         ctx.toast(on ? "Kalender an – MagicMirror startet neu" : "Kalender aus – MagicMirror startet neu");
-      }).catch(function (err) { btn.disabled = false; ctx.toast(err.message); });
+      }).catch(function (err) { btn.disabled = false; ctx.toast(err.message, "error"); });
     });
     $("#lk-add").addEventListener("click", function () { openEditor("new"); });
     document.querySelectorAll('.page[data-page="kalender"] [data-k]').forEach(function (c) {

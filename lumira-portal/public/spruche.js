@@ -73,7 +73,7 @@
       renderAll(false);
       shotSoon();
     }).catch(function (err) {
-      ctx.toast(err.message);
+      ctx.toast(err.message, "error");
       load();
     });
   }
@@ -522,7 +522,7 @@
   }
 
   function load() {
-    return api("GET").then(function (d) { C = d; renderAll(true); }).catch(function (err) { ctx.toast(err.message); });
+    return api("GET").then(function (d) { C = d; renderAll(true); }).catch(function (err) { ctx.toast(err.message, "error"); });
   }
 
   // ---------------------------------------------------------------------
@@ -609,7 +609,7 @@
       csvClose();
       ctx.toast(added + (added === 1 ? " Spruch importiert" : " Sprüche importiert"));
       shotSoon();
-    }).catch(function (err) { ctx.toast(err.message); $("#sp-csv-apply").disabled = false; });
+    }).catch(function (err) { ctx.toast(err.message, "error"); $("#sp-csv-apply").disabled = false; });
   }
 
   function csvClose() {
@@ -668,23 +668,29 @@
       ctx.toast(lines.length + (lines.length === 1 ? " Spruch" : " Sprüche") + " hinzugefügt");
     });
     $("#sp-ed-reset").addEventListener("click", function () {
-      if (!ed || !window.confirm("Eigene Liste löschen und wieder die eingebauten Sprüche verwenden?")) return;
-      var cat = {};
-      cat[ed.cat.list] = [];
-      var off = {};
-      off[ed.cat.key] = [];
-      queue({ categories: cat, off: off }, true);
-      openEditor(ed.cat.key);
+      if (!ed) return;
+      window.LumiraOverlay.ask({ title: "Eigene Liste löschen?", text: "Danach zeigt diese Kategorie wieder die eingebauten Sprüche.", mark: "delete", ok: "Löschen", danger: true }).then(function (ok) {
+        if (!ok || !ed) return;
+        var cat = {};
+        cat[ed.cat.list] = [];
+        var off = {};
+        off[ed.cat.key] = [];
+        queue({ categories: cat, off: off }, true);
+        openEditor(ed.cat.key);
+      });
     });
     ["#sp-own-label", "#sp-own-icon"].forEach(function (id) {
       $(id).addEventListener("input", function () { saveEditor(false); });
     });
     $("#sp-own-del").addEventListener("click", function () {
-      if (!ed || !ed.cat.own || !window.confirm("Kategorie „" + ed.cat.label + "“ mit allen Sprüchen löschen?")) return;
+      if (!ed || !ed.cat.own) return;
       var key = ed.cat.key;
-      queue({ own: (C.own || []).filter(function (o) { return o.key !== key; }) }, true);
-      closeEditor();
-      renderCats();
+      window.LumiraOverlay.ask({ title: "Kategorie „" + ed.cat.label + "“ löschen?", text: "Alle Sprüche darin werden mit gelöscht.", mark: "delete", ok: "Löschen", danger: true }).then(function (ok) {
+        if (!ok) return;
+        queue({ own: (C.own || []).filter(function (o) { return o.key !== key; }) }, true);
+        closeEditor();
+        renderCats();
+      });
     });
     $("#sp-words").addEventListener("input", function () {
       if (!ed) return;
@@ -699,13 +705,15 @@
       var f = this.files && this.files[0];
       this.value = "";
       if (!f) return;
-      if (!window.confirm("Alle Sprüche und Einstellungen durch die Sicherung „" + f.name + "“ ersetzen?")) return;
-      f.text().then(function (txt) {
-        var data;
-        try { data = JSON.parse(txt); } catch (e) { throw new Error("Die Datei ist keine Sprüche-Sicherung (kein JSON)."); }
-        return api("POST", data, "/import");
-      }).then(function (d) { C = d; closeEditor(); renderAll(true); ctx.toast("Sicherung eingespielt"); })
-        .catch(function (err) { ctx.toast(err.message); });
+      window.LumiraOverlay.ask({ title: "Alle Sprüche ersetzen?", text: "Alle Sprüche und Einstellungen werden durch die Sicherung „" + f.name + "“ ersetzt.", mark: "delete", ok: "Ersetzen", danger: true }).then(function (ok) {
+        if (!ok) return;
+        f.text().then(function (txt) {
+          var data;
+          try { data = JSON.parse(txt); } catch (e) { throw new Error("Die Datei ist keine Sprüche-Sicherung (kein JSON)."); }
+          return api("POST", data, "/import");
+        }).then(function (d) { C = d; closeEditor(); renderAll(true); ctx.toast("Sicherung eingespielt"); })
+          .catch(function (err) { ctx.toast(err.message, "error"); });
+      });
     });
     $("#sp-csv-file").addEventListener("change", function () {
       var f = this.files && this.files[0];

@@ -158,14 +158,10 @@
         </button>
         <!-- Familien-Menü: Mitglieder und Besondere Tage (concept/portal-neuordnung.md) -->
         <div class="member-wrap" data-need="hasFamily">
-          <button type="button" class="member-chip" id="member-chip" title="Familie" aria-label="Familie" aria-haspopup="menu" aria-expanded="false">
+          <button type="button" class="member-chip" id="member-chip" title="Familie" aria-label="Familie" aria-haspopup="dialog" aria-expanded="false">
             <span class="member-stack" id="member-stack"></span>
             <span class="member-label" id="member-label">–</span>
           </button>
-          <div class="member-menu" id="member-menu" role="menu" hidden>
-            <button type="button" role="menuitem" data-go="mitglieder"><svg class="ic"><use href="#i-users"/></svg><span>Mitglieder<small>Namen, Bilder, Kinder und Erwachsene</small></span></button>
-            <button type="button" role="menuitem" data-go="familie"><svg class="ic"><use href="#i-cake"/></svg><span>Besondere Tage<small>Geburtstage, Jahrestage, Countdowns</small></span></button>
-          </div>
         </div>
       </div>
     </header>
@@ -1502,6 +1498,7 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="overlay.js"></script>
 <script src="select.js"></script>
 <script src="cropper.js"></script>
 <script src="familyplan.js"></script>

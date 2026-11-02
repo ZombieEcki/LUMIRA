@@ -30,12 +30,8 @@
     });
   }
 
-  function toast(msg) {
-    var t = $("#toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(function () { t.classList.remove("show"); }, 2600);
-  }
+  // Hinweis unten; type "error" bleibt stehen (overlay.js)
+  function toast(msg, type) { window.LumiraOverlay.notify(msg, { type: type }); }
 
   function show(el) { el.hidden = false; }
   function hide(el) { el.hidden = true; }
@@ -270,10 +266,12 @@
           // Schalter „To-do-Liste“: wie Bildschirm → Übersicht (MagicMirror startet neu)
           setModule: function (on) {
             var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { todo: !!on });
-            if (on && !confirmExtras(Object.assign({}, SETTINGS, { modules: mods }))) return false;
-            return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
-              SETTINGS = settings;
-              applyModuleState();
+            return (on ? confirmExtras(Object.assign({}, SETTINGS, { modules: mods })) : Promise.resolve(true)).then(function (ok) {
+              if (!ok) return false;
+              return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
+                SETTINGS = settings;
+                applyModuleState();
+              });
             });
           }
         });
@@ -807,10 +805,14 @@
     var fp = STATUS.edition.flags.hasFamily && !!(s.familyPlan && s.familyPlan.enabled);
     return (fp ? 1 : 0) + (s.modules && s.modules.todo === true ? 1 : 0);
   }
-  // Vor dem Einschalten des zweiten Spezialmoduls kurz warnen (Navigation ändert sich)
+  // Vor dem Einschalten des zweiten Spezialmoduls kurz warnen (Navigation ändert sich) → Promise<bool>
   function confirmExtras(after) {
-    if (specialCount(SETTINGS) >= 2 || specialCount(after) < 2) return true;
-    return confirm("Damit sind zwei Spezialmodule an (Familienplan und To-do-Liste).\n\nIn der Navigation steht dann statt „Familienplan“ der Bereich „Extras“ mit beiden Modulen als Reiter. Einschalten?");
+    if (specialCount(SETTINGS) >= 2 || specialCount(after) < 2) return Promise.resolve(true);
+    return window.LumiraOverlay.ask({
+      title: "Zweites Spezialmodul einschalten?",
+      text: "Damit sind Familienplan und To-do-Liste an. In der Navigation steht dann statt „Familienplan“ der Bereich „Extras“ mit beiden Modulen als Reiter.",
+      mark: "restart", ok: "Einschalten"
+    });
   }
 
   function navAreas() {
@@ -956,30 +958,69 @@
   }
 
   // Familien-Menü hinter den Avataren oben rechts
+  // Familien-Overlay an den Avataren: wer gehört dazu, was steht an, was kann ich tun
+  // (concept/overlays.md §4). Später kommt oben „angemeldet als …“ dazu.
   function wireMemberMenu() {
     var chip = $("#member-chip");
-    var menu = $("#member-menu");
-    function close() { menu.hidden = true; chip.setAttribute("aria-expanded", "false"); }
-    chip.addEventListener("click", function (e) {
-      e.stopPropagation();
-      var open = menu.hidden;
-      menu.hidden = !open;
-      chip.setAttribute("aria-expanded", open ? "true" : "false");
-      if (open) { var first = menu.querySelector("button"); if (first) first.focus(); }
+    chip.addEventListener("click", function () {
+      window.LumiraOverlay.popover(chip, buildFamilyPanel, { cls: "fam-pop", label: "Familie" });
     });
-    $all("[data-go]", menu).forEach(function (b) {
-      b.addEventListener("click", function () {
+  }
+
+  function openMembers(then) {
+    goPage("familienplan");
+    if (window.LumiraFamilyPlan && window.LumiraFamilyPlan.showTab) window.LumiraFamilyPlan.showTab("mitglieder");
+    setTimeout(then, 0);
+  }
+
+  function buildFamilyPanel(panel, close) {
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var head = panel.appendChild(el("div", "fam-head"));
+    head.appendChild(el("b", null, "Familie"));
+    head.appendChild(el("span", null, MEMBERS.length === 1 ? "1 Person" : MEMBERS.length + " Personen"));
+    // Geburtstag je Mitglied (verknüpft, sonst gleicher Name)
+    var bday = {};
+    (((SETTINGS && SETTINGS.family) || {}).birthdays || []).forEach(function (b) {
+      bday[b.memberId || "n:" + b.name.trim().toLowerCase()] = daysUntilMMDD(b.date, today);
+    });
+    var list = panel.appendChild(el("div", "fam-list"));
+    MEMBERS.forEach(function (m, i) {
+      var row = list.appendChild(el("button", "fam-row")); row.type = "button";
+      row.appendChild(memberAvatar(m));
+      var t = row.appendChild(el("span", "fam-t"));
+      t.appendChild(el("b", null, m.name));
+      var d = m.id in bday ? bday[m.id] : bday["n:" + m.name.trim().toLowerCase()];
+      t.appendChild(el("small", d >= 0 && d <= 14 ? "is-soon" : null, (m.role === "adult" ? "Erwachsen" : "Kind") + (d >= 0 && d <= 14 ? " · Geburtstag " + whenText(d) : "")));
+      row.appendChild(el("span", "fam-go", "›"));
+      row.setAttribute("aria-label", m.name + " bearbeiten");
+      row.addEventListener("click", function () {
         close();
-        if (b.getAttribute("data-go") === "mitglieder") {
-          goPage("familienplan");
-          if (window.LumiraFamilyPlan && window.LumiraFamilyPlan.showTab) window.LumiraFamilyPlan.showTab("mitglieder");
-        } else {
-          goPage(b.getAttribute("data-go"));
-        }
+        openMembers(function () { var ins = $all(".fp-name-in"); if (ins[i]) { ins[i].scrollIntoView({ block: "center" }); ins[i].focus(); } });
       });
     });
-    document.addEventListener("click", function (e) { if (!menu.hidden && !menu.contains(e.target)) close(); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) { close(); chip.focus(); } });
+    if (!MEMBERS.length) list.appendChild(el("p", "save-hint", "Noch niemand angelegt."));
+    var next = nextItems(today).filter(function (it) { return it.icon !== "refresh"; }).slice(0, 2);
+    if (next.length) {
+      panel.appendChild(el("p", "fam-sub", "Als Nächstes"));
+      next.forEach(function (it) { panel.appendChild(nextRow(it)); });
+    }
+    var acts = panel.appendChild(el("div", "fam-acts"));
+    function act(label, run) {
+      var b = acts.appendChild(el("button", "btn small", label)); b.type = "button";
+      b.addEventListener("click", function () { close(); run(); });
+    }
+    act("+ Mitglied", function () {
+      openMembers(function () {
+        var add = $all('.page[data-page="familienplan"] .btn-add').filter(function (b) { return /Mitglied/.test(b.textContent); })[0];
+        if (add && !add.disabled) add.click();
+      });
+    });
+    act("Besondere Tage", function () { goPage("familie"); });
+    if (SETTINGS && SETTINGS.familyPlan && SETTINGS.familyPlan.enabled) act("Familienplan", function () {
+      goPage("familienplan");
+      if (window.LumiraFamilyPlan && window.LumiraFamilyPlan.showTab) window.LumiraFamilyPlan.showTab("uebersicht");
+    });
   }
 
   // Hell / Dunkel / Auto (System), gemerkt im Browser
@@ -1056,22 +1097,24 @@
   function save(section, btn) {
     var hint = $('[data-savehint="' + section + '"]');
     var body = patchFor(section);
-    if (section === "module" && !confirmExtras(Object.assign({}, SETTINGS, body))) return;
-    btn.disabled = true;
-    if (hint) hint.textContent = "Speichere …";
-    api("/api/settings", { method: "POST", body: body }).then(function (settings) {
-      SETTINGS = settings;
-      btn.disabled = false;
-      applyModuleState();
-      if (window.LumiraDoorbell) window.LumiraDoorbell.reload();
-      renderStartNext();
-      renderGreeting();
-      if (hint) hint.textContent = "Gespeichert – MagicMirror startet neu.";
-      toast("Gespeichert");
-    }).catch(function (err) {
-      btn.disabled = false;
-      if (hint) hint.textContent = "Fehler: " + err.message;
-    });
+    (section === "module" ? confirmExtras(Object.assign({}, SETTINGS, body)) : Promise.resolve(true)).then(function (ok) { if (ok) send(); });
+    function send() {
+      btn.disabled = true;
+      if (hint) hint.textContent = "Speichere …";
+      api("/api/settings", { method: "POST", body: body }).then(function (settings) {
+        SETTINGS = settings;
+        btn.disabled = false;
+        applyModuleState();
+        if (window.LumiraDoorbell) window.LumiraDoorbell.reload();
+        renderStartNext();
+        renderGreeting();
+        if (hint) hint.textContent = "Gespeichert – MagicMirror startet neu.";
+        toast("Gespeichert");
+      }).catch(function (err) {
+        btn.disabled = false;
+        if (hint) hint.textContent = "Fehler: " + err.message;
+      });
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -1079,22 +1122,25 @@
   // ---------------------------------------------------------------------
   function wireSteuerung() {
     $("#alarm-home").addEventListener("click", function () {
-      api("/api/proxy/alarm/home", { method: "POST" }).then(function () { toast("Zuhause ausgelöst"); refreshStatus(); }).catch(function (err) { toast(err.message); });
+      api("/api/proxy/alarm/home", { method: "POST" }).then(function () { toast("Zuhause ausgelöst"); refreshStatus(); }).catch(function (err) { toast(err.message, "error"); });
     });
     $("#alarm-clear").addEventListener("click", function () {
-      api("/api/proxy/alarm/clear", { method: "POST" }).then(function () { toast("Einsatz beendet"); refreshStatus(); }).catch(function (err) { toast(err.message); });
+      api("/api/proxy/alarm/clear", { method: "POST" }).then(function () { toast("Einsatz beendet"); refreshStatus(); }).catch(function (err) { toast(err.message, "error"); });
     });
     $("#alarm-test").addEventListener("click", function () {
-      if (!confirm("Löst einen echten Testalarm auf dem Bildschirm aus (Ton, Vollbild-Overlay). Fortfahren?")) return;
-      api("/api/proxy/alarm/test", { method: "POST" }).then(function () { toast("Testalarm ausgelöst"); refreshStatus(); }).catch(function (err) { toast(err.message); });
+      window.LumiraOverlay.ask({ title: "Testalarm auslösen?", text: "Wer vor dem Bildschirm steht, sieht und hört einen Alarm wie im Ernstfall.", mark: "alarm", ok: "Testalarm auslösen" }).then(function (ok) {
+        if (ok) api("/api/proxy/alarm/test", { method: "POST" }).then(function () { toast("Testalarm ausgelöst"); refreshStatus(); }).catch(function (err) { toast(err.message, "error"); });
+      });
     });
     $("#compliments-toggle").addEventListener("click", function () {
-      api("/api/proxy/compliments/toggle", { method: "POST" }).then(function () { refreshStatus(); }).catch(function (err) { toast(err.message); });
+      api("/api/proxy/compliments/toggle", { method: "POST" }).then(function () { refreshStatus(); }).catch(function (err) { toast(err.message, "error"); });
     });
     $("#pi-reboot").addEventListener("click", function () {
-      if (!confirm("Der Mini-PC startet jetzt neu, die Anzeige ist für ca. 1-2 Minuten nicht erreichbar. Fortfahren?")) return;
-      toast("Neustart wird ausgelöst …");
-      api("/api/system/reboot", { method: "POST" }).catch(function () {});
+      window.LumiraOverlay.ask({ title: "Gerät neu starten?", text: "Bildschirm und Portal sind kurz weg und kommen von selbst wieder.", mark: "reboot", ok: "Neu starten", danger: true }).then(function (ok) {
+        if (!ok) return;
+        toast("Neustart wird ausgelöst …");
+        api("/api/system/reboot", { method: "POST" }).catch(function () {});
+      });
     });
   }
 
@@ -1256,7 +1302,6 @@
     $("#mirror-img").addEventListener("click", openMirrorFull);
     $("#mirror-full-close").addEventListener("click", function (e) { e.stopPropagation(); closeMirrorFull(); });
     layer.addEventListener("click", function (e) { if (e.target === layer || e.target.id === "mirror-full-img") closeMirrorFull(); });
-    document.addEventListener("keydown", function (e) { if (MIRROR.full && e.key === "Escape") closeMirrorFull(); });
     document.addEventListener("fullscreenchange", function () {
       // Vollbild über die Browser-Taste verlassen → Ebene ebenfalls zu
       if (MIRROR.full && !document.fullscreenElement && MIRROR.nativeFull) closeMirrorFull();
@@ -1279,6 +1324,7 @@
       }).catch(function () { /* z. B. iPhone: Ebene füllt das Fenster */ });
     }
     $("#mirror-full-close").focus();
+    MIRROR.unmodal = window.LumiraOverlay.modal(layer, closeMirrorFull);
     renderMirrorAge();
     mirrorKick();
   }
@@ -1286,6 +1332,7 @@
   function closeMirrorFull() {
     if (!MIRROR.full) return;
     MIRROR.full = false;
+    if (MIRROR.unmodal) { MIRROR.unmodal(); MIRROR.unmodal = null; }
     $("#mirror-full").hidden = true;
     document.body.classList.remove("mirror-full-open");
     try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
@@ -1469,6 +1516,7 @@
   // ---------------------------------------------------------------------
   var WEATHER_NOW = null;
   var START_PLAN = null;
+  var MEMBERS = []; // aktive Familienmitglieder (Kopfzeile, Familien-Overlay)
   var WEEKDAYS_LONG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
   var MONTHS_LONG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
@@ -1529,6 +1577,7 @@
     var stack = $("#member-stack");
     stack.replaceChildren();
     var list = (members || []).filter(function (m) { return !m.deleted; });
+    MEMBERS = list;
     list.slice(0, 4).forEach(function (m) {
       var av = memberAvatar(m);
       av.title = m.name;
@@ -1623,7 +1672,23 @@
     var list = $("#start-next-list");
     if (!list || !SETTINGS) return;
     var now = new Date();
-    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var items = nextItems(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+    list.innerHTML = "";
+    if (!items.length) { list.appendChild(el("p", "save-hint", "Noch keine Termine eingetragen.")); return; }
+    items.slice(0, 4).forEach(function (it) { list.appendChild(nextRow(it)); });
+  }
+
+  function nextRow(it) {
+    var row = el("div", "next-row");
+    var ic = el("span", "next-ic"); ic.appendChild(svgIcon(it.icon));
+    row.appendChild(ic);
+    row.appendChild(el("b", null, it.title));
+    row.appendChild(el("span", null, it.when || whenText(it.days)));
+    return row;
+  }
+
+  // Besondere Tage + Wochenwechsel, nach Nähe sortiert (Start und Familien-Overlay)
+  function nextItems(today) {
     var items = [];
     var fam = SETTINGS.family || {};
     (fam.birthdays || []).forEach(function (b) {
@@ -1647,16 +1712,7 @@
         when: WEEKDAYS_LONG[start.getDay()].slice(0, 2) + ", " + p[2] + "." + p[1] + "." });
     }
     items.sort(function (a, b) { return a.days - b.days; });
-    list.innerHTML = "";
-    if (!items.length) { list.appendChild(el("p", "save-hint", "Noch keine Termine eingetragen.")); return; }
-    items.slice(0, 4).forEach(function (it) {
-      var row = el("div", "next-row");
-      var ic = el("span", "next-ic"); ic.appendChild(svgIcon(it.icon));
-      row.appendChild(ic);
-      row.appendChild(el("b", null, it.title));
-      row.appendChild(el("span", null, it.when || whenText(it.days)));
-      list.appendChild(row);
-    });
+    return items;
   }
 
   // Wetter direkt vom Browser bei Open-Meteo (kostenlos, ohne Schlüssel) –
@@ -1743,11 +1799,13 @@
   // ---------------------------------------------------------------------
   function wireWlan() {
     $("#wlan-change-btn").addEventListener("click", function () {
-      if (!confirm("LUMIRA startet jetzt den Einrichtungs-Access-Point \"LUMIRA-Setup\" neu. Fortfahren?")) return;
-      api("/api/setup-mode", { method: "POST" }).then(function () {
-        toast("Setup-Modus aktiv – Seite lädt neu …");
-        setTimeout(function () { location.reload(); }, 1500);
-      }).catch(function (err) { toast(err.message); });
+      window.LumiraOverlay.ask({ title: "WLAN neu einrichten?", text: "LUMIRA trennt sich vom WLAN und öffnet das eigene Netz „LUMIRA-Setup“. Verbinde dich danach damit, um das neue WLAN zu wählen.", mark: "network", ok: "WLAN neu einrichten", danger: true }).then(function (ok) {
+        if (!ok) return;
+        api("/api/setup-mode", { method: "POST" }).then(function () {
+          toast("Setup-Modus aktiv – Seite lädt neu …");
+          setTimeout(function () { location.reload(); }, 1500);
+        }).catch(function (err) { toast(err.message, "error"); });
+      });
     });
   }
 
@@ -1855,21 +1913,25 @@
     $("#pin-remove").hidden = !(SETTINGS.portal && SETTINGS.portal.pinSet);
     loadSessions();
     $("#sessions-clear").addEventListener("click", function () {
-      if (!confirm("Alle anderen Geräte abmelden? Dort muss dann wieder der PIN eingegeben werden.")) return;
-      api("/api/auth/logout-others", { method: "POST" }).then(function () {
-        $("#sessions-hint").textContent = "Erledigt.";
-        loadSessions();
-      }).catch(function (err) { $("#sessions-hint").textContent = "Fehler: " + err.message; });
+      window.LumiraOverlay.ask({ title: "Alle anderen Geräte abmelden?", text: "Dort muss dann wieder der PIN eingegeben werden. Dieses Gerät bleibt angemeldet.", mark: "lock", ok: "Abmelden" }).then(function (ok) {
+        if (!ok) return;
+        api("/api/auth/logout-others", { method: "POST" }).then(function () {
+          $("#sessions-hint").textContent = "Erledigt.";
+          loadSessions();
+        }).catch(function (err) { $("#sessions-hint").textContent = "Fehler: " + err.message; });
+      });
     });
     $("#pin-remove").addEventListener("click", function () {
-      if (!confirm("PIN wirklich entfernen? Das Portal ist danach ohne Anmeldung im Heimnetz erreichbar.")) return;
-      var hint = $("#pin-remove-hint");
-      api("/api/auth/remove-pin", { method: "POST" }).then(function () {
-        hint.textContent = "PIN entfernt.";
-        $("#pin-remove").hidden = true;
-        SETTINGS.portal.pinSet = false;
-        loadSessions();
-      }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
+      window.LumiraOverlay.ask({ title: "PIN entfernen?", text: "Das Portal ist danach ohne Anmeldung für jeden im Heimnetz erreichbar.", mark: "lock", ok: "PIN entfernen", danger: true }).then(function (ok) {
+        if (!ok) return;
+        var hint = $("#pin-remove-hint");
+        api("/api/auth/remove-pin", { method: "POST" }).then(function () {
+          hint.textContent = "PIN entfernt.";
+          $("#pin-remove").hidden = true;
+          SETTINGS.portal.pinSet = false;
+          loadSessions();
+        }).catch(function (err) { hint.textContent = "Fehler: " + err.message; });
+      });
     });
   }
 

@@ -139,8 +139,9 @@
         var del = el("button", "amb-del", "✕");
         del.type = "button"; del.title = "Löschen"; del.setAttribute("aria-label", m.name + " löschen");
         del.addEventListener("click", function () {
-          if (!confirm("„" + m.name + "“ löschen?" + (m.id === S.mediaId && S.enabled ? " Die Dauerschleife wird dabei ausgeschaltet." : ""))) return;
-          api("/api/ambient/media/" + m.id, "DELETE").then(function (s) { S = s; render(); ctx.toast("Gelöscht"); }).catch(fail);
+          window.LumiraOverlay.ask({ title: "„" + m.name + "“ löschen?", text: m.id === S.mediaId && S.enabled ? "Die Dauerschleife wird dabei ausgeschaltet." : "", mark: "delete", ok: "Löschen", danger: true }).then(function (ok) {
+            if (ok) api("/api/ambient/media/" + m.id, "DELETE").then(function (s) { S = s; render(); ctx.toast("Gelöscht"); }).catch(fail);
+          });
         });
         tile.appendChild(del);
       }
@@ -148,7 +149,7 @@
     });
   }
 
-  function fail(err) { ctx.toast(err.message); }
+  function fail(err) { ctx.toast(err.message, "error"); }
 
   function send(patch, okText) {
     return api("/api/ambient", "PUT", patch).then(function (s) {

@@ -185,29 +185,33 @@
   // Aktionen
   // ---------------------------------------------------------------------
   function startUpdate(c) {
-    var msg = c.kind === "lumira"
-      ? "LUMIRA aktualisieren?\n\nDabei werden die eigenen Module, das Portal und die Spiegel-Einstellungen (config.js) erneuert. Das dauert einige Minuten. MagicMirror und das Portal starten kurz neu – deine Einstellungen bleiben erhalten."
+    var q = c.kind === "lumira"
+      ? { title: "LUMIRA aktualisieren?", text: "Eigene Module, Portal und Spiegel-Einstellungen (config.js) werden erneuert. Das dauert einige Minuten, deine Einstellungen bleiben erhalten." }
       : c.kind === "core"
-      ? "MagicMirror² aktualisieren (" + versionText(c) + ")?\n\nDas dauert auf dem Raspberry Pi einige Minuten, der Spiegel ist währenddessen kurz dunkel. Neue MagicMirror-Versionen können ältere Hardware (z. B. Raspberry Pi 3) oder Module beeinträchtigen – bei Problemen hier „Zurück“ wählen."
-      : c.name + " aktualisieren (" + versionText(c) + ")? Der Spiegel startet danach einmal neu.";
-    if (!confirm(msg)) return;
-    api("/api/updates/" + encodeURIComponent(c.id) + "/apply", "POST")
-      .then(function (s) { noteJob(s); S = s; render(); poll(); ctx.toast("Update gestartet"); })
-      .catch(function (err) { ctx.toast(err.message); });
+      ? { title: "MagicMirror² aktualisieren (" + versionText(c) + ")?", text: "Das dauert auf dem Raspberry Pi einige Minuten, der Spiegel ist währenddessen kurz dunkel. Neue Versionen können ältere Hardware (z. B. Raspberry Pi 3) oder Module beeinträchtigen – bei Problemen hier „Zurück“ wählen." }
+      : { title: c.name + " aktualisieren (" + versionText(c) + ")?", text: "Danach lässt sich hier jederzeit auf den alten Stand zurück." };
+    q.mark = "restart"; q.ok = "Aktualisieren";
+    window.LumiraOverlay.ask(q).then(function (ok) {
+      if (ok) api("/api/updates/" + encodeURIComponent(c.id) + "/apply", "POST")
+        .then(function (s) { noteJob(s); S = s; render(); poll(); ctx.toast("Update gestartet"); })
+        .catch(function (err) { ctx.toast(err.message, "error"); });
+    });
   }
 
   function startRepair(c) {
-    if (!confirm("Electron " + c.electronFix.from + " gegen " + c.electronFix.to + " tauschen?\n\nDas lädt rund 100 MB und dauert auf dem Raspberry Pi einige Minuten. Danach startet MagicMirror neu.")) return;
-    api("/api/updates/" + encodeURIComponent(c.id) + "/repair-electron", "POST")
-      .then(function (s) { S = s; render(); poll(); ctx.toast("Reparatur gestartet"); })
-      .catch(function (err) { ctx.toast(err.message); });
+    window.LumiraOverlay.ask({ title: "Anzeige reparieren?", text: "Die Anzeige-Software (Electron " + c.electronFix.from + ") wird gegen Version " + c.electronFix.to + " getauscht. Das lädt rund 100 MB und dauert auf dem Raspberry Pi einige Minuten.", mark: "restart", ok: "Reparieren" }).then(function (ok) {
+      if (ok) api("/api/updates/" + encodeURIComponent(c.id) + "/repair-electron", "POST")
+        .then(function (s) { S = s; render(); poll(); ctx.toast("Reparatur gestartet"); })
+        .catch(function (err) { ctx.toast(err.message, "error"); });
+    });
   }
 
   function startRollback(c) {
-    if (!confirm(c.name + " auf " + (c.rollback.fromVersion ? "Version " + c.rollback.fromVersion : "den Stand vor dem letzten Update") + " zurücksetzen? Der Spiegel startet danach einmal neu.")) return;
-    api("/api/updates/" + encodeURIComponent(c.id) + "/rollback", "POST")
-      .then(function (s) { noteJob(s); S = s; render(); poll(); ctx.toast("Zurücksetzen gestartet"); })
-      .catch(function (err) { ctx.toast(err.message); });
+    window.LumiraOverlay.ask({ title: c.name + " zurücksetzen?", text: "Zurück auf " + (c.rollback.fromVersion ? "Version " + c.rollback.fromVersion : "den Stand vor dem letzten Update") + ".", mark: "restart", ok: "Zurücksetzen" }).then(function (ok) {
+      if (ok) api("/api/updates/" + encodeURIComponent(c.id) + "/rollback", "POST")
+        .then(function (s) { noteJob(s); S = s; render(); poll(); ctx.toast("Zurücksetzen gestartet"); })
+        .catch(function (err) { ctx.toast(err.message, "error"); });
+    });
   }
 
   var waitingForRestart = false;
@@ -302,7 +306,7 @@
     init: function (context) {
       ctx = context;
       $("#upd-check").addEventListener("click", function () {
-        api("/api/updates/check", "POST").then(function (s) { S = s; render(); poll(); }).catch(function (err) { ctx.toast(err.message); });
+        api("/api/updates/check", "POST").then(function (s) { S = s; render(); poll(); }).catch(function (err) { ctx.toast(err.message, "error"); });
       });
       $("#upd-banner-btn").addEventListener("click", function () {
         ctx.goPage("info");

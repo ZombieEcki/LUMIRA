@@ -31,7 +31,7 @@
     });
   }
 
-  function fail(err) { ctx.toast(err.message || String(err)); }
+  function fail(err) { ctx.toast(err.message || String(err), "error"); }
 
   function sw(id, on) { $(id).setAttribute("aria-checked", on ? "true" : "false"); }
   function isOn(id) { return $(id).getAttribute("aria-checked") === "true"; }
@@ -404,8 +404,9 @@
         api("/api/ring/cancel", "POST").then(load).catch(fail);
       });
       $("#db-logout").addEventListener("click", function () {
-        if (!confirm("Vom Ring-Konto abmelden? LUMIRA reagiert dann nicht mehr aufs Klingeln, bis du dich neu anmeldest.")) return;
-        api("/api/ring/logout", "POST").then(function (s) { S = s; render(); ctx.toast("Von Ring abgemeldet"); }).catch(fail);
+        window.LumiraOverlay.ask({ title: "Vom Ring-Konto abmelden?", text: "LUMIRA reagiert dann nicht mehr aufs Klingeln, bis du dich neu anmeldest.", mark: "network", ok: "Abmelden", danger: true }).then(function (ok) {
+          if (ok) api("/api/ring/logout", "POST").then(function (s) { S = s; render(); ctx.toast("Von Ring abgemeldet"); }).catch(fail);
+        });
       });
       $("#db-diag-check").addEventListener("click", function () {
         var btn = this;

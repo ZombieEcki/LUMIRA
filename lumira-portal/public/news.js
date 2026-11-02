@@ -52,7 +52,7 @@
   function flush() {
     var body = pending;
     pending = {};
-    api("PUT", "", body).then(function (n) { N = n; render(); shotSoon(); }).catch(function (err) { ctx.toast(err.message); load(); });
+    api("PUT", "", body).then(function (n) { N = n; render(); shotSoon(); }).catch(function (err) { ctx.toast(err.message, "error"); load(); });
   }
   function afterSources(n, msg) {
     N = n;
@@ -126,12 +126,12 @@
       dn.addEventListener("click", function () { move(i, 1); });
       var sw = el("button", "sw"); sw.type = "button"; sw.setAttribute("role", "switch"); sw.setAttribute("aria-label", s.name + " anzeigen"); setSw(sw, s.enabled);
       sw.addEventListener("click", function () {
-        api("PUT", "/sources/" + s.id, { enabled: !s.enabled }).then(function (n) { afterSources(n); }).catch(function (err) { ctx.toast(err.message); });
+        api("PUT", "/sources/" + s.id, { enabled: !s.enabled }).then(function (n) { afterSources(n); }).catch(function (err) { ctx.toast(err.message, "error"); });
       });
       actions.appendChild(up); actions.appendChild(dn); actions.appendChild(sw);
       if (s.preset) {
         var rm = el("button", "btn small", "Entfernen"); rm.type = "button";
-        rm.addEventListener("click", function () { api("PUT", "/presets/" + s.preset, { on: false }).then(function (n) { afterSources(n); }).catch(function (err) { ctx.toast(err.message); }); });
+        rm.addEventListener("click", function () { api("PUT", "/presets/" + s.preset, { on: false }).then(function (n) { afterSources(n); }).catch(function (err) { ctx.toast(err.message, "error"); }); });
         actions.appendChild(rm);
       } else {
         var ed = el("button", "btn small", "Bearbeiten"); ed.type = "button";
@@ -149,7 +149,7 @@
     var j = i + d;
     if (j < 0 || j >= ids.length) return;
     var t = ids[i]; ids[i] = ids[j]; ids[j] = t;
-    api("PUT", "/order", { ids: ids }).then(function (n) { afterSources(n); }).catch(function (err) { ctx.toast(err.message); });
+    api("PUT", "/order", { ids: ids }).then(function (n) { afterSources(n); }).catch(function (err) { ctx.toast(err.message, "error"); });
   }
 
   // Vordefinierte Feeds nach Kategorie
@@ -170,7 +170,7 @@
         sw.addEventListener("click", function () {
           sw.disabled = true;
           api("PUT", "/presets/" + p.id, { on: !on }).then(function (n) { afterSources(n, on ? "Feed entfernt" : "Feed hinzugefügt – Meldungen kommen gleich"); })
-            .catch(function (err) { sw.disabled = false; ctx.toast(err.message); });
+            .catch(function (err) { sw.disabled = false; ctx.toast(err.message, "error"); });
         });
         t.appendChild(tl); t.appendChild(sw);
         box.appendChild(t);
@@ -209,8 +209,14 @@
     if (!isNew) {
       var del = el("button", "btn lk-del", "Löschen"); del.type = "button";
       del.addEventListener("click", function () {
-        if (!confirm("Feed „" + cur.name + "“ löschen?")) return;
-        api("DELETE", "/sources/" + cur.id).then(function (n) { closeEditor(); afterSources(n, "Feed gelöscht"); }).catch(function (err) { ctx.toast(err.message); });
+        // Rückgängig statt Rückfrage: trägt den Feed wieder ein (am Ende der Liste)
+        var gone = { name: cur.name, category: cur.category, url: cur.url, enabled: cur.enabled };
+        api("DELETE", "/sources/" + cur.id).then(function (n) {
+          closeEditor(); afterSources(n);
+          window.LumiraOverlay.notify("Feed gelöscht", { action: { label: "Rückgängig", run: function () {
+            (cur.preset ? api("PUT", "/presets/" + cur.preset, { on: true }) : api("POST", "/sources", gone)).then(function (k) { afterSources(k, "Feed wieder da"); }).catch(function (err) { ctx.toast(err.message, "error"); });
+          } } });
+        }).catch(function (err) { ctx.toast(err.message, "error"); });
       });
       row.appendChild(del);
     }
@@ -322,7 +328,7 @@
   function shotSoon() { clearTimeout(shotTimer); shotTimer = setTimeout(shot, 2500); }
 
   function load() {
-    return api("GET").then(function (n) { N = n; render(); rotate(); }).catch(function (err) { ctx.toast(err.message); });
+    return api("GET").then(function (n) { N = n; render(); rotate(); }).catch(function (err) { ctx.toast(err.message, "error"); });
   }
   function loadItems() {
     return api("GET", "/items").then(function (r) { IT = r; page = 0; render(); })
@@ -338,7 +344,7 @@
         btn.disabled = false;
         render();
         ctx.toast(on ? "Nachrichten an – MagicMirror startet neu" : "Nachrichten aus – MagicMirror startet neu");
-      }).catch(function (err) { btn.disabled = false; ctx.toast(err.message); });
+      }).catch(function (err) { btn.disabled = false; ctx.toast(err.message, "error"); });
     });
     $("#ln-add").addEventListener("click", function () { openEditor("new"); });
     document.querySelectorAll("#ln-variant button").forEach(function (b) {

@@ -99,7 +99,7 @@
 
   function fail(err) {
     if (err.conflict && err.plan) apply(err.plan); // anderes Gerät hat gespeichert: frischen Stand zeigen
-    ctx.toast(err.message);
+    ctx.toast(err.message, "error");
     var hint = $("#fp-hint");
     if (hint) hint.textContent = "Fehler: " + err.message;
   }
@@ -217,11 +217,13 @@
     f3.appendChild(el("p", "save-hint", "Schrift, Bilder und Breite wachsen gleichmäßig mit."));
     g.appendChild(f1); g.appendChild(f2); g.appendChild(f3); mirror.appendChild(g);
     mirror.appendChild(saveRow("Speichern", function (btn, hint) {
-      if (enabled && !(ctx.getSettings().familyPlan || {}).enabled && ctx.confirmExtras && !ctx.confirmExtras()) return;
-      btn.disabled = true; hint.textContent = "Speichere …";
-      ctx.api("/api/settings", { method: "POST", body: { familyPlan: { enabled: enabled, layout: sel.value, maxWidth: inp.value.trim(), scale: Number(sc.value) } } })
-        .then(function (settings) { ctx.setSettings(settings); btn.disabled = false; hint.textContent = "Gespeichert – MagicMirror startet neu."; ctx.toast("Gespeichert"); })
-        .catch(function (err) { btn.disabled = false; hint.textContent = "Fehler: " + err.message; });
+      (enabled && !(ctx.getSettings().familyPlan || {}).enabled && ctx.confirmExtras ? ctx.confirmExtras() : Promise.resolve(true)).then(function (ok) {
+        if (!ok) return;
+        btn.disabled = true; hint.textContent = "Speichere …";
+        ctx.api("/api/settings", { method: "POST", body: { familyPlan: { enabled: enabled, layout: sel.value, maxWidth: inp.value.trim(), scale: Number(sc.value) } } })
+          .then(function (settings) { ctx.setSettings(settings); btn.disabled = false; hint.textContent = "Gespeichert – MagicMirror startet neu."; ctx.toast("Gespeichert"); })
+          .catch(function (err) { btn.disabled = false; hint.textContent = "Fehler: " + err.message; });
+      });
     }));
     panel.appendChild(mirror);
 
@@ -278,9 +280,10 @@
     }
     var rg = el("button", "btn", "Aktuelle Woche neu verteilen"); rg.type = "button";
     rg.addEventListener("click", function () {
-      if (!confirm("Die laufende Woche wird neu berechnet, manuelle Änderungen gehen verloren. Fortfahren?")) return;
-      api("/api/familyplan/regenerate", { method: "POST", body: { revision: PLAN.revision, scope: "current", confirm: true } })
-        .then(function (p) { apply(p); ctx.toast("Woche neu verteilt"); }).catch(fail);
+      window.LumiraOverlay.ask({ title: "Aktuelle Woche neu verteilen?", text: "Die Dienste dieser Woche werden neu berechnet. Was du für diese Woche von Hand geändert hast, geht dabei verloren.", ok: "Neu verteilen", danger: true }).then(function (ok) {
+        if (ok) api("/api/familyplan/regenerate", { method: "POST", body: { revision: PLAN.revision, scope: "current", confirm: true } })
+          .then(function (p) { apply(p); ctx.toast("Woche neu verteilt"); }).catch(fail);
+      });
     });
     row.appendChild(rg);
     wc.appendChild(row);
@@ -955,9 +958,10 @@
       var row = el("div", "save-row");
       var rg = el("button", "btn", "Rotationsplan neu generieren"); rg.type = "button";
       rg.addEventListener("click", function () {
-        if (!confirm("Alle geplanten Änderungen an kommenden Wochen werden verworfen, die Automatik gilt wieder. Die laufende Woche bleibt. Fortfahren?")) return;
-        api("/api/familyplan/regenerate", { method: "POST", body: { revision: PLAN.revision, scope: "future" } })
-          .then(function (p) { apply(p); ctx.toast("Kommende Wochen neu berechnet"); }).catch(fail);
+        window.LumiraOverlay.ask({ title: "Geplante Änderungen verwerfen?", text: "Für alle kommenden Wochen gilt wieder die Automatik. Die laufende Woche bleibt, wie sie ist.", ok: "Verwerfen", danger: true }).then(function (ok) {
+          if (ok) api("/api/familyplan/regenerate", { method: "POST", body: { revision: PLAN.revision, scope: "future" } })
+            .then(function (p) { apply(p); ctx.toast("Kommende Wochen neu berechnet"); }).catch(fail);
+        });
       });
       row.appendChild(rg);
       row.appendChild(el("span", "save-hint", planned + (planned === 1 ? " kommende Woche ist" : " kommende Wochen sind") + " von Hand geändert."));
@@ -1089,10 +1093,12 @@
       reader.onload = function () {
         var payload;
         try { payload = JSON.parse(reader.result); } catch (e) { ctx.toast("Die Datei ist keine gültige Sicherung"); inp.value = ""; return; }
-        if (!confirm("Der aktuelle Familienplan wird durch die Sicherung ersetzt. Vorher legt LUMIRA automatisch ein Backup an. Fortfahren?")) { inp.value = ""; return; }
-        api("/api/familyplan/import", { method: "POST", body: payload })
-          .then(function (p) { apply(p); ctx.toast("Sicherung eingespielt"); })
-          .catch(function (err) { inp.value = ""; fail(err); });
+        window.LumiraOverlay.ask({ title: "Familienplan durch die Sicherung ersetzen?", text: "Vorher legt LUMIRA automatisch ein Backup vom aktuellen Stand an – unten unter „Backups“ kommst du jederzeit zurück.", mark: "undo", ok: "Ersetzen" }).then(function (ok) {
+          if (!ok) { inp.value = ""; return; }
+          api("/api/familyplan/import", { method: "POST", body: payload })
+            .then(function (p) { apply(p); ctx.toast("Sicherung eingespielt"); })
+            .catch(function (err) { inp.value = ""; fail(err); });
+        });
       };
       reader.readAsText(file);
     });
@@ -1117,9 +1123,10 @@
         line.appendChild(info);
         var btn = el("button", "btn", "Wiederherstellen"); btn.type = "button"; btn.disabled = !!b.broken;
         btn.addEventListener("click", function () {
-          if (!confirm("Den Stand vom " + when + " wiederherstellen? Der aktuelle Stand wird vorher selbst als Backup gesichert.")) return;
-          api("/api/familyplan/backups/restore", { method: "POST", body: { name: b.name } })
-            .then(function (p) { apply(p); ctx.toast("Stand vom " + when + " wiederhergestellt"); }).catch(fail);
+          window.LumiraOverlay.ask({ title: "Stand vom " + when + " wiederherstellen?", text: "Der aktuelle Stand wird vorher selbst als Backup gesichert.", mark: "undo", ok: "Wiederherstellen" }).then(function (ok) {
+            if (ok) api("/api/familyplan/backups/restore", { method: "POST", body: { name: b.name } })
+              .then(function (p) { apply(p); ctx.toast("Stand vom " + when + " wiederhergestellt"); }).catch(fail);
+          });
         });
         line.appendChild(btn);
         list.appendChild(line);

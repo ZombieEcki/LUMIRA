@@ -427,12 +427,29 @@
   function saveDraft(then) {
     var p = profile();
     var live = L.mode === "free" && pid === L.active;
-    if (live && !confirm("Layout „" + p.name + "“ speichern? Der Bildschirm übernimmt es nach wenigen Sekunden.")) return Promise.resolve(false);
-    return api("PUT", "/profiles/" + pid, { items: draft }).then(function (d) { apply(d); ctx.toast(live ? "Gespeichert – der Bildschirm übernimmt es gleich" : "Gespeichert"); if (then) then(); return true; })
-      .catch(function (err) { ctx.toast(err.message); return false; });
+    return (live ? ask({ title: "„" + p.name + "“ speichern?", text: "Dieses Layout ist gerade aktiv – der Bildschirm übernimmt es nach wenigen Sekunden.", mark: "undo", ok: "Speichern" }) : Promise.resolve(true)).then(function (ok) {
+      if (!ok) return false;
+      return api("PUT", "/profiles/" + pid, { items: draft }).then(function (d) { apply(d); ctx.toast(live ? "Gespeichert – der Bildschirm übernimmt es gleich" : "Gespeichert"); if (then) then(); return true; })
+        .catch(function (err) { ctx.toast(err.message, "error"); return false; });
+    });
   }
 
-  function guardDirty() { return !dirty() || confirm("Ungespeicherte Änderungen verwerfen?"); }
+  var ask = function (o) { return window.LumiraOverlay.ask(o); };
+  var LOST = "Ungespeicherte Änderungen an diesem Layout gehen dabei verloren.";
+  var KEPT = "Ungespeicherte Änderungen werden vorher gespeichert.";
+  function guardDirty() { return dirty() ? ask({ title: "Ungespeicherte Änderungen verwerfen?", text: LOST, ok: "Verwerfen", danger: true }) : Promise.resolve(true); }
+  // Name für ein Layout (wie lib/layout.js: 1–30 Zeichen)
+  function askName(title, value, ok) {
+    return ask({ title: title, text: dirty() ? LOST : "", ok: ok, input: { label: "Name", value: value, placeholder: "z. B. Abend, Familie, Minimal", maxLength: 30 } });
+  }
+
+  // Gewähltes Profil aktiv schalten, ungespeicherte Änderungen vorher speichern
+  function activate(done) {
+    (dirty() ? api("PUT", "/profiles/" + pid, { items: draft }).then(apply) : Promise.resolve())
+      .then(function () { return api("PUT", "/mode", { mode: "free", active: pid }); })
+      .then(function (d) { apply(d, true); ctx.toast(done); })
+      .catch(function (err) { ctx.toast(err.message, "error"); });
+  }
 
   function wire() {
     document.querySelectorAll("#ly-mode button").forEach(function (b) {
@@ -441,62 +458,65 @@
         if (m === L.mode) return;
         if (m === "free") {
           if (!Object.keys(draft).length) { ctx.toast("Dieses Layout ist noch leer – erst „Vom Bildschirm übernehmen“ oder Module hineinziehen"); return; }
-          if (dirty() && !confirm("Ungespeicherte Änderungen zuerst speichern?")) return;
-          var go = function () {
-            if (!confirm("Free-Layout „" + profile().name + "“ auf dem Bildschirm aktivieren? Classic bleibt gespeichert und lässt sich jederzeit zurückholen.")) return;
-            api("PUT", "/mode", { mode: "free", active: pid }).then(function (d) { apply(d, true); ctx.toast("Free-Layout aktiv"); }).catch(function (err) { ctx.toast(err.message); });
-          };
-          if (dirty()) api("PUT", "/profiles/" + pid, { items: draft }).then(function (d) { apply(d); go(); }).catch(function (err) { ctx.toast(err.message); });
-          else go();
+          ask({ title: "Free-Layout „" + profile().name + "“ aktivieren?", text: "Der Bildschirm ordnet sich nach diesem Layout. Classic bleibt gespeichert und lässt sich jederzeit zurückholen." + (dirty() ? " " + KEPT : ""), mark: "undo", ok: "Free aktivieren" }).then(function (ok) {
+            if (ok) activate("Free-Layout aktiv");
+          });
         } else {
-          if (!confirm("Zurück zu Classic? Jedes Modul steht dann wieder nach seinen eigenen Einstellungen. Die Free-Layouts bleiben gespeichert.")) return;
-          api("PUT", "/mode", { mode: "classic" }).then(function (d) { apply(d, true); ctx.toast("Classic aktiv"); }).catch(function (err) { ctx.toast(err.message); });
+          ask({ title: "Zurück zu Classic?", text: "Jedes Modul steht dann wieder nach seinen eigenen Einstellungen. Die Free-Layouts bleiben gespeichert.", mark: "undo", ok: "Classic aktivieren" }).then(function (ok) {
+            if (ok) api("PUT", "/mode", { mode: "classic" }).then(function (d) { apply(d, true); ctx.toast("Classic aktiv"); }).catch(function (err) { ctx.toast(err.message, "error"); });
+          });
         }
       });
     });
     $("#ly-profile").addEventListener("change", function () {
-      if (!guardDirty()) { this.value = pid; return; }
-      pid = this.value; sel = ""; loadDraft(); render();
+      var box = this, next = this.value;
+      box.value = pid;
+      guardDirty().then(function (ok) {
+        if (!ok) return;
+        pid = next; box.value = next; sel = ""; loadDraft(); render();
+      });
     });
     $("#ly-activate").addEventListener("click", function () {
-      if (dirty() && !confirm("Ungespeicherte Änderungen werden vorher gespeichert. Weiter?")) return;
       var p = profile();
-      var go = function () {
-        if (!confirm("„" + p.name + "“ auf dem Bildschirm aktivieren?")) return;
-        api("PUT", "/mode", { mode: "free", active: pid }).then(function (d) { apply(d, true); ctx.toast("„" + p.name + "“ ist aktiv"); }).catch(function (err) { ctx.toast(err.message); });
-      };
       if (!Object.keys(draft).length) { ctx.toast("Dieses Layout ist noch leer"); return; }
-      if (dirty()) api("PUT", "/profiles/" + pid, { items: draft }).then(function (d) { apply(d); go(); }).catch(function (err) { ctx.toast(err.message); });
-      else go();
+      ask({ title: "„" + p.name + "“ aktivieren?", text: "Der Bildschirm ordnet sich nach diesem Layout." + (dirty() ? " " + KEPT : ""), mark: "undo", ok: "Aktivieren" }).then(function (ok) {
+        if (ok) activate("„" + p.name + "“ ist aktiv");
+      });
     });
     $("#ly-new").addEventListener("click", function () {
-      if (!guardDirty()) return;
-      var name = prompt("Name des neuen Layouts (z. B. Abend, Familie, Minimal):", "");
-      if (!name || !name.trim()) return;
-      api("POST", "/profiles", { name: name.trim(), from: "current" }).then(function (d) { pid = d.profiles[d.profiles.length - 1].id; apply(d); ctx.toast("Layout angelegt – Ausgangspunkt ist der aktuelle Bildschirm"); }).catch(function (err) { ctx.toast(err.message); });
+      askName("Neues Layout anlegen", "", "Anlegen").then(function (name) {
+        if (name) api("POST", "/profiles", { name: name, from: "current" }).then(function (d) { pid = d.profiles[d.profiles.length - 1].id; apply(d); ctx.toast("Layout angelegt – Ausgangspunkt ist der aktuelle Bildschirm"); }).catch(function (err) { ctx.toast(err.message, "error"); });
+      });
     });
     $("#ly-dup").addEventListener("click", function () {
-      if (!guardDirty()) return;
-      var name = prompt("Name der Kopie:", profile().name + " (Kopie)");
-      if (!name || !name.trim()) return;
-      api("POST", "/profiles", { name: name.trim(), from: pid }).then(function (d) { pid = d.profiles[d.profiles.length - 1].id; apply(d); }).catch(function (err) { ctx.toast(err.message); });
+      askName("Layout „" + profile().name + "“ kopieren", (profile().name + " (Kopie)").slice(0, 30), "Kopieren").then(function (name) {
+        if (name) api("POST", "/profiles", { name: name, from: pid }).then(function (d) { pid = d.profiles[d.profiles.length - 1].id; apply(d); }).catch(function (err) { ctx.toast(err.message, "error"); });
+      });
     });
     $("#ly-rename").addEventListener("click", function () {
-      var name = prompt("Neuer Name:", profile().name);
-      if (!name || !name.trim()) return;
-      api("PUT", "/profiles/" + pid, { name: name.trim() }).then(function (d) { apply(d, true); }).catch(function (err) { ctx.toast(err.message); });
+      ask({ title: "Layout umbenennen", ok: "Umbenennen", input: { label: "Name", value: profile().name, maxLength: 30 } }).then(function (name) {
+        if (name) api("PUT", "/profiles/" + pid, { name: name }).then(function (d) { apply(d, true); }).catch(function (err) { ctx.toast(err.message, "error"); });
+      });
     });
     $("#ly-del").addEventListener("click", function () {
-      if (!confirm("Layout „" + profile().name + "“ löschen?")) return;
-      api("DELETE", "/profiles/" + pid).then(function (d) { pid = d.active; apply(d); ctx.toast("Layout gelöscht"); }).catch(function (err) { ctx.toast(err.message); });
+      // Rückgängig statt Rückfrage: jede Speicherung legt eine Sicherung an (POST /undo)
+      guardDirty().then(function (ok) {
+        if (ok) api("DELETE", "/profiles/" + pid).then(function (d) {
+          pid = d.active; apply(d);
+          window.LumiraOverlay.notify("Layout gelöscht", { action: { label: "Rückgängig", run: function () {
+            api("POST", "/undo").then(function (u) { apply(u); ctx.toast("Layout ist wieder da"); }).catch(function (err) { ctx.toast(err.message, "error"); });
+          } } });
+        }).catch(function (err) { ctx.toast(err.message, "error"); });
+      });
     });
     $("#ly-take").addEventListener("click", function () { remember(); draft = fromCurrent(); render(); });
     $("#ly-save").addEventListener("click", function () { saveDraft(); });
-    $("#ly-discard").addEventListener("click", function () { if (confirm("Änderungen verwerfen?")) { loadDraft(); render(); } });
+    $("#ly-discard").addEventListener("click", function () { guardDirty().then(function (ok) { if (ok) { loadDraft(); render(); } }); });
     $("#ly-undo-draft").addEventListener("click", function () { if (hist.length) { draft = JSON.parse(hist.pop()); render(); } });
     $("#ly-undo").addEventListener("click", function () {
-      if (!guardDirty() || !confirm("Letzte Speicherung zurücknehmen? Der vorherige Stand (Layouts und Modus) kommt zurück.")) return;
-      api("POST", "/undo").then(function (d) { apply(d); ctx.toast("Vorheriger Stand ist zurück"); }).catch(function (err) { ctx.toast(err.message); });
+      ask({ title: "Letzte Speicherung zurücknehmen?", text: "Der vorherige Stand (Layouts und Modus) kommt zurück." + (dirty() ? " " + LOST : ""), ok: "Zurücknehmen" }).then(function (ok) {
+        if (ok) api("POST", "/undo").then(function (d) { apply(d); ctx.toast("Vorheriger Stand ist zurück"); }).catch(function (err) { ctx.toast(err.message, "error"); });
+      });
     });
     $("#ly-search").addEventListener("input", renderLib);
     $("#ly-zoom").addEventListener("change", function () { zoom = Number(this.value) || 1; renderCanvas(); });
@@ -507,7 +527,7 @@
         var body = {}; body[k] = c.type === "checkbox" ? c.checked : Number(c.value);
         L.editor[k] = body[k];
         renderCanvas();
-        api("PUT", "/editor", body).then(function (d) { L.editor = d.editor; L.backups = d.backups; }).catch(function (err) { ctx.toast(err.message); });
+        api("PUT", "/editor", body).then(function (d) { L.editor = d.editor; L.backups = d.backups; }).catch(function (err) { ctx.toast(err.message, "error"); });
       });
     });
     window.addEventListener("resize", function () { if (L && ctx.currentPage() === "module") renderCanvas(); });
@@ -522,11 +542,11 @@
       if (shotUrl) URL.revokeObjectURL(shotUrl);
       shotUrl = URL.createObjectURL(b);
       renderCanvas();
-    }).catch(function (err) { $("#ly-shot").checked = false; ctx.toast(err.message); });
+    }).catch(function (err) { $("#ly-shot").checked = false; ctx.toast(err.message, "error"); });
   }
 
   function load(keepDraft) {
-    return api("GET").then(function (d) { apply(d, keepDraft && !!L); }).catch(function (err) { if (ctx.currentPage() === "module") ctx.toast(err.message); });
+    return api("GET").then(function (d) { apply(d, keepDraft && !!L); }).catch(function (err) { if (ctx.currentPage() === "module") ctx.toast(err.message, "error"); });
   }
 
   window.LumiraLayout = {

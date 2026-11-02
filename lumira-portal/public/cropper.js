@@ -204,7 +204,13 @@
     function onResize() { layout(true); }
     window.addEventListener("resize", onResize);
 
+    // Esc, Zurück-Taste und Fokus wie bei allen Overlays (overlay.js)
+    var closed = false;
+    var unmodal = window.LumiraOverlay.modal(dlg, function () { close(null); });
     function close(result) {
+      if (closed) return;
+      closed = true;
+      unmodal();
       window.removeEventListener("resize", onResize);
       document.removeEventListener("keydown", onKey, true);
       back.remove();
@@ -214,8 +220,7 @@
       resolve(result);
     }
     function onKey(e) {
-      if (e.key === "Escape") { e.preventDefault(); close(null); }
-      else if (e.key === "Enter" && e.target.tagName !== "BUTTON") { e.preventDefault(); finish(); }
+      if (e.key === "Enter" && e.target.tagName !== "BUTTON") { e.preventDefault(); finish(); }
     }
     document.addEventListener("keydown", onKey, true);
     x.addEventListener("click", function () { close(null); });

@@ -63,7 +63,7 @@
   function flush() {
     var body = pending;
     pending = {};
-    api("PUT", body).then(function (s) { S = s; render(); shotSoon(); }).catch(function (err) { ctx.toast(err.message); load(); });
+    api("PUT", body).then(function (s) { S = s; render(); shotSoon(); }).catch(function (err) { ctx.toast(err.message, "error"); load(); });
   }
 
   function hhmm(iso) {
@@ -487,7 +487,7 @@
   }
 
   function load() {
-    return api("GET").then(function (s) { S = s; render(); }).catch(function (err) { ctx.toast(err.message); });
+    return api("GET").then(function (s) { S = s; render(); }).catch(function (err) { ctx.toast(err.message, "error"); });
   }
 
   window.LumiraWeather = {

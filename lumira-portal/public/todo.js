@@ -50,7 +50,7 @@
       });
     });
   }
-  function act(p) { return p.then(apply).catch(function (err) { ctx.toast(err.message); load(); }); }
+  function act(p) { return p.then(apply).catch(function (err) { ctx.toast(err.message, "error"); load(); }); }
 
   function apply(d) {
     D = d;
@@ -70,7 +70,7 @@
   function flush() {
     var b = pending;
     pending = {};
-    api("PUT", "/display", b).then(apply).catch(function (err) { ctx.toast(err.message); load(); });
+    api("PUT", "/display", b).then(apply).catch(function (err) { ctx.toast(err.message, "error"); load(); });
   }
 
   // Datum wie im übrigen Portal: TT.MM.JJJJ im Feld, JJJJ-MM-TT gespeichert
@@ -303,13 +303,15 @@
       if (body.repeat.type === "weekdays" && !dayOn.length) { ctx.toast("Bitte mindestens einen Wochentag wählen"); return; }
       save.disabled = true;
       api("PUT", "/tasks/" + t.id, body).then(function (d) { editing = null; if (body.list !== sel) sel = body.list; apply(d); ctx.toast("Gespeichert"); })
-        .catch(function (err) { save.disabled = false; ctx.toast(err.message); });
+        .catch(function (err) { save.disabled = false; ctx.toast(err.message, "error"); });
     });
     cancel.addEventListener("click", function () { editing = null; render(); });
     del.addEventListener("click", function () {
-      if (!confirm("Aufgabe „" + t.title + "“ löschen?")) return;
+      // Rückgängig statt Rückfrage: legt die Aufgabe mit gleichem Inhalt neu an
       editing = null;
-      act(api("DELETE", "/tasks/" + t.id));
+      act(api("DELETE", "/tasks/" + t.id)).then(function () {
+        window.LumiraOverlay.notify("Aufgabe gelöscht", { action: { label: "Rückgängig", run: function () { act(api("POST", "/tasks", t)); } } });
+      });
     });
     renderTasks();
     title.focus();
@@ -343,8 +345,9 @@
       var del = a.appendChild(btn("btn small lk-del", "Löschen"));
       del.disabled = D.lists.length === 1;
       del.addEventListener("click", function () {
-        if (!confirm("Liste „" + l.name + "“ löschen?" + (n ? " Dabei werden auch ihre " + n + " Aufgaben gelöscht." : ""))) return;
-        act(api("DELETE", "/lists/" + l.id));
+        window.LumiraOverlay.ask({ title: "Liste „" + l.name + "“ löschen?", text: n ? "Dabei werden auch ihre " + n + " Aufgaben gelöscht." : "", mark: "delete", ok: "Löschen", danger: true }).then(function (ok) {
+          if (ok) act(api("DELETE", "/lists/" + l.id));
+        });
       });
     });
   }
@@ -368,8 +371,16 @@
       var del = a.appendChild(btn("btn-x", "✕", c.name + " löschen"));
       del.addEventListener("click", function () {
         var n = D.tasks.filter(function (x) { return x.category === c.id; }).length;
-        if (!confirm("Kategorie „" + c.name + "“ löschen?" + (n ? " Ihre " + n + " Aufgaben bleiben, nur ohne Kategorie." : ""))) return;
-        act(api("DELETE", "/categories/" + c.id));
+        // leer: sofort mit Rückgängig; mit Aufgaben: fragen (Zuordnung käme nicht zurück)
+        if (!n) {
+          act(api("DELETE", "/categories/" + c.id)).then(function () {
+            window.LumiraOverlay.notify("Kategorie gelöscht", { action: { label: "Rückgängig", run: function () { act(api("POST", "/categories", c)); } } });
+          });
+          return;
+        }
+        window.LumiraOverlay.ask({ title: "Kategorie „" + c.name + "“ löschen?", text: "Ihre " + n + " Aufgaben bleiben, nur ohne Kategorie.", ok: "Löschen", danger: true }).then(function (ok) {
+          if (ok) act(api("DELETE", "/categories/" + c.id));
+        });
       });
     });
   }
@@ -540,7 +551,7 @@
 
   function load() {
     return api("GET").then(function (d) { D = d; if (ctx.onChange) ctx.onChange(D); if (!sel || !D.lists.some(function (l) { return l.id === sel; })) sel = D.lists[0].id; render(); renderStart(); })
-      .catch(function (err) { if (onPage()) ctx.toast(err.message); });
+      .catch(function (err) { if (onPage()) ctx.toast(err.message, "error"); });
   }
 
   function quickAdd(form, listOf) {
@@ -564,7 +575,7 @@
         render();
         renderStart();
         if (done !== false) ctx.toast(on ? "To-do-Liste an – MagicMirror startet neu" : "To-do-Liste aus – MagicMirror startet neu");
-      }).catch(function (err) { b.disabled = false; ctx.toast(err.message); });
+      }).catch(function (err) { b.disabled = false; ctx.toast(err.message, "error"); });
     });
     quickAdd($("#lt-quick"), function () { return sel; });
     quickAdd($("#start-todo-add"), function () { var l = D && D.lists.filter(function (x) { return x.enabled; })[0]; return l ? l.id : sel; });
@@ -584,8 +595,9 @@
     });
     $("#lt-clear").addEventListener("click", function () {
       var n = D.tasks.filter(function (t) { return t.list === sel && t.done; }).length;
-      if (!confirm(n + " erledigte Aufgaben dieser Liste endgültig löschen?")) return;
-      act(api("POST", "/clear-done", { list: sel }));
+      window.LumiraOverlay.ask({ title: n + (n === 1 ? " erledigte Aufgabe löschen?" : " erledigte Aufgaben löschen?"), text: "Betrifft nur diese Liste. Offene Aufgaben bleiben.", mark: "delete", ok: "Löschen", danger: true }).then(function (ok) {
+        if (ok) act(api("POST", "/clear-done", { list: sel }));
+      });
     });
     document.querySelectorAll('.page[data-page="todo"] [data-k]').forEach(function (c) {
       var k = c.getAttribute("data-k");
