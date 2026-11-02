@@ -194,8 +194,13 @@
     });
   }
 
-  // Ziehen und Größe ändern (Entwurf, erst „Speichern“ schreibt)
+  // Ziehen und Größe ändern (Entwurf, erst „Speichern“ schreibt). Während des
+  // Ziehens wird nur das gezogene Element bewegt – neu zeichnen würde es
+  // ersetzen und das Ziehen abbrechen.
   var drag = null;
+  var FANG = 6;    // Fangbereich in Pixeln der Vorschau (Raster und Hilfslinien)
+  var START = 3;   // erst ab so viel Bewegung zählt es als Ziehen
+
   function startDrag(e) {
     var d = e.currentTarget;
     var key = d.getAttribute("data-key");
@@ -203,63 +208,87 @@
     if (!it || e.button > 0) return;
     e.preventDefault();
     select(key, true);
-    remember();
     var sz = sizeOf(key, it);
-    drag = { key: key, mode: e.target.getAttribute("data-h") || "move", sx: e.clientX, sy: e.clientY, x: it.x, y: it.y, w: sz.w, h: sz.h, font: it.font, el: $('#ly-canvas [data-key="' + key + '"]') };
-    drag.el.setPointerCapture(e.pointerId);
-    drag.el.addEventListener("pointermove", moveDrag);
-    drag.el.addEventListener("pointerup", endDrag, { once: true });
-    drag.el.addEventListener("pointercancel", endDrag, { once: true });
+    drag = { key: key, mode: e.target.getAttribute("data-h") || "move", sx: e.clientX, sy: e.clientY, x: it.x, y: it.y, w: sz.w, h: sz.h, font: it.font, el: d, moved: false, before: JSON.stringify(draft) };
+    try { d.setPointerCapture(e.pointerId); } catch (err) { /* ältere Browser */ }
+    d.addEventListener("pointermove", moveDrag);
+    d.addEventListener("pointerup", endDrag);
+    d.addEventListener("pointercancel", endDrag);
   }
 
-  function snap(v, step) { return L.editor.snap ? Math.round(v / step) * step : v; }
+  // Position und Beschriftung eines Elements aus dem Entwurf setzen
+  function placeItem(d, key) {
+    var sc = screen(), it = draft[key], sz = sizeOf(key, it), m = mod(key);
+    d.style.left = it.x + "%";
+    d.style.top = it.y + "%";
+    d.style.width = (sz.w / sc.width * 100) + "%";
+    d.style.height = (sz.h / sc.height * 100) + "%";
+    var lab = d.querySelector(".ly-size");
+    if (lab && m.level === "full") lab.textContent = Math.round(sz.w) + " × " + Math.round(sz.h) + (it.font ? " · " + it.font + " %" : "");
+  }
+
+  // Sanft einrasten: nur, wenn eine Rasterlinie nah ist (sonst frei)
+  function magnet(v, step, tol) {
+    var g = Math.round(v / step) * step;
+    return Math.abs(g - v) <= tol ? g : v;
+  }
 
   function moveDrag(e) {
     if (!drag) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.sx) < START && Math.abs(e.clientY - drag.sy) < START) return;
+    drag.moved = true;
     var r = canvasRect();
     var sc = screen();
     var dx = (e.clientX - drag.sx) / r.width * 100;
     var dy = (e.clientY - drag.sy) / r.height * 100;
     var it = draft[drag.key];
+    var free = e.altKey;                       // Alt = ganz frei, ohne Einrasten
+    var snapOn = L.editor.snap && !free;
     var stepX = 100 / L.editor.grid;
     var stepY = stepX * sc.width / sc.height;
+    var tolX = FANG / r.width * 100, tolY = FANG / r.height * 100;
+    var gx = function (v) { return snapOn ? magnet(v, stepX, tolX) : v; };
+    var gy = function (v) { return snapOn ? magnet(v, stepY, tolY) : v; };
     var wPct = drag.w / sc.width * 100;
     var hPct = drag.h / sc.height * 100;
+    clearGuides();
     if (drag.mode === "move") {
-      var nx = snap(drag.x + dx, stepX);
-      var ny = snap(drag.y + dy, stepY);
-      var g = guides(drag.key, nx, ny, wPct, hPct);
-      it.x = round2(g.x); it.y = round2(g.y);
+      var nx = drag.x + dx, ny = drag.y + dy;
+      var g = !free && L.editor.guides ? guides(drag.key, nx, ny, wPct, hPct, tolX, tolY) : { x: null, y: null };
+      it.x = round2(g.x !== null ? g.x : gx(nx));
+      it.y = round2(g.y !== null ? g.y : gy(ny));
     } else {
       // Ecke ziehen: Rahmen und Inhalt wachsen mit (Schrift im Verhältnis der Breite)
       var left = drag.x, top = drag.y, right = drag.x + wPct, bottom = drag.y + hPct;
-      if (drag.mode.indexOf("w") !== -1) left = snap(drag.x + dx, stepX); else right = snap(drag.x + wPct + dx, stepX);
-      if (drag.mode.indexOf("n") !== -1) top = snap(drag.y + dy, stepY); else bottom = snap(drag.y + hPct + dy, stepY);
+      if (drag.mode.indexOf("w") !== -1) left = gx(drag.x + dx); else right = gx(drag.x + wPct + dx);
+      if (drag.mode.indexOf("n") !== -1) top = gy(drag.y + dy); else bottom = gy(drag.y + hPct + dy);
       var nw = Math.max(60, (right - left) / 100 * sc.width);
       var nh = Math.max(40, (bottom - top) / 100 * sc.height);
       if (drag.mode.indexOf("w") !== -1) left = right - nw / sc.width * 100;
       if (drag.mode.indexOf("n") !== -1) top = bottom - nh / sc.height * 100;
       it.x = round2(left); it.y = round2(top); it.w = Math.round(nw); it.h = Math.round(nh);
       if (drag.font) it.font = Math.max(30, Math.min(400, Math.round(drag.font * nw / drag.w)));
-      clearGuides();
     }
-    renderCanvas();
-    renderProps();
+    placeItem(drag.el, drag.key);
   }
 
-  function endDrag() {
+  function endDrag(e) {
     if (!drag) return;
-    drag.el.removeEventListener("pointermove", moveDrag);
+    var d = drag.el;
+    d.removeEventListener("pointermove", moveDrag);
+    d.removeEventListener("pointerup", endDrag);
+    d.removeEventListener("pointercancel", endDrag);
+    try { d.releasePointerCapture(e.pointerId); } catch (err) { /* schon frei */ }
+    var before = drag.before;
     drag = null;
     clearGuides();
-    if (hist.length && hist[hist.length - 1] === JSON.stringify(draft)) hist.pop();
+    if (before !== JSON.stringify(draft)) { hist.push(before); if (hist.length > 50) hist.shift(); }
     render();
   }
 
-  // Hilfslinien: Kanten und Mitten anderer Module und des Bildschirms (rastet ein)
-  function guides(key, x, y, w, h) {
-    clearGuides();
-    if (!L.editor.guides) return { x: x, y: y };
+  // Hilfslinien: Kanten und Mitten anderer Module und des Bildschirms.
+  // Liefert die eingerastete Position je Achse oder null (dann gilt das Raster).
+  function guides(key, x, y, w, h, tolX, tolY) {
     var sc = screen();
     var vx = [0, 50, 100], vy = [0, 50, 100];
     Object.keys(draft).forEach(function (k) {
@@ -269,18 +298,18 @@
       vx.push(o.x, o.x + ow / 2, o.x + ow);
       vy.push(o.y, o.y + oh / 2, o.y + oh);
     });
-    var T = 0.8;
-    var best = function (pos, size, lines) {
-      var cands = [[pos, 0], [pos + size / 2, size / 2], [pos + size, size]];
+    var best = function (pos, size, lines, tol) {
       var hit = null;
-      cands.forEach(function (c) { lines.forEach(function (l) { var d = Math.abs(c[0] - l); if (d < T && (!hit || d < hit.d)) hit = { d: d, pos: l - c[1], line: l }; }); });
+      [[pos, 0], [pos + size / 2, size / 2], [pos + size, size]].forEach(function (c) {
+        lines.forEach(function (l) { var d = Math.abs(c[0] - l); if (d <= tol && (!hit || d < hit.d)) hit = { d: d, pos: l - c[1], line: l }; });
+      });
       return hit;
     };
-    var gx = best(x, w, vx), gy = best(y, h, vy);
+    var hx = best(x, w, vx, tolX), hy = best(y, h, vy, tolY);
     var cv = $("#ly-canvas");
-    if (gx) { x = gx.pos; var lx = cv.appendChild(el("div", "ly-guide ly-guide-v")); lx.style.left = gx.line + "%"; }
-    if (gy) { y = gy.pos; var ly = cv.appendChild(el("div", "ly-guide ly-guide-h")); ly.style.top = gy.line + "%"; }
-    return { x: x, y: y };
+    if (hx) { var lx = cv.appendChild(el("div", "ly-guide ly-guide-v")); lx.style.left = hx.line + "%"; }
+    if (hy) { var ly = cv.appendChild(el("div", "ly-guide ly-guide-h")); ly.style.top = hy.line + "%"; }
+    return { x: hx ? hx.pos : null, y: hy ? hy.pos : null };
   }
   function clearGuides() { document.querySelectorAll("#ly-canvas .ly-guide").forEach(function (g) { g.remove(); }); }
 
