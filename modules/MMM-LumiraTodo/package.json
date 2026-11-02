@@ -1,0 +1,14 @@
+{
+  "name": "mmm-lumiratodo",
+  "version": "1.0.0",
+  "description": "MagicMirror² – To-do-Liste in 12 Designs: mehrere Listen, Kategorien, Prioritäten, Fälligkeit, Unteraufgaben, gepflegt im LUMIRA-Portal.",
+  "main": "MMM-LumiraTodo.js",
+  "keywords": [
+    "MagicMirror",
+    "MagicMirror2",
+    "To-do",
+    "Aufgaben"
+  ],
+  "author": "Liam Eckhof",
+  "license": "MIT"
+}

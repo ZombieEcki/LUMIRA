@@ -91,5 +91,5 @@ test("eigene Module: Skript- und Style-Dateinamen sind über alle Module eindeut
 			});
 		});
 	});
-	assert.ok(seen["weather-view.css"] && seen["spruch-view.css"] && seen["clock-view.css"] && seen["calendar-view.css"] && seen["news-view.css"]);
+	assert.ok(seen["weather-view.css"] && seen["spruch-view.css"] && seen["clock-view.css"] && seen["calendar-view.css"] && seen["news-view.css"] && seen["todo-view.css"]);
 });

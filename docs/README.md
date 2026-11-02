@@ -9,6 +9,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 - [FAMILIENPLAN.md](FAMILIENPLAN.md) – Familienplan: Einrichtung, Bedienung, Rotationslogik, Datensicherung, Fehlerbehebung
 - [KLINGEL.md](KLINGEL.md) – Ring-Türklingel: Verbindung, Ton und Videodauer, Installation, Sicherheit, Fehlerbehebung
 - [SPRUECHE.md](SPRUECHE.md) – Sprüche: Kategorien, Anlässe (Wetter, Warnungen, Kalender), Darstellung, Schnittstellen, Sicherung, Rollback, Fehlerbehebung
+- [TODO.md](TODO.md) – To-do-Liste (12 Designs): Aufgaben, Listen, Kategorien, Wiederholung, Anzeige, Datensicherheit, Fehlerbehebung
 - [NACHRICHTEN.md](NACHRICHTEN.md) – Nachrichten (RSS/Atom): zwei Varianten, geprüfte Feeds, eigene Feeds, Zeitraum und Zeitregel, Fehlerbehebung
 - [KALENDER.md](KALENDER.md) – Kalender (12 Designs): mehrere Kalender-Abos, Links finden, Zeitraum und Anzahl, Position, Sicherheit, Fehlerbehebung
 - [UHR.md](UHR.md) – Uhr (16 Designs): Uhrzeit/Datum, Position und Größe, Aussehen, Rückkehr zur alten Uhr, Fehlerbehebung
@@ -25,6 +26,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 | MMM-FamilyPlan | [README](../modules/MMM-FamilyPlan/README.md) · [Anleitung](FAMILIENPLAN.md) |
 | MMM-Doorbell | [README](../modules/MMM-Doorbell/README.md) · [Anleitung](KLINGEL.md) |
 | MMM-LumiraWeather | [README](../modules/MMM-LumiraWeather/README.md) · [Anleitung](WETTER.md) |
+| MMM-LumiraTodo | [README](../modules/MMM-LumiraTodo/README.md) · [Anleitung](TODO.md) |
 | MMM-LumiraNews | [README](../modules/MMM-LumiraNews/README.md) · [Anleitung](NACHRICHTEN.md) |
 | MMM-LumiraCalendar | [README](../modules/MMM-LumiraCalendar/README.md) · [Anleitung](KALENDER.md) |
 | MMM-LumiraClock | [README](../modules/MMM-LumiraClock/README.md) · [Anleitung](UHR.md) |

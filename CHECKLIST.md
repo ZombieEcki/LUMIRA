@@ -352,7 +352,20 @@ um den aktuellen Stand zu sehen.
 - [x] Zeitraum frei in Stunden (1–720); ohne Zeitangabe oder > 1 h Zukunft: ausgeblendet
 - [x] Ausfall eines Feeds blockiert nichts (letzter Stand); bisheriger Feed einmalig übernommen
 - [ ] Auf dem Pi prüfen (Bilder in den Vorschauboxen, Last beim Wechsel)
-- [ ] Warnung beim Einschalten des zweiten Spezialmoduls („Extras“)
+
+### Extras: To-do-Liste (MMM-LumiraTodo) – neu, unabhängig vom Familienplan
+- [x] Listen (auf dem Bildschirm an/aus, umbenennen, sortieren, löschen mit Rückfrage),
+      Kategorien (Farbe, Symbol, ausblenden), Aufgaben mit Priorität, Fälligkeit, Uhrzeit,
+      Notiz, Unteraufgaben, Symbol, Wiederholung (täglich/Wochentage/wöchentlich/monatlich/jährlich)
+- [x] Abhaken im Portal und auf der Startseite; Wiederholung erzeugt die nächste Fälligkeit,
+      erledigte Instanz bleibt; wieder öffnen nimmt sie zurück
+- [x] 12 Designs (3 schlichte), Höchstzahl, Zeitraum, Erledigte (am Platz/unten/aus, Dauer),
+      Zähler, Fortschritt, Fällige hervorheben; frei platziert, nichts abgeschnitten
+- [x] todo.json atomar, Backups höchstens stündlich, kaputte Datei wird nie überschrieben
+- [x] Standard aus; Navigation: allein „To-do“, mit Familienplan „Extras“ (Warnung)
+- [ ] Auf dem Pi prüfen
+- [ ] Später: Export/Import, Abgleich mit Apple/Google/Microsoft
+- [x] Warnung beim Einschalten des zweiten Spezialmoduls („Extras“, mit To-do-Liste umgesetzt)
 
 ---
 

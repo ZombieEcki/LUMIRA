@@ -1,0 +1,105 @@
+/* MMM-LumiraTodo – die 12 Designs (auch im Portal als public/todo-view.css,
+ * der Test prüft Gleichheit). Alles in em; Klassisch, Kompakt und Minimal
+ * bleiben ohne Farben. Feste Schatten, keine Animationen. */
+
+.lt-todo {
+	--lt-bg: rgba(14, 16, 22, 0.35);
+	--lt-line: 1px;
+	--lt-gap: 0.375em;
+	--lt-pad: 16px;
+	--lt-dim: rgba(255, 255, 255, 0.6);
+	--lt-rule: rgba(255, 255, 255, 0.14);
+	--lt-accent: #3d9cff;
+	box-sizing: border-box;
+	color: #fff;
+	font-family: "Roboto", "Manrope", "Segoe UI", system-ui, sans-serif;
+	line-height: 1.25;
+	overflow: hidden;
+	text-align: left;
+}
+.lt-todo *, .lt-todo *::before, .lt-todo *::after { box-sizing: border-box; }
+.lt-inner { display: flex; flex-direction: column; gap: 0.7em; padding: var(--lt-pad); }
+.lt-glassy .lt-inner { background: var(--lt-bg); border-radius: 1.1em; border: 1px solid rgba(255, 255, 255, 0.1); }
+.lt-todo[data-align="right"] .lt-inner { margin-left: auto; }
+
+/* ------------------------------------------------------------ Bausteine */
+.lt-group { display: flex; flex-direction: column; gap: 0.5em; }
+.lt-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1em; }
+.lt-head-t { font-size: 1.4em; font-weight: 700; }
+.lt-head-r { color: var(--lt-dim); white-space: nowrap; }
+.lt-list { display: flex; flex-direction: column; gap: var(--lt-gap); }
+.lt-item { display: flex; align-items: center; gap: 0.7em; min-width: 0; font-size: 1.08em; }
+.lt-item.is-done .lt-title { text-decoration: line-through; color: rgba(255, 255, 255, 0.5); }
+.lt-item.is-overdue .lt-due { color: #ff6b6b; font-weight: 600; }
+.lt-item.is-today .lt-due { color: #ffcf6e; }
+.lt-body { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.lt-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.lt-due { color: var(--lt-dim); font-size: 0.78em; white-space: nowrap; }
+.lt-time { flex: none; min-width: 3.2em; color: var(--lt-dim); }
+.lt-more, .lt-empty { color: var(--lt-dim); font-size: 0.9em; }
+
+.lt-box { flex: none; width: 1.15em; height: 1.15em; border: 2px solid rgba(255, 255, 255, 0.85); border-radius: 0.2em; display: inline-flex; align-items: center; justify-content: center; font-size: 0.95em; }
+.lt-box.lt-round { border-radius: 50%; }
+.lt-box.is-on { background: #fff; color: #10131a; border-color: #fff; }
+.lt-box i { font-size: 0.75em; }
+.lt-ic { flex: none; width: 1.3em; text-align: center; }
+.lt-dot { flex: none; width: 1.05em; height: 1.05em; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.lt-dot i { font-size: 0.6em; color: #10131a; }
+.lt-prio { font-weight: 800; margin-right: 0.35em; letter-spacing: -0.05em; }
+.lt-prio-urgent { color: #ff4d4f; }
+.lt-prio-high { color: #ff8a3d; }
+.lt-prio-low { color: var(--lt-dim); }
+.lt-prio-normal { color: var(--lt-dim); font-weight: 400; }
+.lt-plain .lt-prio { color: #fff; }
+.lt-subn { flex: none; color: var(--lt-dim); font-size: 0.85em; }
+
+/* ------------------------------------------------------------ Designs */
+/* 3 Kompakt */
+.lt-d-compact .lt-inner { gap: 0.4em; }
+.lt-d-compact .lt-item { font-size: 0.98em; }
+.lt-d-compact .lt-head-t { font-size: 1.2em; }
+
+/* 4 Mit Kategorien */
+.lt-cats { display: flex; flex-direction: column; gap: 0.35em; }
+.lt-cat { padding: 0.35em 0.6em; border-radius: 0.45em; border: 1px solid; font-weight: 500; }
+.lt-cat i { width: 1.3em; text-align: center; }
+.lt-badge { margin-left: auto; min-width: 1.6em; padding: 0 0.4em; text-align: center; border-radius: 0.35em; background: rgba(255, 255, 255, 0.2); font-size: 0.9em; }
+
+/* 5 Mit Fortschritt */
+.lt-bar { height: 0.45em; border-radius: 9px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.lt-bar span { display: block; height: 100%; border-radius: 9px; background: #2ecc71; }
+
+/* 6 Heute */
+.lt-d-today .lt-head-r { font-size: 0.9em; }
+
+/* 7 Minimal */
+.lt-d-minimal .lt-head-t { font-weight: 400; }
+.lt-d-minimal .lt-item { font-weight: 300; }
+
+/* 8 Elegant mit Rahmen (Leuchtrand, Stärke = Linienstärke, Farbe = Akzent) */
+.lt-d-frame .lt-inner { border: max(1px, var(--lt-line)) solid var(--lt-accent); box-shadow: 0 0 1.1em -0.3em var(--lt-accent), inset 0 0 0.8em -0.5em var(--lt-accent); border-radius: 1.1em; }
+
+/* 9 Kacheln */
+.lt-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55em; }
+.lt-tile { flex-direction: column; justify-content: center; gap: 0.2em; padding: 0.7em 0.4em; border-radius: 0.7em; border: 1px solid; text-align: center; }
+.lt-tile-ic { font-size: 1.8em; }
+.lt-tile-n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.lt-tile-c { color: var(--lt-dim); font-size: 0.9em; }
+
+/* 10 Prioritäten */
+.lt-d-priority .lt-prio { min-width: 1.8em; text-align: center; margin-right: 0; }
+
+/* 11 Notiz / Unteraufgaben */
+.lt-sub { padding-left: 1.6em; font-size: 0.95em; }
+.lt-note { margin-left: 1.6em; padding: 0.35em 0.6em; border-radius: 0.45em; background: rgba(255, 255, 255, 0.07); color: rgba(255, 255, 255, 0.78); font-size: 0.85em; }
+.lt-note .lt-title { white-space: normal; }
+
+/* 12 Wochenübersicht */
+.lt-week { display: flex; flex-direction: column; }
+.lt-wrow { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 0.6em; align-items: center; padding: 0.3em 0.35em; border-bottom: var(--lt-line) solid var(--lt-rule); }
+.lt-wrow.is-now { background: rgba(255, 255, 255, 0.09); border-radius: 0.4em; }
+.lt-wd { color: var(--lt-dim); }
+.lt-wcell { display: flex; flex-direction: column; gap: 0.15em; min-width: 0; }
+.lt-wt { display: flex; align-items: center; gap: 0.5em; min-width: 0; }
+.lt-wt.is-done .lt-title { text-decoration: line-through; color: rgba(255, 255, 255, 0.5); }
+.lt-wnone, .lt-wc { color: var(--lt-dim); font-size: 0.9em; }

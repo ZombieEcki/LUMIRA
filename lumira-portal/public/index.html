@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="clock-view.css">
 <link rel="stylesheet" href="calendar-view.css">
 <link rel="stylesheet" href="news-view.css">
+<link rel="stylesheet" href="todo-view.css">
 <link rel="stylesheet" href="spruch/spruch-view.css">
 <!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
 <link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
@@ -34,6 +35,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9.5V21h14V9.5M10 21v-6h4v6"/></symbol>
   <symbol id="i-users" viewBox="0 0 24 24"><path d="M9 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6 6 0 0 1 3.5 5.8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 6.5l2 2 3.5-3.5M4 13.5l2 2 3.5-3.5M13 7h7M13 14h7M4 20h16"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></symbol>
   <symbol id="i-monitor" viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 21h8M12 17v4"/></symbol>
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3-1-3 0-6 1-8.5z"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
@@ -277,6 +280,12 @@
             <section class="card start-fp" id="start-fp" data-need="hasFamily">
               <div class="card-head"><h2>Familienplan</h2><span class="card-meta" id="start-fp-week"></span><a href="#familienplan" class="more-link">Öffnen →</a></div>
               <div id="start-fp-rows"><p class="save-hint">Lädt …</p></div>
+            </section>
+            <!-- To-do: offene Aufgaben schnell abhaken (todo.js) -->
+            <section class="card start-todo" id="start-todo" hidden>
+              <div class="card-head"><h2>To-do</h2><span class="card-meta" id="start-todo-count"></span><a href="#todo" class="more-link">Alle →</a></div>
+              <div id="start-todo-rows"></div>
+              <form class="lt-quick" id="start-todo-add"><input type="text" maxlength="200" placeholder="+ Aufgabe" aria-label="Neue Aufgabe"><button type="submit" class="btn small">Hinzufügen</button></form>
             </section>
       </section>
 
@@ -704,6 +713,104 @@
           </div>
           <p class="save-hint">Das Video wird ohne Umrechnen direkt weitergereicht – so schafft es auch ein Raspberry Pi 3. Es kommt etwa
             2–4 Sekunden verzögert an. Ohne Video (Fehler, Ende-zu-Ende-Verschlüsselung in der Ring-App) zeigt der Bildschirm das letzte Bild der Klingel.</p>
+        </div>
+        </div>
+      </section>
+
+      <!-- To-do (todo.js, MMM-LumiraTodo, todo-view.js): Listen, Kategorien, Aufgaben.
+           Wirkt live über todo.json, nur Ein/Aus startet MagicMirror neu. -->
+      <section class="page cols" data-page="todo">
+        <div class="stack">
+        <div class="card" id="lt-main">
+          <h2>To-do-Liste</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Bildschirm zeigen<small id="lt-on-sub"></small></span>
+            <button class="sw" id="lt-on" role="switch" aria-label="To-do-Liste auf dem Bildschirm"></button>
+          </div>
+          <p class="save-hint">Abhaken und Pflegen geht nur hier – der Bildschirm zeigt nur an. Ein- und Ausschalten startet MagicMirror einmal neu.</p>
+        </div>
+
+        <div class="card">
+          <h2>Aufgaben</h2>
+          <div class="seg wide lt-tabs" id="lt-tabs" role="tablist" aria-label="Liste"></div>
+          <form class="lt-quick" id="lt-quick"><input type="text" id="lt-quick-in" maxlength="200" placeholder="Neue Aufgabe – Enter zum Hinzufügen" aria-label="Neue Aufgabe"><button type="submit" class="btn small">Hinzufügen</button></form>
+          <div class="lt-tasks" id="lt-tasks"></div>
+          <div class="lk-editor" id="lt-editor" hidden></div>
+          <details class="lt-donebox" id="lt-donebox"><summary id="lt-done-sum">Erledigt</summary><div class="lt-tasks" id="lt-done"></div>
+            <button type="button" class="btn small lk-del" id="lt-clear">Erledigte dieser Liste löschen</button></details>
+        </div>
+
+        <div class="card">
+          <h2>Listen</h2>
+          <p class="sub">„Auf dem Bildschirm“ wählt, welche Listen der Bildschirm zeigt.</p>
+          <div class="lk-sources" id="lt-lists"></div>
+          <form class="lt-quick" id="lt-list-add"><input type="text" maxlength="40" placeholder="Neue Liste, z. B. Einkaufen" aria-label="Neue Liste"><button type="submit" class="btn small">Anlegen</button></form>
+        </div>
+
+        <div class="card">
+          <h2>Kategorien</h2>
+          <p class="sub">Freiwillig – nicht jede Aufgabe braucht eine. Ausgeblendete Kategorien erscheinen auf dem Bildschirm ohne Farbe und Symbol.</p>
+          <div class="lk-sources" id="lt-cats"></div>
+          <form class="lt-quick" id="lt-cat-add"><input type="text" maxlength="40" placeholder="Neue Kategorie" aria-label="Neue Kategorie"><button type="submit" class="btn small">Anlegen</button></form>
+        </div>
+
+        <div class="card">
+          <h2>Design</h2>
+          <p class="sub">Mit euren echten Aufgaben. Klassisch, Kompakt und Minimal bleiben bewusst schlicht.</p>
+          <div class="wd-designs" id="lt-designs" role="radiogroup" aria-label="Design der To-do-Liste"></div>
+        </div>
+
+        <div class="card lt-pagebox">
+          <h2>Anzeige</h2>
+          <div class="grid2">
+            <div class="field"><label for="lt-max">Höchstens angezeigt</label>
+              <select id="lt-max" data-k="max"><option value="3">3 Aufgaben</option><option value="5">5 Aufgaben</option><option value="6">6 Aufgaben</option><option value="8">8 Aufgaben</option>
+                <option value="10">10 Aufgaben</option><option value="15">15 Aufgaben</option><option value="20">20 Aufgaben</option><option value="30">30 Aufgaben</option></select></div>
+            <div class="field"><label for="lt-range">Fällige zeigen</label>
+              <select id="lt-range" data-k="range"><option value="0">alle, egal wann fällig</option><option value="1">bis morgen</option><option value="7">nächste 7 Tage</option><option value="14">nächste 14 Tage</option><option value="31">nächster Monat</option></select></div>
+            <div class="field"><label for="lt-donemode">Erledigte</label>
+              <select id="lt-donemode" data-k="done"><option value="strike">durchgestrichen an ihrem Platz</option><option value="below">durchgestrichen unter den offenen</option><option value="hide">ausblenden</option></select></div>
+            <div class="field"><label for="lt-donehours">Erledigte zeigen für</label>
+              <select id="lt-donehours" data-k="doneHours"><option value="1">1 Stunde</option><option value="6">6 Stunden</option><option value="24">24 Stunden</option><option value="72">3 Tage</option><option value="168">1 Woche</option><option value="0">immer</option></select></div>
+            <div class="field"><label for="lt-title">Überschrift<span class="opt"> (leer = Name der Liste)</span></label>
+              <input type="text" id="lt-title" data-k="title" maxlength="40" placeholder="z. B. Meine To-do-Liste"></div>
+          </div>
+          <p class="save-hint">Aufgaben ohne Fälligkeit stehen immer da. Die Höchstzahl gilt getrennt vom Zeitraum; was fehlt, zählt „+ X weitere“.</p>
+          <div class="toggle"><span class="tl2">„+ X weitere“ zeigen</span><button class="sw" data-k="more" role="switch" aria-label="weitere zeigen"></button></div>
+          <div class="toggle"><span class="tl2">Zähler „3 / 6“</span><button class="sw" data-k="count" role="switch" aria-label="Zähler"></button></div>
+          <div class="toggle"><span class="tl2">Fortschrittsbalken<small>im Design „Mit Fortschritt“</small></span><button class="sw" data-k="progress" role="switch" aria-label="Fortschrittsbalken"></button></div>
+          <div class="toggle"><span class="tl2">Symbole</span><button class="sw" data-k="icons" role="switch" aria-label="Symbole"></button></div>
+          <div class="toggle"><span class="tl2">Fällige hervorheben<small>heute gelb, überfällig rot</small></span><button class="sw" data-k="highlightDue" role="switch" aria-label="Fällige hervorheben"></button></div>
+        </div>
+
+        <div class="card lt-pagebox">
+          <h2>Position &amp; Größe</h2>
+          <div id="lt-layout"></div>
+        </div>
+
+        <div class="card lt-pagebox">
+          <h2>Aussehen</h2>
+          <div class="toggle"><span class="tl2">Dunkle Glasfläche</span><button class="sw" data-k="glass" role="switch" aria-label="Dunkle Glasfläche"></button></div>
+          <div class="grid2">
+            <div class="field"><label for="lt-opacity">Deckkraft der Fläche <span id="lt-opacity-val"></span></label>
+              <input type="range" class="db-range" id="lt-opacity" data-k="opacity" min="0" max="100" step="5"></div>
+            <div class="field"><label for="lt-line">Linien / Rahmen</label>
+              <select id="lt-line" data-k="line"><option value="0">keine</option><option value="1">1 px</option><option value="2">2 px</option><option value="3">3 px</option><option value="4">4 px</option></select></div>
+            <div class="field"><label for="lt-accent">Rahmenfarbe<span class="opt"> („Elegant mit Rahmen“)</span></label>
+              <div class="lc-accent-row"><input type="color" id="lt-accent" aria-label="Rahmenfarbe"><button type="button" class="btn small" id="lt-accent-reset">Standard</button></div></div>
+          </div>
+        </div>
+        </div>
+
+        <div class="stack">
+        <div class="card">
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="lt-shot-reload">Live-Bild neu laden</button></div>
+          <p class="sub">Das gewählte Design in echter Größe (verkleinert, falls breiter als hier).</p>
+          <div class="wd-stage" id="lt-stage"><div class="wd-stage-in" id="lt-preview"></div></div>
+          <p class="save-hint" id="lt-fit" hidden></p>
+          <p class="sub">Live-Bild vom Bildschirm.</p>
+          <div class="wx-shot" id="lt-shot"><img id="lt-shot-img" alt="Live-Bild des Bildschirms"><p class="mp-note" id="lt-shot-note">Live-Bild wird geladen …</p></div>
+          <div id="lt-report"></div>
         </div>
         </div>
       </section>
@@ -1366,6 +1473,8 @@
 <script src="calendar.js"></script>
 <script src="news-view.js"></script>
 <script src="news.js"></script>
+<script src="todo-view.js"></script>
+<script src="todo.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

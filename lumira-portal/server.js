@@ -34,6 +34,7 @@ const weatherLib = require("./lib/weather");
 const clockLib = require("./lib/clock");
 const calendarLib = require("./lib/calendar");
 const newsLib = require("./lib/news");
+const todoLib = require("./lib/todo");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -1114,6 +1115,41 @@ app.post("/api/news/sources", requireAuth, (req, res) => newsAction(res, () => n
 app.put("/api/news/order", requireAuth, (req, res) => newsAction(res, () => news.orderSources(req.body && req.body.ids)));
 app.put("/api/news/sources/:id", requireAuth, (req, res) => newsAction(res, () => news.updateSource(String(req.params.id), req.body || {})));
 app.delete("/api/news/sources/:id", requireAuth, (req, res) => newsAction(res, () => news.removeSource(String(req.params.id))));
+
+// ---------------------------------------------------------------------------
+// To-do-Liste (Extras → To-do), siehe lib/todo.js und modules/MMM-LumiraTodo.
+// Wirkt live über todo.json; ein/aus bleibt settings.modules.todo.
+// ---------------------------------------------------------------------------
+const todo = todoLib.createTodo({ home: settingsLib.LUMIRA_HOME });
+
+function todoAction(res, fn) {
+	try {
+		res.json(fn());
+	} catch (err) {
+		if (err instanceof todoLib.TodoError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] To-do:", err && err.message);
+		res.status(500).json({ error: "Interner Fehler" });
+	}
+}
+const todoId = (req) => String(req.params.id);
+const todoBody = (req) => req.body || {};
+
+app.get("/api/todo", requireAuth, (req, res) => todoAction(res, () => todo.view()));
+app.put("/api/todo/display", requireAuth, (req, res) => todoAction(res, () => todo.setDisplay(todoBody(req))));
+app.post("/api/todo/tasks", requireAuth, (req, res) => todoAction(res, () => todo.addTask(todoBody(req))));
+app.put("/api/todo/tasks/order", requireAuth, (req, res) => todoAction(res, () => todo.orderTasks(todoBody(req).ids)));
+app.put("/api/todo/tasks/:id", requireAuth, (req, res) => todoAction(res, () => todo.updateTask(todoId(req), todoBody(req))));
+app.post("/api/todo/tasks/:id/toggle", requireAuth, (req, res) => todoAction(res, () => todo.toggleTask(todoId(req), todoBody(req).done)));
+app.post("/api/todo/tasks/:id/sub/:sub", requireAuth, (req, res) => todoAction(res, () => todo.toggleSub(todoId(req), String(req.params.sub))));
+app.delete("/api/todo/tasks/:id", requireAuth, (req, res) => todoAction(res, () => todo.removeTask(todoId(req))));
+app.post("/api/todo/clear-done", requireAuth, (req, res) => todoAction(res, () => todo.clearDone(todoBody(req).list || "")));
+app.post("/api/todo/lists", requireAuth, (req, res) => todoAction(res, () => todo.addList(todoBody(req))));
+app.put("/api/todo/lists/order", requireAuth, (req, res) => todoAction(res, () => todo.orderLists(todoBody(req).ids)));
+app.put("/api/todo/lists/:id", requireAuth, (req, res) => todoAction(res, () => todo.updateList(todoId(req), todoBody(req))));
+app.delete("/api/todo/lists/:id", requireAuth, (req, res) => todoAction(res, () => todo.removeList(todoId(req))));
+app.post("/api/todo/categories", requireAuth, (req, res) => todoAction(res, () => todo.addCategory(todoBody(req))));
+app.put("/api/todo/categories/:id", requireAuth, (req, res) => todoAction(res, () => todo.updateCategory(todoId(req), todoBody(req))));
+app.delete("/api/todo/categories/:id", requireAuth, (req, res) => todoAction(res, () => todo.removeCategory(todoId(req))));
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 

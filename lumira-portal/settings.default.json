@@ -37,7 +37,8 @@
     "compliments": true,
     "alarm": true,
     "statusHint": true,
-    "doorbell": false
+    "doorbell": false,
+    "todo": false
   },
   "rainRadar": {
     "enabled": true

@@ -217,6 +217,7 @@
     f3.appendChild(el("p", "save-hint", "Schrift, Bilder und Breite wachsen gleichmäßig mit."));
     g.appendChild(f1); g.appendChild(f2); g.appendChild(f3); mirror.appendChild(g);
     mirror.appendChild(saveRow("Speichern", function (btn, hint) {
+      if (enabled && !(ctx.getSettings().familyPlan || {}).enabled && ctx.confirmExtras && !ctx.confirmExtras()) return;
       btn.disabled = true; hint.textContent = "Speichere …";
       ctx.api("/api/settings", { method: "POST", body: { familyPlan: { enabled: enabled, layout: sel.value, maxWidth: inp.value.trim(), scale: Number(sc.value) } } })
         .then(function (settings) { ctx.setSettings(settings); btn.disabled = false; hint.textContent = "Gespeichert – MagicMirror startet neu."; ctx.toast("Gespeichert"); })

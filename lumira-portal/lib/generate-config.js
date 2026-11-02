@@ -158,6 +158,12 @@ function buildModules(settings) {
 	// zeigt nur etwas, wenn im Portal eingeschaltet. Steuerung live über weather.json.
 	modules.push({ module: "MMM-LumiraWeather" });
 
+	// To-do-Liste (Extras → To-do): nur, wenn eingeschaltet (Standard aus).
+	// Frei platzierte Kachel, Inhalte und Darstellung live aus todo.json.
+	if (settings.modules && settings.modules.todo === true) {
+		modules.push({ module: "MMM-LumiraTodo" });
+	}
+
 	// Türklingel (Bildschirm → Türklingel): nur, wenn eingeschaltet (Standard aus).
 	// Meldung/Video in der Mitte, Steuerung live über doorbell.json.
 	if (settings.modules && settings.modules.doorbell === true) {

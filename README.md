@@ -65,6 +65,7 @@ keine Terminal-Eingabe mehr nötig.
 |-------|---------|-----|
 | `alert` | Standard-Meldungen | Standard |
 | `updatenotification` | zeigt verfügbare Updates | Standard |
+| **`MMM-LumiraTodo`** | To-do-Liste in 12 Designs: Listen, Kategorien, Prioritäten, Wiederholung, Unteraufgaben, im Portal unter Extras → To-do (Standard aus) | **Eigen** |
 | **`MMM-LumiraNews`** | Nachrichten aus mehreren RSS-/Atom-Feeds ganz unten: kompakte Leiste oder Vorschauboxen, im Portal unter Bildschirm → Nachrichten | **Eigen** |
 | **`MMM-LumiraCalendar`** | Kalender in 12 Designs aus beliebig vielen Abos (iCloud, Google, Outlook …), Farbe/Symbol je Kalender, im Portal unter Bildschirm → Kalender | **Eigen** |
 | **`MMM-LumiraClock`** | Uhr in 16 Designs (digital und analog), frei platzierbar, im Portal unter Bildschirm → Uhr | **Eigen** |

@@ -181,6 +181,7 @@
           datePicker: datePicker,
           getSettings: function () { return SETTINGS; },
           setSettings: function (s) { SETTINGS = s; applyModuleState(true); },
+          confirmExtras: function () { return confirmExtras(Object.assign({}, SETTINGS, { familyPlan: Object.assign({}, SETTINGS.familyPlan, { enabled: true }) })); },
           onPlanChange: function (plan) { setFamilyMembers(plan.members || []); renderStartFamily(plan); renderMemberChip(plan.members || []); }
         });
       }
@@ -249,6 +250,23 @@
           // Schalter „Nachrichten“: wie Bildschirm → Übersicht (MagicMirror startet neu)
           setModule: function (on) {
             var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { news: !!on });
+            return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
+              SETTINGS = settings;
+              applyModuleState();
+            });
+          }
+        });
+      }
+      if (window.LumiraTodo) {
+        window.LumiraTodo.init({
+          toast: toast,
+          getSettings: function () { return SETTINGS; },
+          currentPage: function () { return currentPage; },
+          onChange: function (d) { TODO = d; renderModulePreview(); },
+          // Schalter „To-do-Liste“: wie Bildschirm → Übersicht (MagicMirror startet neu)
+          setModule: function (on) {
+            var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { todo: !!on });
+            if (on && !confirmExtras(Object.assign({}, SETTINGS, { modules: mods }))) return false;
             return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
               SETTINGS = settings;
               applyModuleState();
@@ -749,7 +767,7 @@
     { id: "bildschirm", label: "Bildschirm", icon: "monitor", pages: [["module", "Übersicht"], ["uhr", "Uhr", null, "clock"], ["wetter", "Wetter"],
       ["spruche", "Sprüche", "hasFamily", "compliments"], ["kalender", "Kalender", "hasCal", "calendar"], ["news", "Nachrichten", null, "news"],
       ["bildschirm", "Dauerschleife"], ["klingel", "Türklingel", null, "doorbell"]] },
-    { id: "extras", label: "Extras", icon: "users", special: true, pages: [["familienplan", "Familienplan", "hasFamily", "familyPlan"]] },
+    { id: "extras", label: "Extras", icon: "grid", special: true, pages: [["familienplan", "Familienplan", "hasFamily", "familyPlan"], ["todo", "To-do", null, "todo"]] },
     { id: "alarm", label: "Alarm", icon: "flame", need: "hasAlarm", pages: [["alarm", "Alarm", null, "alarm"]] },
     { id: "einstellungen", label: "Einstellungen", icon: "gear", pages: [["standort", "Ort"], ["wlan", "WLAN"], ["sicherheit", "Sicherheit & Geräte"],
       ["info", "Updates & System"], ["app", "Als App"]] },
@@ -772,10 +790,25 @@
   }
 
   // … und was davon in der Navigation steht (ohne ausgeschaltete Module)
+  var SPECIAL_ICON = { familienplan: "users", todo: "check" };
+
+  // Wie viele Spezialmodule (Extras) an sind – ab zweien heißt der Bereich „Extras“
+  function specialCount(s) {
+    if (!s) return 0;
+    var fp = STATUS.edition.flags.hasFamily && !!(s.familyPlan && s.familyPlan.enabled);
+    return (fp ? 1 : 0) + (s.modules && s.modules.todo === true ? 1 : 0);
+  }
+  // Vor dem Einschalten des zweiten Spezialmoduls kurz warnen (Navigation ändert sich)
+  function confirmExtras(after) {
+    if (specialCount(SETTINGS) >= 2 || specialCount(after) < 2) return true;
+    return confirm("Damit sind zwei Spezialmodule an (Familienplan und To-do-Liste).\n\nIn der Navigation steht dann statt „Familienplan“ der Bereich „Extras“ mit beiden Modulen als Reiter. Einschalten?");
+  }
+
   function navAreas() {
     return editionAreas().filter(function (a) { return !a.menu; }).map(function (a) {
       var pages = a.pages.filter(pageOn);
-      return Object.assign({}, a, { label: a.special && pages.length === 1 ? pages[0][1] : a.label, pages: pages });
+      var single = a.special && pages.length === 1;
+      return Object.assign({}, a, { label: single ? pages[0][1] : a.label, icon: single ? SPECIAL_ICON[pages[0][0]] || a.icon : a.icon, pages: pages });
     }).filter(function (a) { return a.pages.length; });
   }
 
@@ -804,6 +837,7 @@
     if (name === "uhr" && window.LumiraClock) window.LumiraClock.show();
     if (name === "kalender" && window.LumiraCalendar) window.LumiraCalendar.show();
     if (name === "news" && window.LumiraNews) window.LumiraNews.show();
+    if (name === "todo" && window.LumiraTodo) window.LumiraTodo.show();
     if (name === "spruche" && window.LumiraSpruche) window.LumiraSpruche.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
@@ -991,9 +1025,11 @@
 
   function save(section, btn) {
     var hint = $('[data-savehint="' + section + '"]');
+    var body = patchFor(section);
+    if (section === "module" && !confirmExtras(Object.assign({}, SETTINGS, body))) return;
     btn.disabled = true;
     if (hint) hint.textContent = "Speichere …";
-    api("/api/settings", { method: "POST", body: patchFor(section) }).then(function (settings) {
+    api("/api/settings", { method: "POST", body: body }).then(function (settings) {
       SETTINGS = settings;
       btn.disabled = false;
       applyModuleState();
@@ -1041,6 +1077,7 @@
   var MODULE_LIST = [
     { key: "clock", label: "Uhr", desc: "16 Designs, frei platzierbar", page: "uhr" },
     { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste", page: "familienplan" },
+    { key: "todo", label: "To-do-Liste", desc: "Aufgaben und Listen, 12 Designs", page: "todo" },
     { key: "compliments", need: "hasFamily", label: "Sprüche", desc: "Sprüche, Geburtstage, Hinweise", page: "spruche" },
     { key: "calendar", need: "hasCal", label: "Kalender", desc: "eure Kalender-Abos, 12 Designs", page: "kalender" },
     { key: "news", label: "Nachrichten", desc: "Feeds ganz unten, Leiste oder Karten", page: "news" },
@@ -1053,6 +1090,7 @@
   // Wetter: welche Teile sind auf dem Bildschirm?
   var CLK = null; // Uhr (GET /api/clock) für die Aufbau-Ansicht
   var CAL = null; // Kalender (GET /api/calendar), ebenso
+  var TODO = null; // To-do (GET /api/todo), ebenso
   function weatherParts() {
     if (!WX) return null;
     var parts = [];
@@ -1140,6 +1178,7 @@
     if (window.LumiraClock) window.LumiraClock.refresh();
     if (window.LumiraCalendar) window.LumiraCalendar.refresh();
     if (window.LumiraNews) window.LumiraNews.refresh();
+    if (window.LumiraTodo) window.LumiraTodo.refresh();
   }
 
   // ---------------------------------------------------------------------
@@ -1312,6 +1351,8 @@
     var clockOn = mod("clock");
     if (clockOn) cells[previewRegion(CLK && CLK.anchor)].push("Uhr");
     if (fpOn) cells.top_left.push("Familienplan");
+    var todoOn = mod("todo");
+    if (todoOn) cells[previewRegion(TODO && TODO.display ? TODO.display.anchor : "middle_right")].push("To-do");
     var compOn = flags.hasFamily && mod("compliments");
     if (compOn) cells.top_center.push("Sprüche");
     var right = weatherParts() || [];
@@ -1327,7 +1368,7 @@
     var overlay = $("#mp-overlay");
     overlay.textContent = "Alarmierung – Vollbild bei Alarm";
     overlay.hidden = !alarmEnabled();
-    var visible = left.length + right.length + (compOn ? 1 : 0) + (calOn ? 1 : 0) + (newsOn ? 1 : 0) + (mod("statusHint") ? 1 : 0);
+    var visible = (todoOn ? 1 : 0) + left.length + right.length + (compOn ? 1 : 0) + (calOn ? 1 : 0) + (newsOn ? 1 : 0) + (mod("statusHint") ? 1 : 0);
     $("#mirror-sub").textContent = visible + " Module sichtbar";
   }
   function previewRegion(anchor) {
