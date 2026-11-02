@@ -792,6 +792,11 @@
   // … und was davon in der Navigation steht (ohne ausgeschaltete Module)
   var SPECIAL_ICON = { familienplan: "users", todo: "check" };
 
+  // Hauptmodul der Extras (öffnet beim Tippen, gibt das Symbol) – je Browser,
+  // damit dafür nicht MagicMirror neu starten muss
+  function extrasMain() { try { return localStorage.getItem("lumira-extras-main") || ""; } catch (e) { return ""; } }
+  function setExtrasMain(page) { try { localStorage.setItem("lumira-extras-main", page); } catch (e) {} }
+
   // Wie viele Spezialmodule (Extras) an sind – ab zweien heißt der Bereich „Extras“
   function specialCount(s) {
     if (!s) return 0;
@@ -808,7 +813,12 @@
     return editionAreas().filter(function (a) { return !a.menu; }).map(function (a) {
       var pages = a.pages.filter(pageOn);
       var single = a.special && pages.length === 1;
-      return Object.assign({}, a, { label: single ? pages[0][1] : a.label, icon: single ? SPECIAL_ICON[pages[0][0]] || a.icon : a.icon, pages: pages });
+      // Extras mit mehreren Modulen: das gewählte Hauptmodul zuerst, mit seinem Symbol
+      var main = a.special && !single ? extrasMain() : "";
+      if (main && pages.some(function (p) { return p[0] === main; })) {
+        pages = pages.filter(function (p) { return p[0] === main; }).concat(pages.filter(function (p) { return p[0] !== main; }));
+      } else main = "";
+      return Object.assign({}, a, { label: single ? pages[0][1] : a.label, icon: single || main ? SPECIAL_ICON[pages[0][0]] || a.icon : a.icon, pages: pages });
     }).filter(function (a) { return a.pages.length; });
   }
 
@@ -857,6 +867,9 @@
   function renderTabs(name, area) {
     var nav = navAreas().filter(function (a) { return a.id === area.id; })[0];
     var tabs = area.pages.filter(function (p) { return p[0] === name || (nav && nav.pages.some(function (q) { return q[0] === p[0]; })); });
+    // Reihenfolge wie in der Navigation (Extras: Hauptmodul vorn)
+    var at = function (p) { var i = nav ? nav.pages.map(function (q) { return q[0]; }).indexOf(p[0]) : -1; return i === -1 ? 99 : i; };
+    tabs.sort(function (x, y) { return at(x) - at(y); });
     var sub = $("#subnav");
     sub.innerHTML = "";
     sub.hidden = tabs.length < 2;
@@ -869,6 +882,18 @@
       b.addEventListener("click", function () { goPage(p[0]); });
       sub.appendChild(b);
     });
+    // Extras: aktuelle Seite als Hauptmodul festlegen
+    if (area.special && tabs.length > 1) {
+      var isMain = nav && nav.icon !== area.icon && nav.pages[0][0] === name;
+      var star = document.createElement("button");
+      star.type = "button";
+      star.className = "subnav-star";
+      star.setAttribute("aria-pressed", isMain ? "true" : "false");
+      star.title = isMain ? "Öffnet beim Tippen auf Extras" : "Beim Tippen auf Extras diese Seite öffnen (und ihr Symbol zeigen)";
+      star.textContent = isMain ? "★ Hauptseite" : "☆ Als Hauptseite";
+      star.addEventListener("click", function () { setExtrasMain(isMain ? "" : name); renderNav(); renderTabs(name, area); });
+      sub.appendChild(star);
+    }
     // Kopfzeile
     if (name === "start") {
       renderGreeting();

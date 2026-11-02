@@ -846,6 +846,10 @@ body.crop-open { overflow:hidden; }
 .ln-stage { background:radial-gradient(120% 120% at 50% 0%, #2a3346 0%, #10141c 60%, #07090d 100%); }
 #ln-variant button[aria-checked="true"] { background:var(--inv); color:var(--inv-ink); }
 
+.subnav-star { border:0; background:transparent; color:var(--muted); font-size:.8rem; font-weight:700; padding:9px 12px; border-radius:999px; cursor:pointer; white-space:nowrap; }
+.subnav-star[aria-pressed="true"] { color:var(--accent); }
+.subnav-star:hover { color:var(--ink); }
+
 /* ---------- To-do (todo.js + todo-view.css; Listen/Kategorien wie die Kalenderquellen) ---------- */
 .page[data-page="todo"] > .stack { margin-bottom:16px; }
 .page[data-page="todo"] .lt-pagebox.is-off { opacity:.55; }
