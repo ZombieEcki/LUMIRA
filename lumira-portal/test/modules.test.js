@@ -22,11 +22,11 @@ test("Standard: alle Module an", () => {
 	const s = Object.assign(settingsLib.load(), { edition: "fire" });
 	s.calendar = { urls: ["https://example.com/cal.ics"] };
 	const n = names(buildModules(s));
-	for (const m of ["MMM-LumiraClock", "MMM-aPagerAlarm", "MMM-LumiraWeather", "MMM-LumiraCalendar", "newsfeed", "MMM-SmartCompliments"]) {
+	for (const m of ["MMM-LumiraClock", "MMM-aPagerAlarm", "MMM-LumiraWeather", "MMM-LumiraCalendar", "MMM-LumiraNews", "MMM-SmartCompliments"]) {
 		assert.ok(n.includes(m), m);
 	}
 	// durch eigene Module ersetzt (Portal-Neuordnung): nie mehr in der config.js
-	for (const m of ["clock", "calendar", "weather", "MMM-RainRadarDWD"]) assert.ok(!n.includes(m), m + " ist entfernt");
+	for (const m of ["clock", "calendar", "newsfeed", "weather", "MMM-RainRadarDWD"]) assert.ok(!n.includes(m), m + " ist entfernt");
 	assert.equal(buildModules(s).find((m) => m.module === "MMM-LumiraStatus").config.showStatusHint, true);
 });
 
@@ -36,7 +36,7 @@ test("Ausgeschaltet: Modul fehlt in config.js, Alarm-Bezüge verschwinden mit", 
 	assert.equal(saved.modules.calendar, true, "nicht genannte bleiben an");
 	const mods = buildModules(saved);
 	const n = names(mods);
-	for (const m of ["MMM-LumiraClock", "clock", "MMM-aPagerAlarm", "weather", "newsfeed", "MMM-SmartCompliments"]) {
+	for (const m of ["MMM-LumiraClock", "clock", "MMM-aPagerAlarm", "weather", "MMM-LumiraNews", "MMM-SmartCompliments"]) {
 		assert.ok(!n.includes(m), m + " ist aus");
 	}
 	assert.ok(n.includes("MMM-LumiraStatus"), "Status bleibt (Setup-QR, Live-Bild), nur der Hinweis ist aus");
@@ -91,5 +91,5 @@ test("eigene Module: Skript- und Style-Dateinamen sind über alle Module eindeut
 			});
 		});
 	});
-	assert.ok(seen["weather-view.css"] && seen["spruch-view.css"] && seen["clock-view.css"] && seen["calendar-view.css"]);
+	assert.ok(seen["weather-view.css"] && seen["spruch-view.css"] && seen["clock-view.css"] && seen["calendar-view.css"] && seen["news-view.css"]);
 });

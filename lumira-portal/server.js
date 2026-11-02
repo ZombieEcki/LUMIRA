@@ -33,6 +33,7 @@ const ringLib = require("./lib/ring");
 const weatherLib = require("./lib/weather");
 const clockLib = require("./lib/clock");
 const calendarLib = require("./lib/calendar");
+const newsLib = require("./lib/news");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -1090,6 +1091,30 @@ app.put("/api/calendar/order", requireAuth, (req, res) => calendarAction(res, ()
 app.put("/api/calendar/sources/:id", requireAuth, (req, res) => calendarAction(res, () => calendar.updateSource(String(req.params.id), req.body || {})));
 app.delete("/api/calendar/sources/:id", requireAuth, (req, res) => calendarAction(res, () => calendar.removeSource(String(req.params.id))));
 
+// ---------------------------------------------------------------------------
+// Nachrichten (Bildschirm → Nachrichten), siehe lib/news.js und
+// modules/MMM-LumiraNews. Wirkt live über news.json.
+// ---------------------------------------------------------------------------
+const news = newsLib.createNews({ home: settingsLib.LUMIRA_HOME });
+
+function newsAction(res, fn) {
+	Promise.resolve().then(fn).then((out) => res.json(out)).catch((err) => {
+		if (err instanceof newsLib.NewsError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] Nachrichten:", err && err.message);
+		res.status(500).json({ error: "Interner Fehler" });
+	});
+}
+
+app.get("/api/news", requireAuth, (req, res) => newsAction(res, () => news.view()));
+app.put("/api/news", requireAuth, (req, res) => newsAction(res, () => news.setConfig(req.body || {})));
+app.get("/api/news/items", requireAuth, (req, res) => newsAction(res, () => news.items()));
+app.post("/api/news/test", requireAuth, (req, res) => newsAction(res, () => news.test(req.body || {})));
+app.put("/api/news/presets/:id", requireAuth, (req, res) => newsAction(res, () => news.setPreset(String(req.params.id), !!(req.body && req.body.on))));
+app.post("/api/news/sources", requireAuth, (req, res) => newsAction(res, () => news.addSource(req.body || {})));
+app.put("/api/news/order", requireAuth, (req, res) => newsAction(res, () => news.orderSources(req.body && req.body.ids)));
+app.put("/api/news/sources/:id", requireAuth, (req, res) => newsAction(res, () => news.updateSource(String(req.params.id), req.body || {})));
+app.delete("/api/news/sources/:id", requireAuth, (req, res) => newsAction(res, () => news.removeSource(String(req.params.id))));
+
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
 // eslint-disable-next-line no-unused-vars
@@ -1123,6 +1148,10 @@ if (require.main === module) {
 		const st = settingsLib.load();
 		if (weather.migrateLegacy(st, { hasRain: getEdition(st.edition).hasRain })) console.log("[lumira-portal] Wetter: altes Wetter/Regenradar in MMM-LumiraWeather übernommen");
 	} catch (err) { console.error("[lumira-portal] Wetter-Übernahme:", err.message); }
+	// Altes Nachrichtenmodul ersetzt: bisherigen Feed einmalig übernehmen
+	try {
+		if (news.migrateLegacy(settingsLib.load())) console.log("[lumira-portal] Nachrichten: bisheriger Feed in MMM-LumiraNews übernommen");
+	} catch (err) { console.error("[lumira-portal] Nachrichten-Übernahme:", err.message); }
 	// Altes Kalendermodul ersetzt: bis zu 3 Links einmalig übernehmen
 	try {
 		const st = settingsLib.load();

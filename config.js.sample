@@ -98,28 +98,9 @@ let config = {
 		   Bildschirm → Wetter; ohne Datei gilt Berlin. --- */
 		{ module: "MMM-LumiraWeather" },
 
-		/* --- Nachrichten --- */
-		{
-			module: "newsfeed",
-			position: "bottom_bar",
-			config: {
-				feeds: [
-					{
-						title: "Tagesschau",
-						url: "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"
-					}
-				],
-				showSourceTitle: false,
-				showPublishDate: true,
-				reloadInterval: 300000,
-				updateInterval: 20000,
-				maxNewsItems: 10,
-				wrapTitle: true,
-				wrapDescription: false,
-				ignoreOldItems: true,
-				ignoreOlderThan: 86400000
-			}
-		}
+		/* --- Nachrichten (eigenes Modul, ganz unten; Feeds und Darstellung in
+		   ~/.lumira/news.json bzw. im Portal unter Bildschirm → Nachrichten) --- */
+		{ module: "MMM-LumiraNews", position: "bottom_bar" }
 	]
 };
 

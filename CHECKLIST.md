@@ -340,6 +340,18 @@ um den aktuellen Stand zu sehen.
 - [x] Alte Links (bis 3) einmalig übernommen; Sprüche bekommen weiter CALENDAR_EVENTS
 - [ ] Auf dem Pi mit echten iCloud-/Google-/Outlook-Kalendern prüfen
 - [ ] CalDAV mit App-Passwort (private iCloud-Kalender, Nextcloud, Radicale, Baïkal)
+
+### Bildschirm: Nachrichten (MMM-LumiraNews) – ersetzt „newsfeed“
+- [x] Zwei Varianten ganz unten: kompakte Leiste (wechselnde Schlagzeile) und Vorschauboxen
+      (2–6 Karten, Bild wenn vorhanden, Glasfläche), umschaltbar im Portal
+- [x] 16 geprüfte Feeds nach Region/Thema (Merkur Freising, Bayern, Deutschland, Welt, Sport,
+      Technik); BR24 und Allershausen-only ohne funktionierenden Feed
+- [x] Eigene Feeds: Name, Adresse, Kategorie, an/aus, bearbeiten, löschen; Test vor dem Speichern
+- [x] Eigener Leser (RSS 2.0, RDF, Atom), Titel als reiner Text, nur http(s); Doppelte raus,
+      neueste zuerst, Reihenfolge = Vorrang
+- [x] Zeitraum frei in Stunden (1–720); ohne Zeitangabe oder > 1 h Zukunft: ausgeblendet
+- [x] Ausfall eines Feeds blockiert nichts (letzter Stand); bisheriger Feed einmalig übernommen
+- [ ] Auf dem Pi prüfen (Bilder in den Vorschauboxen, Last beim Wechsel)
 - [ ] Warnung beim Einschalten des zweiten Spezialmoduls („Extras“)
 
 ---

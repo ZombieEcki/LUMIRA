@@ -838,6 +838,14 @@ body.crop-open { overflow:hidden; }
 .lc-accent-row { display:flex; gap:10px; align-items:center; }
 .lc-accent-row input[type="color"] { width:52px; height:38px; padding:2px; border:1px solid var(--line-2); border-radius:10px; background:var(--field); cursor:pointer; }
 #lc-designs .wd-thumb { height:130px; }
+/* ---------- Nachrichten (news.js + news-view.css; Quellenliste wie beim Kalender) ---------- */
+.page[data-page="news"] > .stack { margin-bottom:16px; }
+.page[data-page="news"] .ln-box.is-off { opacity:.55; }
+.ln-sw { background:#ff8a3d; }
+.ln-pcat { margin:14px 0 2px; font-size:.78rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.ln-stage { background:radial-gradient(120% 120% at 50% 0%, #2a3346 0%, #10141c 60%, #07090d 100%); }
+#ln-variant button[aria-checked="true"] { background:var(--inv); color:var(--inv-ink); }
+
 /* ---------- Kalender (calendar.js + calendar-view.css) ---------- */
 .page[data-page="kalender"] > .stack { margin-bottom:16px; }
 .page[data-page="kalender"] .lk-box.is-off { opacity:.55; }

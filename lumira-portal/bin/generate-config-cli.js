@@ -39,6 +39,12 @@ function main() {
 	} catch (err) {
 		process.stderr.write(`[generate-config] Wetter-Übernahme: ${err.message}\n`);
 	}
+	// Altes Nachrichtenmodul ersetzt: bisherigen Feed einmalig übernehmen
+	try {
+		require("../lib/news").createNews({ home: settingsLib.LUMIRA_HOME }).migrateLegacy(settings);
+	} catch (err) {
+		process.stderr.write(`[generate-config] Nachrichten-Übernahme: ${err.message}\n`);
+	}
 	// Altes Kalendermodul ersetzt: bis zu 3 Links einmalig übernehmen
 	try {
 		const { getEdition } = require("../lib/editions");

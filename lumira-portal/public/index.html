@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="weather-view.css">
 <link rel="stylesheet" href="clock-view.css">
 <link rel="stylesheet" href="calendar-view.css">
+<link rel="stylesheet" href="news-view.css">
 <link rel="stylesheet" href="spruch/spruch-view.css">
 <!-- Font Awesome Free „Solid“, im Portal mitgeliefert (Dienst- und Anlass-Symbole), siehe vendor/fa/README.md -->
 <link rel="stylesheet" href="vendor/fa/css/fontawesome.min.css">
@@ -1069,20 +1070,78 @@
         </div>
       </section>
 
-      <!-- Nachrichten -->
-      <section class="page" data-page="news">
-        <p class="page-lead">Nachrichtenticker am unteren Bildschirmrand.</p>
-        <div class="card form-cols">
-          <div class="field first"><label for="news-select">Nachrichten-Feed</label>
-            <select id="news-select">
-              <option value="tagesschau">Tagesschau</option>
-              <option value="heise">heise online</option>
-              <option value="custom">Eigener RSS-Feed …</option>
-            </select></div>
-          <div class="field" id="news-custom-row" hidden><label for="news-url">Eigene RSS-URL</label>
-            <input type="url" class="mono-in" id="news-url"></div>
-          <div class="save-row"><button class="btn primary" data-save="news">Speichern</button>
-            <span class="save-hint" data-savehint="news"></span></div>
+      <!-- Nachrichten (news.js, MMM-LumiraNews, news-view.js): mehrere RSS-/Atom-Feeds,
+           ganz unten, kompakte Leiste oder Vorschaukarten. Wirkt live über news.json. -->
+      <section class="page cols" data-page="news">
+        <div class="stack">
+        <div class="card" id="ln-main">
+          <h2>Nachrichten</h2>
+          <div class="toggle">
+            <span class="tl2">Auf dem Bildschirm zeigen<small id="ln-on-sub"></small></span>
+            <button class="sw" id="ln-on" role="switch" aria-label="Nachrichten auf dem Bildschirm"></button>
+          </div>
+          <p class="save-hint">Immer ganz unten am Bildschirm. Ein- und Ausschalten startet MagicMirror einmal neu, alles andere wirkt nach wenigen Sekunden.</p>
+        </div>
+
+        <div class="card ln-box">
+          <h2>Darstellung</h2>
+          <div class="seg wide" role="radiogroup" aria-label="Variante" id="ln-variant">
+            <button type="button" role="radio" data-v="bar">Kompakte Leiste</button>
+            <button type="button" role="radio" data-v="cards">Vorschauboxen</button>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="ln-rotate">Nächste Meldung nach</label>
+              <select id="ln-rotate" data-k="rotate"><option value="6">6 Sekunden</option><option value="8">8 Sekunden</option><option value="10">10 Sekunden</option>
+                <option value="15">15 Sekunden</option><option value="20">20 Sekunden</option><option value="30">30 Sekunden</option><option value="60">1 Minute</option></select></div>
+            <div class="field" id="ln-cards-field"><label for="ln-cards">Karten nebeneinander</label>
+              <select id="ln-cards" data-k="cards"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>
+            <div class="field"><label for="ln-font">Schriftgröße</label>
+              <select id="ln-font" data-k="fontScale"><option value="80">80 %</option><option value="90">90 %</option><option value="100">100 % (normal)</option>
+                <option value="110">110 %</option><option value="120">120 %</option><option value="140">140 %</option><option value="160">160 %</option></select></div>
+            <div class="field" id="ln-opacity-field"><label for="ln-opacity">Deckkraft der Karten <span id="ln-opacity-val"></span></label>
+              <input type="range" class="db-range" id="ln-opacity" data-k="opacity" min="0" max="100" step="5"></div>
+          </div>
+          <div class="toggle"><span class="tl2">„Nachrichten“ mit Symbol davor</span><button class="sw" data-k="label" role="switch" aria-label="Überschrift Nachrichten"></button></div>
+          <div class="toggle"><span class="tl2">Quelle zeigen<small>z. B. „Tagesschau“ bzw. Kategorie und Quelle</small></span><button class="sw" data-k="source" role="switch" aria-label="Quelle zeigen"></button></div>
+          <div class="toggle"><span class="tl2">Alter zeigen<small>z. B. „vor 2 Stunden“</small></span><button class="sw" data-k="age" role="switch" aria-label="Alter zeigen"></button></div>
+          <div class="toggle" id="ln-images-row"><span class="tl2">Vorschaubilder<small>nur wenn der Feed eines mitliefert</small></span><button class="sw" data-k="images" role="switch" aria-label="Vorschaubilder"></button></div>
+        </div>
+
+        <div class="card ln-box">
+          <h2>Aktualität</h2>
+          <div class="grid2">
+            <div class="field"><label for="ln-hours">Höchstens so alt</label>
+              <select id="ln-hours"><option value="6">6 Stunden</option><option value="12">12 Stunden</option><option value="24">24 Stunden</option>
+                <option value="48">48 Stunden</option><option value="72">72 Stunden</option><option value="custom">eigene Anzahl Stunden …</option></select>
+              <input type="number" class="mono-in lk-custom" id="ln-hours-n" min="1" max="720" hidden aria-label="Anzahl Stunden"></div>
+            <div class="field"><label for="ln-interval">Feeds abrufen</label>
+              <select id="ln-interval" data-k="interval"><option value="5">alle 5 Minuten</option><option value="10">alle 10 Minuten</option><option value="15">alle 15 Minuten</option>
+                <option value="30">alle 30 Minuten</option><option value="60">jede Stunde</option></select></div>
+          </div>
+          <p class="save-hint">Gezeigt werden nur Meldungen mit Zeitangabe innerhalb dieses Zeitraums, die neuesten zuerst, Doppelte nur einmal. Meldungen ohne Zeitangabe (oder mit einer Zeit in der Zukunft) gelten als unzuverlässig und werden ausgeblendet.</p>
+        </div>
+
+        <div class="card ln-box">
+          <h2>Feeds</h2>
+          <p class="sub">Mehrere gleichzeitig möglich. Reihenfolge = Vorrang bei gleichen Meldungen in zwei Feeds.</p>
+          <div class="wx-l-h">Aktiv</div>
+          <div class="lk-sources" id="ln-sources"></div>
+          <div class="lk-editor" id="ln-editor" hidden></div>
+          <button type="button" class="btn-add" id="ln-add">+ Eigenen Feed hinzufügen</button>
+          <div class="wx-l-h">Vordefinierte Feeds (geprüft)</div>
+          <div id="ln-presets"></div>
+        </div>
+        </div>
+
+        <div class="stack">
+        <div class="card">
+          <div class="card-head"><h2>Vorschau</h2><button type="button" class="btn small" id="ln-shot-reload">Live-Bild neu laden</button></div>
+          <p class="sub">So sieht der untere Rand aus (auf Bildschirmbreite gerechnet, hier verkleinert).</p>
+          <div class="wd-stage ln-stage" id="ln-stage"><div class="wd-stage-in" id="ln-preview"></div></div>
+          <p class="save-hint" id="ln-data"></p>
+          <p class="sub">Live-Bild vom Bildschirm.</p>
+          <div class="wx-shot" id="ln-shot"><img id="ln-shot-img" alt="Live-Bild des Bildschirms"><p class="mp-note" id="ln-shot-note">Live-Bild wird geladen …</p></div>
+        </div>
         </div>
       </section>
 
@@ -1305,6 +1364,8 @@
 <script src="clock.js"></script>
 <script src="calendar-view.js"></script>
 <script src="calendar.js"></script>
+<script src="news-view.js"></script>
+<script src="news.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

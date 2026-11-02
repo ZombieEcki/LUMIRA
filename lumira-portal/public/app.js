@@ -241,6 +241,21 @@
           }
         });
       }
+      if (window.LumiraNews) {
+        window.LumiraNews.init({
+          toast: toast,
+          getSettings: function () { return SETTINGS; },
+          currentPage: function () { return currentPage; },
+          // Schalter „Nachrichten“: wie Bildschirm → Übersicht (MagicMirror startet neu)
+          setModule: function (on) {
+            var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { news: !!on });
+            return api("/api/settings", { method: "POST", body: { modules: mods } }).then(function (settings) {
+              SETTINGS = settings;
+              applyModuleState();
+            });
+          }
+        });
+      }
       if (window.LumiraDoorbell) {
         window.LumiraDoorbell.init({
           toast: toast,
@@ -310,17 +325,6 @@
     $("#loc-name").value = s.location.name || "";
     $("#loc-lat").value = s.location.lat;
     $("#loc-lon").value = s.location.lon;
-
-    var newsSel = $("#news-select");
-    if (s.news.url === "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml") {
-      newsSel.value = "tagesschau";
-    } else if (s.news.url === "https://www.heise.de/rss/heise-atom.xml") {
-      newsSel.value = "heise";
-    } else {
-      newsSel.value = "custom";
-      $("#news-custom-row").hidden = false;
-      $("#news-url").value = s.news.url || "";
-    }
 
     $("#personName").value = s.person.name || "";
     $("#alarmTitle").value = s.alarm.title || "";
@@ -799,6 +803,7 @@
     if (name === "wetter" && window.LumiraWeather) window.LumiraWeather.show(name);
     if (name === "uhr" && window.LumiraClock) window.LumiraClock.show();
     if (name === "kalender" && window.LumiraCalendar) window.LumiraCalendar.show();
+    if (name === "news" && window.LumiraNews) window.LumiraNews.show();
     if (name === "spruche" && window.LumiraSpruche) window.LumiraSpruche.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
@@ -946,15 +951,7 @@
     $all("[data-save]").forEach(function (btn) {
       btn.addEventListener("click", function () { save(btn.getAttribute("data-save"), btn); });
     });
-    $("#news-select").addEventListener("change", function () {
-      $("#news-custom-row").hidden = $("#news-select").value !== "custom";
-    });
   }
-
-  var NEWS_PRESETS = {
-    tagesschau: { title: "Tagesschau", url: "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml" },
-    heise: { title: "heise", url: "https://www.heise.de/rss/heise-atom.xml" }
-  };
 
   function patchFor(section) {
     if (section === "familie") {
@@ -975,11 +972,6 @@
       });
       patch.modules = mods;
       return patch;
-    }
-    if (section === "news") {
-      var sel = $("#news-select").value;
-      var news = sel === "custom" ? { title: "Nachrichten", url: $("#news-url").value.trim() } : NEWS_PRESETS[sel];
-      return { news: news };
     }
     if (section === "alarm") {
       return {
@@ -1051,7 +1043,7 @@
     { key: "familyPlan", where: "familyPlan", need: "hasFamily", label: "Familienplan", desc: "Wochendienste", page: "familienplan" },
     { key: "compliments", need: "hasFamily", label: "Sprüche", desc: "Sprüche, Geburtstage, Hinweise", page: "spruche" },
     { key: "calendar", need: "hasCal", label: "Kalender", desc: "eure Kalender-Abos, 12 Designs", page: "kalender" },
-    { key: "news", label: "Nachrichten", desc: "Ticker am unteren Rand", page: "news" },
+    { key: "news", label: "Nachrichten", desc: "Feeds ganz unten, Leiste oder Karten", page: "news" },
     { key: "alarm", need: "hasAlarm", label: "Alarmierung", desc: "aus: kein Alarm auf dem Bildschirm", page: "alarm" },
     { key: "doorbell", label: "Türklingel", desc: "Ring – Meldung und Live-Video beim Klingeln", page: "klingel" },
     { key: "statusHint", label: "Portal-Hinweis", desc: "kleine Zeile mit der Portal-Adresse" }
@@ -1147,6 +1139,7 @@
     if (!fromFamilyPlan && window.LumiraFamilyPlan && window.LumiraFamilyPlan.refresh) window.LumiraFamilyPlan.refresh();
     if (window.LumiraClock) window.LumiraClock.refresh();
     if (window.LumiraCalendar) window.LumiraCalendar.refresh();
+    if (window.LumiraNews) window.LumiraNews.refresh();
   }
 
   // ---------------------------------------------------------------------

@@ -126,23 +126,10 @@ function buildModules(settings) {
 	// weather.json). Das alte Wettermodul und MMM-RainRadarDWD sind entfernt;
 	// ihre Einstellungen übernimmt weather.migrateLegacy() einmalig.
 
-	if (on("news") && settings.news.url) {
-		modules.push({
-			module: "newsfeed",
-			position: "bottom_bar",
-			config: {
-				feeds: [{ title: settings.news.title || "Nachrichten", url: settings.news.url }],
-				showSourceTitle: false,
-				showPublishDate: true,
-				reloadInterval: 300000,
-				updateInterval: 20000,
-				maxNewsItems: 10,
-				wrapTitle: true,
-				wrapDescription: false,
-				ignoreOldItems: true,
-				ignoreOlderThan: 86400000
-			}
-		});
+	// Nachrichten (Bildschirm → Nachrichten): eigenes Modul statt „newsfeed“,
+	// immer ganz unten. Feeds und Darstellung kommen live aus news.json.
+	if (on("news")) {
+		modules.push({ module: "MMM-LumiraNews", position: "bottom_bar" });
 	}
 
 	// Dezenter Status-Hinweis / SETUP-Anleitung auf dem Spiegel selbst
