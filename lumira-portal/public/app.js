@@ -263,6 +263,7 @@
           getSettings: function () { return SETTINGS; },
           currentPage: function () { return currentPage; },
           onChange: function (d) { TODO = d; renderModulePreview(); },
+          datePicker: datePicker,
           // Schalter „To-do-Liste“: wie Bildschirm → Übersicht (MagicMirror startet neu)
           setModule: function (on) {
             var mods = Object.assign({}, (SETTINGS && SETTINGS.modules) || {}, { todo: !!on });

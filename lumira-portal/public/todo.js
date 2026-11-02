@@ -7,7 +7,7 @@
 (function () {
   "use strict";
 
-  var ctx = null;    // { toast, getSettings, currentPage, setModule }
+  var ctx = null;    // { toast, getSettings, currentPage, setModule, onChange, datePicker }
   var D = null;      // GET /api/todo
   var sel = "";      // gewählte Liste
   var editing = null;
@@ -71,6 +71,21 @@
     var b = pending;
     pending = {};
     api("PUT", "/display", b).then(apply).catch(function (err) { ctx.toast(err.message); load(); });
+  }
+
+  // Datum wie im übrigen Portal: TT.MM.JJJJ im Feld, JJJJ-MM-TT gespeichert
+  function isoToDe(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? m[3] + "." + m[2] + "." + m[1] : ""; }
+  function deToIso(s) {
+    var m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(String(s || "").trim());
+    if (!m) return null;
+    var t = new Date(+m[3], +m[2] - 1, +m[1]);
+    if (t.getDate() !== +m[1] || t.getMonth() !== +m[2] - 1) return null;
+    return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  }
+  // „9:5“ geht nicht, „9:05“, „0905“ und „9.05“ schon → „09:05“
+  function normTime(s) {
+    var m = /^(\d{1,2})[:.]?(\d{2})$/.exec(String(s || "").trim());
+    return m && +m[1] < 24 && +m[2] < 60 ? ("0" + m[1]).slice(-2) + ":" + m[2] : null;
   }
 
   function catOf(id) { return D.categories.filter(function (c) { return c.id === id; })[0]; }
@@ -224,8 +239,9 @@
     var list = field(g, "Liste", select(D.lists.map(function (l) { return [l.id, l.name]; }), t.list));
     var cat = field(g, "Kategorie", select([["", "ohne"]].concat(D.categories.map(function (c) { return [c.id, c.name]; })), t.category));
     var prio = field(g, "Priorität", select(View().PRIORITIES.map(function (p) { return [p[0], (p[2] ? p[2] + " " : "") + p[1]]; }), t.priority));
-    var due = field(g, "Fällig am (optional)", el("input")); due.type = "date"; due.value = t.due;
-    var time = field(g, "Uhrzeit (optional)", el("input")); time.type = "time"; time.value = t.time;
+    var due = field(g, "Fällig am (optional)", el("input", "mono-in")); due.type = "text"; due.placeholder = "TT.MM.JJJJ"; due.inputMode = "numeric"; due.value = isoToDe(t.due);
+    if (ctx.datePicker) ctx.datePicker(due, { withYear: true });
+    var time = field(g, "Uhrzeit (optional)", el("input", "mono-in")); time.type = "text"; time.placeholder = "HH:MM"; time.inputMode = "numeric"; time.maxLength = 5; time.value = t.time;
     var icon = field(g, "Symbol", select([["", "wie die Kategorie"]].concat(View().ICONS), t.icon));
     var rep = field(g, "Wiederholung", select(REPEATS, t.repeat.type));
     var every = field(g, "alle … (Tage / Wochen / Monate)", el("input")); every.type = "number"; every.min = "1"; every.max = "99"; every.value = t.repeat.every || 1;
@@ -275,8 +291,12 @@
     var cancel = row.appendChild(btn("btn", "Abbrechen"));
     var del = row.appendChild(btn("btn lk-del", "Löschen"));
     save.addEventListener("click", function () {
+      var dueIso = due.value.trim() ? deToIso(due.value) : "";
+      var hm = time.value.trim() ? normTime(time.value) : "";
+      if (dueIso === null) { ctx.toast("Datum bitte als TT.MM.JJJJ, z. B. 24.12.2026"); due.focus(); return; }
+      if (hm === null) { ctx.toast("Uhrzeit bitte als HH:MM, z. B. 17:30"); time.focus(); return; }
       var body = {
-        title: title.value.trim(), list: list.value, category: cat.value, priority: prio.value, due: due.value, time: time.value, icon: icon.value,
+        title: title.value.trim(), list: list.value, category: cat.value, priority: prio.value, due: dueIso, time: hm, icon: icon.value,
         note: note.value, repeat: { type: rep.value, every: Number(every.value) || 1, days: dayOn },
         sub: subList.filter(function (s) { return s.title.trim(); })
       };
