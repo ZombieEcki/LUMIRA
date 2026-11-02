@@ -257,6 +257,9 @@
           }
         });
       }
+      if (window.LumiraLayout) {
+        window.LumiraLayout.init({ toast: toast, currentPage: function () { return currentPage; } });
+      }
       if (window.LumiraTodo) {
         window.LumiraTodo.init({
           toast: toast,
@@ -849,6 +852,7 @@
     if (name === "kalender" && window.LumiraCalendar) window.LumiraCalendar.show();
     if (name === "news" && window.LumiraNews) window.LumiraNews.show();
     if (name === "todo" && window.LumiraTodo) window.LumiraTodo.show();
+    if (name === "module" && window.LumiraLayout) window.LumiraLayout.show();
     if (name === "spruche" && window.LumiraSpruche) window.LumiraSpruche.show();
     $all(".page").forEach(function (p) { p.classList.toggle("active", p.getAttribute("data-page") === name); });
     $all("[data-area-btn]").forEach(function (b) {
@@ -1205,6 +1209,7 @@
     if (window.LumiraCalendar) window.LumiraCalendar.refresh();
     if (window.LumiraNews) window.LumiraNews.refresh();
     if (window.LumiraTodo) window.LumiraTodo.refresh();
+    if (window.LumiraLayout) window.LumiraLayout.refresh();
   }
 
   // ---------------------------------------------------------------------

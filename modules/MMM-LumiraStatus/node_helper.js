@@ -7,6 +7,14 @@ const NodeHelper = require("node_helper");
 const http = require("http");
 const QRCode = require("qrcode");
 const { createCapturer, isLoopback } = require("./screenshot");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const layout = require("./lumira-layout");
+
+const LUMIRA_HOME = process.env.LUMIRA_HOME || path.join(os.homedir(), ".lumira");
+// Module in MagicMirror-Bereichen, die das Free-Layout per Hülle verschiebt
+const REGION_KEYS = ["familyPlan", "statusHint"];
 
 module.exports = NodeHelper.create({
 	start() {
@@ -37,9 +45,51 @@ module.exports = NodeHelper.create({
 		});
 	},
 
+	// Free-Layout an die Anzeige (nur die Bereichs-Module; die eigenen Kachel-Module lesen selbst)
+	pushLayout() {
+		const items = layout.read(LUMIRA_HOME) || {};
+		const out = {};
+		REGION_KEYS.forEach((k) => { if (items[k]) out[k] = layout.apply({ width: 0 }, items[k]); });
+		this.sendSocketNotification("LUMIRA_LAYOUT", out);
+	},
+
+	watchLayout() {
+		try {
+			fs.mkdirSync(LUMIRA_HOME, { recursive: true });
+			this.layoutWatcher = fs.watch(LUMIRA_HOME, (eventType, filename) => {
+				if (filename && filename !== layout.FILE) return;
+				clearTimeout(this.layoutDebounce);
+				this.layoutDebounce = setTimeout(() => this.pushLayout(), 200);
+			});
+		} catch (err) {
+			console.error("[MMM-LumiraStatus] Layout-Überwachung nicht möglich:", err.message);
+		}
+	},
+
+	// Wo die Module gerade wirklich stehen (für den Layout-Editor im Portal)
+	writeRects(p) {
+		if (!p || typeof p !== "object" || !p.rects) return;
+		const rects = {};
+		Object.keys(p.rects).slice(0, 30).forEach((k) => {
+			const r = p.rects[k];
+			if (!/^[a-zA-Z]{2,20}$/.test(k) || !r) return;
+			rects[k] = ["x", "y", "w", "h"].reduce((o, f) => { o[f] = Math.round((Number(r[f]) || 0) * 100) / 100; return o; }, {});
+		});
+		const out = { at: new Date().toISOString(), screen: { width: Number(p.screen && p.screen.width) || 0, height: Number(p.screen && p.screen.height) || 0 }, rects };
+		try {
+			fs.writeFileSync(path.join(LUMIRA_HOME, "layout-mirror.json.tmp"), JSON.stringify(out));
+			fs.renameSync(path.join(LUMIRA_HOME, "layout-mirror.json.tmp"), path.join(LUMIRA_HOME, "layout-mirror.json"));
+		} catch (err) {
+			console.error("[MMM-LumiraStatus] Positionen nicht gespeichert:", err.message);
+		}
+	},
+
 	socketNotificationReceived(notification, payload) {
+		if (notification === "LUMIRA_RECTS") { this.writeRects(payload); return; }
 		if (notification === "LUMIRA_CONFIG" && !this.started) {
 			this.started = true;
+			this.watchLayout();
+			this.pushLayout();
 			this.config = payload;
 			this.poll();
 			this.timer = setInterval(() => this.poll(), this.config.pollInterval || 5000);

@@ -30,6 +30,7 @@ const path = require("path");
 const os = require("os");
 
 const LUMIRA_HOME = process.env.LUMIRA_HOME || path.join(os.homedir(), ".lumira");
+const layout = require("./lumira-layout");
 const COMPLIMENTS_PATH = process.env.LUMIRA_COMPLIMENTS_PATH || path.join(LUMIRA_HOME, "compliments.json");
 const REPORT_PATH = path.join(LUMIRA_HOME, "compliments-mirror.json");
 const SETTINGS_KEYS = ["enabled", "off", "own", "words", "display", "behavior"];
@@ -77,6 +78,10 @@ module.exports = NodeHelper.create({
 			out.templates = raw.templates || {};
 			out.settings = {};
 			SETTINGS_KEYS.forEach((k) => { if (raw[k] !== undefined) out.settings[k] = raw[k]; });
+			// Free-Layout (Bildschirm → Übersicht): Position/Größe legt das Modul nach der Bereinigung darüber
+			const items = layout.read(LUMIRA_HOME);
+			out.layoutDisplay = items && items.compliments
+				? layout.apply({ anchor: "auto", unit: "px", x: 0, y: 0, width: 0, height: 0, fontScale: 100 }, items.compliments) : null;
 			return out;
 		} catch (err) {
 			console.error(this.name + ": compliments.json konnte nicht gelesen werden: " + err.message);
@@ -106,7 +111,7 @@ module.exports = NodeHelper.create({
 			// überwachen statt der Datei selbst. Debounced, um den rename-Doppel-
 			// Event nicht doppelt zu verarbeiten.
 			this.watcher = fs.watch(dir, (eventType, filename) => {
-				if (filename && filename !== "compliments.json") return;
+				if (filename && filename !== "compliments.json" && filename !== layout.FILE) return;
 				clearTimeout(self.watchDebounce);
 				self.watchDebounce = setTimeout(() => self.pushCompliments(), 300);
 			});

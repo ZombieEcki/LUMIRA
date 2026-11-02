@@ -315,7 +315,20 @@ um den aktuellen Stand zu sehen.
       Besondere Tage im Familien-Menü oben rechts
 - [x] Altes Wettermodul und MMM-RainRadarDWD entfernt, Schalter einmalig übernommen
       (`weather.migrateLegacy`), `install.sh` löscht den alten Radar-Ordner
-- [ ] Schritt 2: Bildschirm-Übersicht in echter Größe mit Ziehen & Ablegen
+- [x] Schritt 2: Bildschirm-Übersicht mit Ziehen & Ablegen – Layout-Editor Classic/Free ([docs/LAYOUT.md](docs/LAYOUT.md))
+
+### Bildschirm: Layout Classic / Free
+- [x] Classic = bisheriger Stand (Module nach eigenen Einstellungen), Standard; Free = Profile in layout.json
+- [x] Editor in Bildschirm → Übersicht: Modulliste mit Stufe und Sichtbarkeit, Fläche im Bildschirm-
+      Seitenverhältnis, Raster 12–48, Einrasten, Hilfslinien, Live-Bild, Zoom, Pfeiltasten
+- [x] Ziehen, Ecken ziehen (Inhalt/Schrift wächst mit), Eigenschaften (X/Y %, Breite/Höhe, Schrift,
+      Ebene, sichtbar), „in den sichtbaren Bereich holen“
+- [x] Profile: neu vom aktuellen Bildschirm, duplizieren, umbenennen, löschen, aktivieren
+- [x] Entwurf bis Speichern, Schritt zurück, Backup vor jedem Speichern, letzte Speicherung zurück
+- [x] Module lesen das Layout selbst (lumira-layout.js), Familienplan/Portal-Hinweis über MMM-LumiraStatus;
+      kaputte Datei = Classic; Notfall: node lumira-portal/bin/layout-cli.js classic
+- [ ] Auf dem Pi prüfen (Positionsmeldung, Ziehen am Handy, Familienplan nach Alarm)
+- [ ] Später: Profile nach Tageszeit / Home Assistant, Mehrfachauswahl, Export/Import
 
 ### Bildschirm: Uhr (MMM-LumiraClock) – ersetzt die MagicMirror-Uhr
 - [x] 16 Designs aus einem Baukasten (`clock-view.js`/`.css`, auch im Portal), digital und

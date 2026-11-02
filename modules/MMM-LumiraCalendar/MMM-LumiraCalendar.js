@@ -90,7 +90,7 @@ Module.register("MMM-LumiraCalendar", {
 		const uy = c.unit === "pct" ? "vh" : "px";
 		// wie die Wetter-Kacheln: über dem Layout, unter dem Alarm
 		s.position = "fixed";
-		s.zIndex = "5";
+		s.zIndex = String(5 + (c.z || 0));
 		if (v === "top") s.top = c.y + uy;
 		else if (v === "bottom") s.bottom = c.y + uy;
 		else { s.top = "calc(50% + " + c.y + uy + ")"; t.push("translateY(-50%)"); }
@@ -114,6 +114,7 @@ Module.register("MMM-LumiraCalendar", {
 		const View = window.LumiraCalendarView;
 		if (!c || !View) return;
 		if (!this.box) this.box = document.createElement("div");
+		this.box.style.display = c.hidden ? "none" : "";
 		const parent = this.free() ? document.body : this.slot;
 		if (parent && this.box.parentNode !== parent) parent.appendChild(this.box);
 		const now = new Date();

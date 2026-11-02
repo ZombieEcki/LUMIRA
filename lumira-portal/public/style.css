@@ -851,6 +851,59 @@ body.crop-open { overflow:hidden; }
 .subnav-star[aria-pressed="true"] { color:var(--accent); }
 .subnav-star:hover { color:var(--ink); }
 
+/* ---------- Layout-Editor (layout.js) ---------- */
+.ly-top { align-items:center; flex-wrap:wrap; gap:10px; }
+.ly-dirty { color:var(--warn, #d97706); }
+.ly-bar { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin:8px 0 12px; }
+.ly-pf { margin:0; min-width:200px; flex:0 1 260px; }
+.ly-acts { display:flex; gap:6px; flex-wrap:wrap; }
+.ly-main { display:grid; grid-template-columns:210px minmax(0, 1fr) 250px; gap:14px; align-items:start; }
+@media (max-width:1500px) { .ly-main { grid-template-columns:200px minmax(0, 1fr); } .ly-props { grid-column:1 / -1; } }
+@media (max-width:900px) { .ly-main { grid-template-columns:minmax(0, 1fr); } .ly-lib { order:2; } .ly-props { order:3; } }
+.ly-lib input[type=search] { margin-bottom:8px; }
+#ly-lib-list { display:flex; flex-direction:column; gap:4px; max-height:520px; overflow:auto; }
+.ly-mod { display:flex; align-items:center; gap:6px; border-radius:10px; background:var(--field); }
+.ly-mod.is-sel { box-shadow:inset 0 0 0 2px var(--accent); }
+.ly-mod.is-off { opacity:.5; }
+.ly-mod-t { flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; border:0; background:transparent; color:var(--ink); padding:7px 10px; cursor:pointer; text-align:left; font:inherit; }
+.ly-mod-t b { font-size:.85rem; }
+.ly-mod-t small { color:var(--muted); font-size:.72rem; }
+.ly-eye { flex:none; width:30px; height:30px; margin-right:6px; border-radius:8px; border:1px solid var(--line-2); background:transparent; color:var(--accent); cursor:pointer; }
+.ly-eye.is-hidden { color:var(--muted); }
+.ly-tools { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin-bottom:8px; font-size:.82rem; }
+.ly-tools select { width:auto; min-height:34px; padding:6px 10px; font-size:.82rem; }
+.ly-chk { display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
+.ly-stagewrap { overflow:auto; border-radius:12px; background:#05070b; }
+.ly-canvas { position:relative; margin:0; overflow:hidden; border-radius:12px; user-select:none; touch-action:none;
+  background:radial-gradient(120% 90% at 30% 20%, #2a3346 0%, #10141c 60%, #07090d 100%); }
+.ly-canvas.has-shot { background:var(--ly-shot) center / 100% 100% no-repeat, #05070b; }
+.ly-canvas.show-grid::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.35;
+  background-image:linear-gradient(to right, rgba(255,255,255,.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.18) 1px, transparent 1px);
+  background-size:var(--ly-gx) var(--ly-gy); }
+.ly-item { position:absolute; box-sizing:border-box; border:2px solid #3d9cff; border-radius:8px; background:rgba(61,156,255,.16); color:#fff;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; cursor:grab; overflow:visible; padding:2px; min-width:24px; min-height:18px; }
+.ly-item:active { cursor:grabbing; }
+.ly-item.ly-l-position { border-color:#ffb46b; background:rgba(255,180,107,.16); border-style:dashed; }
+.ly-item.is-sel { box-shadow:0 0 0 3px rgba(255,255,255,.85); }
+.ly-item.is-hidden { opacity:.35; border-style:dotted; }
+.ly-item:focus-visible { outline:3px solid #fff; outline-offset:2px; }
+.ly-name { font-size:.78rem; font-weight:700; text-shadow:0 1px 3px #000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.ly-size { font-size:.66rem; opacity:.85; text-shadow:0 1px 3px #000; white-space:nowrap; }
+.ly-h { position:absolute; width:12px; height:12px; border-radius:3px; background:#fff; border:2px solid #3d9cff; }
+.ly-h-nw { left:-7px; top:-7px; cursor:nwse-resize; } .ly-h-se { right:-7px; bottom:-7px; cursor:nwse-resize; }
+.ly-h-ne { right:-7px; top:-7px; cursor:nesw-resize; } .ly-h-sw { left:-7px; bottom:-7px; cursor:nesw-resize; }
+.ly-fixed { position:absolute; left:1%; right:1%; bottom:1%; height:6%; border:1px dashed rgba(255,255,255,.4); border-radius:8px; color:rgba(255,255,255,.6);
+  font-size:.72rem; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.ly-guide { position:absolute; pointer-events:none; background:#ff4fd8; z-index:100; }
+.ly-guide-v { top:0; bottom:0; width:1px; } .ly-guide-h { left:0; right:0; height:1px; }
+.ly-empty { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:rgba(255,255,255,.75); z-index:50; }
+.ly-save { margin-top:10px; flex-wrap:wrap; }
+.ly-props { display:flex; flex-direction:column; gap:8px; }
+.ly-p-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.ly-badge { font-size:.7rem; font-weight:700; padding:3px 8px; border-radius:999px; background:var(--soft); white-space:nowrap; }
+.ly-badge.ly-l-full { color:#3d9cff; } .ly-badge.ly-l-position { color:#d97706; } .ly-badge.ly-l-fixed { color:var(--muted); }
+.ly-note { margin-bottom:12px; }
+
 /* ---------- To-do (todo.js + todo-view.css; Listen/Kategorien wie die Kalenderquellen) ---------- */
 .page[data-page="todo"] > .stack { margin-bottom:16px; }
 .page[data-page="todo"] .lt-pagebox.is-off { opacity:.55; }

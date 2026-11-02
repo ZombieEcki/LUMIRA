@@ -114,6 +114,7 @@ Module.register("MMM-LumiraWeather", {
 		else if (h === "right") s.right = b.x + ux;
 		else { s.left = "calc(50% + " + b.x + ux + ")"; t.push("translateX(-50%)"); }
 		s.transform = t.join(" ");
+		s.zIndex = b.z ? String(5 + b.z) : "";
 		s.width = b.width + "px";
 		if (autoHeight) { s.height = ""; s.maxHeight = b.height + "px"; } else { s.height = b.height + "px"; s.maxHeight = ""; }
 	},

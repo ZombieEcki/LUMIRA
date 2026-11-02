@@ -23,6 +23,7 @@ const path = require("path");
 const os = require("os");
 const ics = require("./ics");
 const view = require("./calendar-view");
+const layout = require("./lumira-layout");
 
 const LUMIRA_HOME = process.env.LUMIRA_HOME || path.join(os.homedir(), ".lumira");
 const STATE_PATH = path.join(LUMIRA_HOME, "calendar.json");
@@ -169,14 +170,16 @@ module.exports = NodeHelper.create({
 	push: function () {
 		const src = {};
 		this.sources.forEach((s) => { src[s.id] = { name: s.name, enabled: s.enabled, color: s.color, icon: s.icon, showTitle: s.showTitle, showLocation: s.showLocation, showTime: s.showTime }; });
-		this.sendSocketNotification("LK_STATE", { config: this.config, sources: src, events: this.merged(), status: this.status() });
+		const items = layout.read(LUMIRA_HOME);
+		this.sendSocketNotification("LK_STATE", { config: layout.apply(this.config, items && items.calendar), sources: src, events: this.merged(), status: this.status() });
 	},
 
 	startWatch: function () {
 		try {
 			fs.mkdirSync(LUMIRA_HOME, { recursive: true });
 			this.watcher = fs.watch(LUMIRA_HOME, (eventType, filename) => {
-				if (filename && filename !== "calendar.json") return;
+				if (filename && filename !== "calendar.json" && filename !== layout.FILE) return;
+				if (filename === layout.FILE) { clearTimeout(this.layoutDebounce); this.layoutDebounce = setTimeout(() => this.push(), 200); return; }
 				clearTimeout(this.debounce);
 				this.debounce = setTimeout(() => {
 					// neue/geänderte Links → gleich abrufen, sonst nur neu zeichnen

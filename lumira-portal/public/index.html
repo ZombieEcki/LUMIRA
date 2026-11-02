@@ -483,6 +483,56 @@
 
       <!-- ================= SPIEGEL ================= -->
       <section class="page" data-page="module">
+        <!-- Layout-Editor (layout.js, lib/layout.js): Classic oder Free mit Profilen -->
+        <div class="card ly-card" id="ly">
+          <div class="card-head ly-top">
+            <h2>Layout</h2>
+            <div class="seg" id="ly-mode" role="group" aria-label="Layout-Modus">
+              <button type="button" data-m="classic" title="Jedes Modul nach seinen eigenen Einstellungen – wie bisher">Classic</button>
+              <button type="button" data-m="free" title="Positionen und Größen aus dem gewählten Layout">Free</button>
+            </div>
+          </div>
+          <p class="save-hint" id="ly-status"></p>
+          <div class="ly-bar">
+            <div class="field ly-pf"><label for="ly-profile">Layout</label><select id="ly-profile"></select></div>
+            <div class="ly-acts">
+              <button type="button" class="btn small" id="ly-new">Neu</button>
+              <button type="button" class="btn small" id="ly-dup">Duplizieren</button>
+              <button type="button" class="btn small" id="ly-rename">Umbenennen</button>
+              <button type="button" class="btn small lk-del" id="ly-del">Löschen</button>
+              <button type="button" class="btn small" id="ly-activate">Dieses Layout aktivieren</button>
+            </div>
+          </div>
+          <div class="ly-main">
+            <aside class="ly-lib">
+              <input type="search" id="ly-search" placeholder="Modul suchen …" aria-label="Modul suchen">
+              <div id="ly-lib-list"></div>
+            </aside>
+            <div class="ly-center">
+              <div class="ly-tools">
+                <label class="ly-chk"><input type="checkbox" data-ly-e="showGrid"> Raster</label>
+                <label class="ly-chk"><input type="checkbox" data-ly-e="snap"> Einrasten</label>
+                <label class="ly-chk"><input type="checkbox" data-ly-e="guides"> Hilfslinien</label>
+                <select data-ly-e="grid" aria-label="Rastergröße"><option value="12">12 Spalten</option><option value="16">16 Spalten</option><option value="24">24 Spalten</option><option value="32">32 Spalten</option><option value="48">48 Spalten</option></select>
+                <label class="ly-chk"><input type="checkbox" id="ly-shot"> Live-Bild dahinter</label>
+                <select id="ly-zoom" aria-label="Zoom"><option value="1">100 %</option><option value="1.5">150 %</option><option value="2">200 %</option></select>
+              </div>
+              <div class="ly-stagewrap" id="ly-stagewrap"><div class="ly-canvas" id="ly-canvas">
+                <div class="ly-empty" id="ly-empty" hidden><p>Dieses Layout ist noch leer.</p><button type="button" class="btn small" id="ly-take">Vom Bildschirm übernehmen</button></div>
+              </div></div>
+              <div class="save-row ly-save">
+                <button type="button" class="btn primary" id="ly-save">Speichern</button>
+                <button type="button" class="btn" id="ly-discard">Verwerfen</button>
+                <button type="button" class="btn" id="ly-undo-draft" title="Letzten Schritt im Entwurf zurück">↶ Schritt zurück</button>
+                <button type="button" class="btn" id="ly-undo" title="Letzte Speicherung zurücknehmen (aus der automatischen Sicherung)">Letzte Speicherung zurück</button>
+              </div>
+            </div>
+            <aside class="ly-props" id="ly-props"></aside>
+          </div>
+          <p class="save-hint">Ziehen verschiebt, die Ecken ändern die Größe – der Inhalt wächst mit. Alles bleibt Entwurf bis „Speichern“; vor jedem Speichern wird der alte Stand gesichert.
+            Notfall ohne Portal: <span class="mono-in">node ~/LUMIRA/lumira-portal/bin/layout-cli.js classic</span></p>
+        </div>
+
         <div class="card">
           <h2>Module auf dem Bildschirm</h2>
           <p class="sub">Ein- und ausschalten, dann speichern – der Bildschirm startet dabei einmal neu. Das Zahnrad öffnet die Einstellungen.
@@ -1475,6 +1525,7 @@
 <script src="news.js"></script>
 <script src="todo-view.js"></script>
 <script src="todo.js"></script>
+<script src="layout.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

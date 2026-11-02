@@ -15,6 +15,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const view = require("./todo-view");
+const layout = require("./lumira-layout");
 
 const LUMIRA_HOME = process.env.LUMIRA_HOME || path.join(os.homedir(), ".lumira");
 const STATE_PATH = path.join(LUMIRA_HOME, "todo.json");
@@ -51,14 +52,15 @@ module.exports = NodeHelper.create({
 	},
 
 	push: function () {
-		this.sendSocketNotification("LT_STATE", this.state);
+		const items = layout.read(LUMIRA_HOME);
+		this.sendSocketNotification("LT_STATE", Object.assign({}, this.state, { display: layout.apply(this.state.display, items && items.todo) }));
 	},
 
 	startWatch: function () {
 		try {
 			fs.mkdirSync(LUMIRA_HOME, { recursive: true });
 			this.watcher = fs.watch(LUMIRA_HOME, (eventType, filename) => {
-				if (filename && filename !== "todo.json") return;
+				if (filename && filename !== "todo.json" && filename !== layout.FILE) return;
 				clearTimeout(this.debounce);
 				this.debounce = setTimeout(() => { this.load(); this.push(); }, 200);
 			});

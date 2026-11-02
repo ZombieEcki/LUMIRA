@@ -55,7 +55,7 @@ Module.register("MMM-LumiraTodo", {
 		s.left = s.right = s.top = s.bottom = "";
 		// wie die Wetter-Kacheln: über dem Layout, unter dem Alarm
 		s.position = "fixed";
-		s.zIndex = "5";
+		s.zIndex = String(5 + (c.z || 0));
 		s.width = c.width + "px";
 		s.maxWidth = "100vw";
 		s.maxHeight = c.height + "px";
@@ -84,6 +84,7 @@ Module.register("MMM-LumiraTodo", {
 		const h = c.anchor.split("_")[1];
 		View.build(this.box, c, st.data, { baseClass: "lt-panel", align: h === "center" ? "center" : h, now: Date.now() });
 		this.box.setAttribute("data-lumira-tile", "To-do");
+		this.box.style.display = c.hidden ? "none" : "";
 		this.applyPos(this.box, c);
 		setTimeout(() => {
 			if (!this.box) return;

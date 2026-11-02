@@ -252,6 +252,7 @@ Module.register("MMM-SmartCompliments", {
 			if (payload.templates.weddingText) { this.config.weddingText = payload.templates.weddingText; }
 		}
 		this.settings = L.cleanSettings(payload.settings || {});
+		if (payload.layoutDisplay) { this.settings.display = Object.assign({}, this.settings.display, payload.layoutDisplay); }
 		const s = this.settings;
 		const contentChanged = !before || beforeLists !== JSON.stringify(this.lists) ||
 			JSON.stringify([before.enabled, before.off, before.own, before.words]) !== JSON.stringify([s.enabled, s.off, s.own, s.words]);
@@ -636,7 +637,7 @@ Module.register("MMM-SmartCompliments", {
 	},
 
 	visible: function () {
-		return !this.manuallyHidden && !this.firefighterActive && !!(this.current && this.current.text);
+		return !this.manuallyHidden && !this.firefighterActive && !(this.settings && this.settings.display.hidden) && !!(this.current && this.current.text);
 	},
 
 	// Ein Spruch-Element füllen und gestalten (gilt für beide Arten der Anzeige)
@@ -722,6 +723,7 @@ Module.register("MMM-SmartCompliments", {
 		else if (h === "right") s.right = d.x + ux;
 		else { s.left = "calc(50% + " + d.x + ux + ")"; t.push("translateX(-50%)"); }
 		s.transform = t.join(" ");
+		s.zIndex = d.z ? String(5 + d.z) : "";
 	},
 
 	removePanel: function () {

@@ -9,6 +9,7 @@ Technische Dokumentation von LUMIRA: Installation, Konfiguration, Webhooks.
 - [FAMILIENPLAN.md](FAMILIENPLAN.md) – Familienplan: Einrichtung, Bedienung, Rotationslogik, Datensicherung, Fehlerbehebung
 - [KLINGEL.md](KLINGEL.md) – Ring-Türklingel: Verbindung, Ton und Videodauer, Installation, Sicherheit, Fehlerbehebung
 - [SPRUECHE.md](SPRUECHE.md) – Sprüche: Kategorien, Anlässe (Wetter, Warnungen, Kalender), Darstellung, Schnittstellen, Sicherung, Rollback, Fehlerbehebung
+- [LAYOUT.md](LAYOUT.md) – Bildschirm-Layout: Classic oder Free, Editor mit Ziehen und Ecken, Profile, Sicherung, Notfall-Befehl
 - [TODO.md](TODO.md) – To-do-Liste (12 Designs): Aufgaben, Listen, Kategorien, Wiederholung, Anzeige, Datensicherheit, Fehlerbehebung
 - [NACHRICHTEN.md](NACHRICHTEN.md) – Nachrichten (RSS/Atom): zwei Varianten, geprüfte Feeds, eigene Feeds, Zeitraum und Zeitregel, Fehlerbehebung
 - [KALENDER.md](KALENDER.md) – Kalender (12 Designs): mehrere Kalender-Abos, Links finden, Zeitraum und Anzahl, Position, Sicherheit, Fehlerbehebung

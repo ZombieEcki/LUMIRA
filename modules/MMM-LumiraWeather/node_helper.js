@@ -36,6 +36,8 @@ const RETRY_MS = 3 * 60 * 1000;
 
 const { cleanConfig, extentEnd, radarFrames, parseWarnings, warningsUrl, RADAR_CAPS_URL, forecastUrl, parseForecast } = require("./payload");
 
+const layout = require("./lumira-layout");
+
 const sameLoc = (a, b) => !!(a && b) && Math.abs(a.lat - b.lat) < 0.001 && Math.abs(a.lon - b.lon) < 0.001;
 
 module.exports = NodeHelper.create({
@@ -158,7 +160,17 @@ module.exports = NodeHelper.create({
 	},
 
 	push: function () {
-		const c = this.config || cleanConfig(null);
+		const base = this.config || cleanConfig(null);
+		// Free-Layout: Position/Größe je Kachel; ausgeblendet = Kachel aus (nur Anzeige)
+		const items = layout.read(LUMIRA_HOME);
+		const c = Object.assign({}, base);
+		if (items) {
+			[["weather", "weather"], ["radar", "radar"], ["warnings", "warnings"]].forEach(([part, key]) => {
+				if (!items[key]) return;
+				c[part] = layout.apply(base[part], items[key]);
+				if (c[part].hidden) c[part] = Object.assign({}, c[part], { enabled: false });
+			});
+		}
 		const now = new Date();
 		this.sendSocketNotification("LW_STATE", {
 			config: c,
@@ -181,6 +193,7 @@ module.exports = NodeHelper.create({
 		try {
 			fs.mkdirSync(LUMIRA_HOME, { recursive: true });
 			this.watcher = fs.watch(LUMIRA_HOME, (eventType, filename) => {
+				if (filename === layout.FILE) { clearTimeout(self.layoutDebounce); self.layoutDebounce = setTimeout(() => self.push(), 200); return; }
 				if (filename && filename !== "weather.json") return;
 				clearTimeout(self.debounce);
 				self.debounce = setTimeout(() => {

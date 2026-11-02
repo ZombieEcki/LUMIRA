@@ -35,6 +35,7 @@ const clockLib = require("./lib/clock");
 const calendarLib = require("./lib/calendar");
 const newsLib = require("./lib/news");
 const todoLib = require("./lib/todo");
+const layoutLib = require("./lib/layout");
 
 const PORT = Number(process.env.LUMIRA_PORTAL_PORT) || 8092;
 const MM_CONFIG_PATH = process.env.LUMIRA_MM_CONFIG || path.join(os.homedir(), "MagicMirror", "config", "config.js");
@@ -1150,6 +1151,55 @@ app.delete("/api/todo/lists/:id", requireAuth, (req, res) => todoAction(res, () 
 app.post("/api/todo/categories", requireAuth, (req, res) => todoAction(res, () => todo.addCategory(todoBody(req))));
 app.put("/api/todo/categories/:id", requireAuth, (req, res) => todoAction(res, () => todo.updateCategory(todoId(req), todoBody(req))));
 app.delete("/api/todo/categories/:id", requireAuth, (req, res) => todoAction(res, () => todo.removeCategory(todoId(req))));
+
+// ---------------------------------------------------------------------------
+// Bildschirm-Layout (Bildschirm → Übersicht): Classic oder Free mit Profilen,
+// siehe lib/layout.js. Schreibt nur layout.json – nie die Modul-Einstellungen.
+// ---------------------------------------------------------------------------
+const layout = layoutLib.createLayout({ home: settingsLib.LUMIRA_HOME });
+
+// Welche Module gerade an sind und wie groß sie eingestellt sind (für den Editor)
+function layoutContext() {
+	const st = settingsLib.load();
+	const ed = getEdition(st.edition);
+	const on = (k) => !(st.modules && st.modules[k] === false);
+	const ctx = { active: {}, current: {} };
+	const safe = (fn) => { try { return fn(); } catch (e) { return null; } };
+	const box = (b) => (b ? { w: b.width, h: b.height, font: b.fontScale } : null);
+	const wx = safe(() => weather.load());
+	ctx.active = {
+		clock: on("clock"), calendar: !!ed.hasCal && on("calendar"), todo: !!(st.modules && st.modules.todo === true),
+		weather: !!(wx && wx.weather.enabled), radar: !!(wx && wx.enabled && wx.radar.enabled), warnings: !!(wx && wx.enabled && wx.warnings.enabled),
+		compliments: !!ed.hasFamily && on("compliments"), familyPlan: !!ed.hasFamily && !!(st.familyPlan && st.familyPlan.enabled),
+		statusHint: on("statusHint"), news: on("news"), alarm: !!ed.hasAlarm && on("alarm"), ambient: true, doorbell: !!(st.modules && st.modules.doorbell === true)
+	};
+	ctx.current = {
+		clock: box(safe(() => clock.load())), calendar: box(safe(() => calendar.load().config)), todo: box(safe(() => todo.load().display)),
+		weather: box(wx && wx.weather), radar: box(wx && wx.radar), warnings: box(wx && wx.warnings),
+		compliments: safe(() => { const d = complimentsLib.load().display; return d && d.width ? { w: d.width, h: d.height || 200, font: d.fontScale } : { w: 600, h: 200, font: d ? d.fontScale : 100 }; })
+	};
+	return ctx;
+}
+
+function layoutAction(res, fn) {
+	try {
+		const out = fn();
+		res.json(out && out.modules ? out : layout.view(layoutContext()));
+	} catch (err) {
+		if (err instanceof layoutLib.LayoutError) return res.status(err.status).json({ error: err.message });
+		console.error("[lumira-portal] Layout:", err && err.message);
+		res.status(500).json({ error: "Interner Fehler" });
+	}
+}
+const layoutBody = (req) => req.body || {};
+
+app.get("/api/layout", requireAuth, (req, res) => layoutAction(res, () => layout.view(layoutContext())));
+app.post("/api/layout/profiles", requireAuth, (req, res) => layoutAction(res, () => { layout.addProfile(layoutBody(req), layoutContext()); }));
+app.put("/api/layout/profiles/:id", requireAuth, (req, res) => layoutAction(res, () => { layout.updateProfile(String(req.params.id), layoutBody(req)); }));
+app.delete("/api/layout/profiles/:id", requireAuth, (req, res) => layoutAction(res, () => { layout.removeProfile(String(req.params.id)); }));
+app.put("/api/layout/mode", requireAuth, (req, res) => layoutAction(res, () => { layout.setMode(layoutBody(req).mode, layoutBody(req).active); }));
+app.put("/api/layout/editor", requireAuth, (req, res) => layoutAction(res, () => { layout.setEditor(layoutBody(req)); }));
+app.post("/api/layout/undo", requireAuth, (req, res) => layoutAction(res, () => { layout.undo(); }));
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
